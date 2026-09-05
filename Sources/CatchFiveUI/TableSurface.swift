@@ -282,13 +282,12 @@ struct TableSurface: View {
                 VStack(spacing: 2) {
                     actionButton(suit.glyph, action: .chooseTrump(suit), fill: suit.pillFill, font: .largeTitle.weight(.bold))
                         .accessibilityLabel("\(suit.rawValue), \(model.trumpPreview(for: suit) ?? "")")
-                    // One caption line so the auction still fits without scrolling (D34).
-                    Text(suit.rawValue).font(.caption2.weight(.semibold)).opacity(0.8)
-                    if let preview = model.trumpPreview(for: suit) {
-                        Text(preview).font(.caption2).opacity(0.6)
-                    }
+                    // One short caption line so the auction still fits without scrolling (D34): the suit and
+                    // what it keeps; the draw count is implied and VoiceOver reads the full preview.
+                    Text(model.trumpPreview(for: suit).flatMap { $0.split(separator: " · ").first }.map { "\(suit.rawValue) · \($0)" } ?? suit.rawValue)
+                        .font(.caption2.weight(.semibold)).opacity(0.8)
+                        .lineLimit(1).minimumScaleFactor(0.6)
                 }
-                .lineLimit(1).minimumScaleFactor(0.7)
                 .accessibilityElement(children: .contain)
             }
         }
