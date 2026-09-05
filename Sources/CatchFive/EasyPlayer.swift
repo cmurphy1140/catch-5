@@ -1,9 +1,8 @@
-@testable import CatchFive
-
-/// Frozen copy of the computer player as merged in PR #2 (2026-09-04).
-/// It exists only as a fixed opponent for `StrategyBenchmark`; do not improve it.
-enum BaselinePlayer {
-    static func decide(_ view: PlayerView) -> PlayerAction? {
+/// The "Easy" computer: a frozen copy of the player merged in PR #2 (2026-09-04).
+/// It is also the fixed opponent the strength benchmark measures against, so it must never be
+/// improved; a stronger easy player would silently move the benchmark's yardstick (see D17, D26).
+public enum EasyPlayer {
+    public static func decide(_ view: PlayerView) -> PlayerAction? {
         guard view.nextSeat == view.seat else { return nil }
         switch view.phase {
         case .bidding: return .bid(bidAmount(view))

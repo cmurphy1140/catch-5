@@ -1,3 +1,4 @@
+import CatchFive
 import SwiftUI
 
 struct SettingsView: View {
@@ -7,6 +8,14 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    Picker("Computer strength", selection: $settings.difficulty) {
+                        Text("Easy").tag(Difficulty.easy)
+                        Text("Standard").tag(Difficulty.standard)
+                    }.pickerStyle(.segmented)
+                } header: { Text("Difficulty") } footer: {
+                    Text("Easy players use the original strategy and lose about two matches in three to Standard. Hints always use Standard.")
+                }
                 Section("Play speed") {
                     Picker("Computer pace", selection: $settings.playSpeed) {
                         Text("Relaxed").tag(Settings.PlaySpeed.relaxed)

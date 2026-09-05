@@ -46,15 +46,15 @@ func mirroredBenchmark(seeds: Range<Int>, candidate: @escaping Strategy, baselin
 }
 
 @Test func benchmarkHarnessIsFairWhenBothSidesUseTheSameStrategy() throws {
-    let result = try mirroredBenchmark(seeds: 1..<51, candidate: BaselinePlayer.decide, baseline: BaselinePlayer.decide)
+    let result = try mirroredBenchmark(seeds: 1..<51, candidate: EasyPlayer.decide, baseline: EasyPlayer.decide)
     #expect(result.matches == 100)
     #expect(result.candidateWins == result.baselineWins)
     #expect(result.margin == 0)
 }
 
-/// The improvement target: the shipped player must clearly beat the frozen PR #2 player.
+/// The improvement target: the shipped player must clearly beat the frozen PR #2 player, which is also "Easy".
 @Test func computerPlayerBeatsFrozenBaseline() throws {
-    let result = try mirroredBenchmark(seeds: 1..<301, candidate: ComputerPlayer.decide, baseline: BaselinePlayer.decide)
+    let result = try mirroredBenchmark(seeds: 1..<301, candidate: ComputerPlayer.decide, baseline: EasyPlayer.decide)
     // Measured 0.66 with a +5.5 point margin per match on 2026-09-04; the bar sits well below that.
     #expect(result.candidateWinRate >= 0.58)
     #expect(result.marginPerMatch >= 2)

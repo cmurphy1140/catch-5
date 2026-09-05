@@ -1,3 +1,4 @@
+import CatchFive
 import Foundation
 
 /// Player preferences. They live outside the rules engine; the table and view model read them.
@@ -10,13 +11,16 @@ public struct Settings: Codable, Equatable, Sendable {
     /// Seat 0 is the human; the others are West, Partner and East by default.
     public var seatNames: [String]
     public var haptics: Bool
+    public var difficulty: Difficulty
 
     public static let defaultSeatNames = ["You", "West", "Partner", "East"]
 
-    public init(playSpeed: PlaySpeed = .normal, seatNames: [String] = Settings.defaultSeatNames, haptics: Bool = true) {
+    public init(playSpeed: PlaySpeed = .normal, seatNames: [String] = Settings.defaultSeatNames,
+                haptics: Bool = true, difficulty: Difficulty = .standard) {
         self.playSpeed = playSpeed
         self.seatNames = seatNames
         self.haptics = haptics
+        self.difficulty = difficulty
     }
 
     // Missing keys fall back to defaults so an older settings file keeps loading.
@@ -26,6 +30,7 @@ public struct Settings: Codable, Equatable, Sendable {
         let names = try container.decodeIfPresent([String].self, forKey: .seatNames) ?? Settings.defaultSeatNames
         seatNames = names.count == 4 ? names : Settings.defaultSeatNames
         haptics = try container.decodeIfPresent(Bool.self, forKey: .haptics) ?? true
+        difficulty = try container.decodeIfPresent(Difficulty.self, forKey: .difficulty) ?? .standard
     }
 
     /// Pause before a computer acts: longer before a lead so the last trick can be read.
