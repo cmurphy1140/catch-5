@@ -21,8 +21,8 @@ stateDiagram-v2
 stateDiagram-v2
     [*] --> bidding: deal 6 each,<br/>two packets of 3,<br/>left of dealer first
     bidding --> choosingTrump: dealer has acted<br/>(auction.nextSeat == nil)
-    choosingTrump --> playing: bid winner names trump;<br/>everyone discards non-trumps<br/>and refills to 6
-    playing --> playing: card played;<br/>4th card resolves the trick,<br/>winner leads
+    choosingTrump --> playing: bid winner names trump,<br/>everyone discards non-trumps<br/>and refills to 6
+    playing --> playing: card played,<br/>4th card resolves the trick,<br/>winner leads
     playing --> finished: 6th trick →<br/>scoreHand → Match.recordHand
     finished --> [*]
 ```
