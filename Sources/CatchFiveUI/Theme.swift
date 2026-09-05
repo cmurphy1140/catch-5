@@ -9,7 +9,7 @@ public enum Theme {
         public static func radius(width: Double) -> Double { width * 0.06 }
         public static let handWidth = 64.0
         public static let handWidthWide = 68.0
-        public static let pileWidth = 74.0
+        public static let pileWidth = 62.0
         public static let backWidth = 40.0
         public static let tutorialWidth = 48.0
         /// Spacing between fanned hand cards; negative so they overlap.
@@ -54,6 +54,9 @@ public enum Theme {
         /// The lit centre of the felt, and its darkest edge.
         public static let feltEdge = Color(red: 0.16, green: 0.34, blue: 0.26)
         public static let feltDark = Color(red: 0.04, green: 0.13, blue: 0.10)
+        /// The light flecks of the felt's nap, and the grid step (points) of the stipple.
+        public static let feltLight = Color(red: 0.55, green: 0.80, blue: 0.62)
+        public static let feltStipple = 4.0
         /// Grain runs across the screen (a board laid the long way under the phone) when true, top to bottom when false.
         public static let grainRunsHorizontally = true
         public static let seed: UInt64 = 11
@@ -70,9 +73,10 @@ public enum Theme {
         /// The pile's reserved footprint around a card, so the table does not jump between tricks.
         public static let pileMarginX = 64.0
         public static let pileMarginY = 48.0
-        public static let seatBackWidth = 24.0
+        public static let seatBackWidth = 30.0
+        public static let portraitSize = 36.0
         /// Seat tiles share one width; their height follows the phase (call text in the auction, backs in play).
-        public static let seatTileWidth = 110.0
+        public static let seatTileWidth = 116.0
         /// The round status-line buttons (last trick, hint): visible disc and hit area.
         public static let statusButtonSize = 38.0
         public static let statusButtonHitSize = 48.0
@@ -107,6 +111,42 @@ public enum Theme {
         public static let dealStagger = 0.09
         /// The scheduler waits this long after trump is named before the first lead, so the deal finishes.
         public static let dealHold: Duration = .milliseconds(1400)
+    }
+
+    /// Colours for drawn faces, chosen to sit with felt and ivory. No gold here (D33).
+    public enum Portrait {
+        public static func color(_ skin: CatchFiveUI.Portrait.Skin) -> Color {
+            switch skin {
+            case .light: Color(red: 0.96, green: 0.85, blue: 0.74)
+            case .tan: Color(red: 0.85, green: 0.68, blue: 0.52)
+            case .brown: Color(red: 0.62, green: 0.44, blue: 0.30)
+            case .deep: Color(red: 0.38, green: 0.25, blue: 0.17)
+            }
+        }
+        public static func color(_ hair: CatchFiveUI.Portrait.HairColor) -> Color {
+            switch hair {
+            case .black: Color(red: 0.12, green: 0.10, blue: 0.10)
+            case .brown: Color(red: 0.40, green: 0.26, blue: 0.16)
+            case .blond: Color(red: 0.80, green: 0.62, blue: 0.32)
+            case .silver: Color(red: 0.80, green: 0.80, blue: 0.82)
+            case .red: Color(red: 0.70, green: 0.30, blue: 0.16)
+            }
+        }
+        public static func color(_ shirt: CatchFiveUI.Portrait.Shirt) -> Color {
+            switch shirt {
+            case .plum: Color(red: 0.42, green: 0.20, blue: 0.36)
+            case .olive: Color(red: 0.40, green: 0.44, blue: 0.22)
+            case .teal: Color(red: 0.16, green: 0.42, blue: 0.44)
+            case .rust: Color(red: 0.62, green: 0.30, blue: 0.18)
+            case .navy: Color(red: 0.16, green: 0.22, blue: 0.40)
+            case .mustard: Color(red: 0.72, green: 0.58, blue: 0.22)
+            }
+        }
+        /// Hats and glasses frames.
+        public static let accessory = Color(red: 0.20, green: 0.20, blue: 0.22)
+        public static let disc = Color(red: 0.10, green: 0.24, blue: 0.20)
+        /// The flower hat.
+        public static let blossom = Color(red: 0.93, green: 0.55, blue: 0.62)
     }
 }
 

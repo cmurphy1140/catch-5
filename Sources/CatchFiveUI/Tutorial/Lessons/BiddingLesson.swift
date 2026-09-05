@@ -12,9 +12,9 @@ struct BiddingLesson: View {
                 "The high bidder names trump and leads. Make the bid and you keep every point you took. Fall short and you lose the whole bid.",
             ], tactic: "Count what you can see: an ace in a long suit is High, a protected five is five. Bid what you can take.")
             HStack(spacing: 8) {
-                SeatTile(name: "West", detail: "Bid 2") {}
-                SeatTile(name: "Partner", detail: "Bid 3") {}
-                SeatTile(name: "East", detail: "Waiting", badge: "DEALER") {}
+                SeatTile(name: Cast.opponents[0].name, detail: "West · Bid 2", portrait: Cast.opponents[0].portrait) {}
+                SeatTile(name: Cast.opponents[1].name, detail: "Partner · Bid 3", portrait: Cast.opponents[1].portrait) {}
+                SeatTile(name: Cast.opponents[2].name, detail: "East · Waiting", badge: "DEALER", portrait: Cast.opponents[2].portrait) {}
             }.disabled(true)
             Text("High bid: 3. Your bid.").font(.subheadline)
             HStack(spacing: 8) { ForEach(TutorialFixtures.biddingHand, id: \.self) { CardView(card: $0) } }

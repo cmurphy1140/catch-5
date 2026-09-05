@@ -284,6 +284,14 @@ Portrait iPhone first, with iPad allowed in the same 640-point column, stays the
 
 **Why:** A procedural texture costs one file and no build changes, is identical on every launch, and stays crisp at any size; clipping the same view to the header shape and the sheets keeps one drawing. Felt in play and wood around it is how a real card table looks. Boosting the environment's `dynamicTypeSize` is one line, testable, and composes with the existing caps (cards still stop at XXXL, table text at AX2). Full-width pills put the whole column under the thumb, which is the point of having the auction in the thumb zone. Folding the toast into the message line removed a 28 pt row that was empty most of the time. The scroll fallback from D34 stays in the code so nothing clips on other phones, but it is no longer verified per release.
 
+## D36. A fixed cast, a one-time name prompt and a menu-first launch (PR #22, 2026-09-05)
+
+**Chosen:** Three named opponents, Hazel, Otto and Rue, always fill West, Partner and East, drawn in SwiftUI from a `Portrait` recipe rather than image assets. The human types a name once on a login screen and picks one of four faces; the name becomes seat 0's name in `Settings.seatNames`, so the rest of the app is unchanged. The app opens on a main menu with Continue, New match, Tutorial, Rules, Match history and Settings; the table gains a back chevron and no longer opens the tutorial by itself. Old settings files that still carry West, Partner and East migrate to the cast's names; custom names are kept.
+
+**Over:** A roster with random seating (the player never learns who is who); choosing opponents at login (more screens for no gameplay gain); image assets (an art pipeline the hand-built simulator bundle does not have); a NavigationStack that creates the model on demand (the menu needs settings and history before a match exists).
+
+**Why:** Names and faces make turn order readable at a glance and give the score bar's team labels a person to point at. Keeping names in `Settings.seatNames` means the contract line, explanations, review and scoreboard needed no changes. The recipe approach keeps portraits crisp at 28 pt and 72 pt, tints nothing gold (D33), and compiles on macOS for `swift test`. Menu-first gives the tutorial, rules and history a home that does not compete with the table.
+
 ## D37. Discards rise and the refill deals in from the deck (PR #21, 2026-09-05)
 
 D36 is taken by the cast, login and menu work on the parallel branch.
@@ -293,4 +301,20 @@ D36 is taken by the cast, login and menu work on the parallel branch.
 **Over:** Animating the engine's refill through a new model event; dealing from the dealer's seat (Connor asked for a visible deck instead); a fixed extra delay on every lead.
 
 **Why:** The engine already discards and refills in one action, so the hand's diff is exactly the animation's cast list; SwiftUI's asymmetric transitions carry their own timing, so the stagger needs no extra state. Choosing the transition by phase avoids tracking "why did this card leave", and the only insertion during early play is the refill. The deck gives the deal a source the eye can follow and shows the stock count for free.
+
+## D38. The header is lit as one board, seats grow, the pile card shrinks, and the felt gets a nap (PR #22, 2026-09-05)
+
+**Chosen:** `WoodGrainView` takes a `vignette`: the header band uses a linear top-to-bottom shade (a little dark at the very top, clear through the middle, darker along the frown edge), while the reading sheets keep the radial pool of light. Seat tiles grow (36 pt portraits, 30 pt card backs, headline names, 116 pt tiles) and the pile card drops from 74 to 62 pt so the people at the table outweigh the card in play. `FeltView` draws a seeded stipple of faint light and dark flecks on a 4 pt jittered grid over the felt gradient.
+
+**Over:** Keeping the radial vignette everywhere (on a short strip it reads as a spotlight around the Dynamic Island, which Connor flagged from a screenshot); an image texture for the felt.
+
+**Why:** A vignette sized for a full screen has nowhere to fall away on a 180 pt band, so its centre becomes a bright disc; a linear shade keeps the grain and gives the band one light. With named, drawn opponents the seats carry more meaning than before, and a 62 pt pile card still shows rank and suit at a glance. The stipple costs one `Canvas` pass with the same seeded generator as the grain, so it is identical on every launch and needs no asset.
+
+## D39. No menu page: a one-page intro for new players, a welcome card for returning ones (PR #22, 2026-09-05)
+
+**Chosen:** Amends D36. The full-page main menu is gone. After login the only button is New match; it opens `IntroView`, one page that says how a hand goes in five steps with Learn the game (the tutorial, full screen, Skip in the toolbar and Deal me in at the end) and Deal me in. A returning player launches straight onto the table with a small `WelcomeCard` over it: Continue game until the match is won (a dealt hand counts, Connor asked for it from a screenshot), New match (confirming only when bids or plays would be lost), Settings. The table's chevron reopens the card. Match history and the tutorial stay in the table's gear menu.
+
+**Over:** A menu with Continue, New match, Tutorial, Rules, Match history and Settings for everyone (Connor: Continue makes no sense for someone who just signed in, and a returning player should not pass a menu to reach their game); forcing the five-lesson tutorial on new players.
+
+**Why:** Standard game onboarding is a short, skippable intro with a clear door to the full lessons, and returning players expect to be at the table one launch away. A card over the table keeps the two things a returning player actually wants in reach without a page between them.
 

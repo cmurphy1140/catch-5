@@ -22,9 +22,12 @@ public struct TableView: View {
     @State private var shakeCount = 0
     @State private var toast: PlayerAction?
 
-    public init(model: GameModel) {
+    private let onLeave: () -> Void
+
+    public init(model: GameModel, onLeave: @escaping () -> Void = {}) {
         _model = StateObject(wrappedValue: model)
         _tutorial = StateObject(wrappedValue: model.makeTutorial())
+        self.onLeave = onLeave
     }
 
     public var body: some View {
@@ -40,12 +43,12 @@ public struct TableView: View {
                          canUndo: model.canUndo, onUndo: { model.undo() },
                          onScores: { showScoreboard = true }, onSettings: { showSettings = true },
                          onStatistics: { showStatistics = true }, onTutorial: { showTutorial = true },
-                         onNewGame: { confirmNewGame = true })
+                         onNewGame: { confirmNewGame = true }, onLeave: onLeave)
                 .padding(.horizontal, 16).padding(.top, 4).padding(.bottom, 14)
                 // A solid header band: runs up behind the status bar and ends in a frown, the corners
                 // hanging lower than the middle, so the scores sit on one colour and the wood starts beneath.
                 .background {
-                    WoodGrainView()
+                    WoodGrainView(vignette: .linear)
                         .clipShape(HeaderBandShape(dip: Theme.Table.headerDip))
                         .shadow(color: .black.opacity(0.45), radius: 10, y: 4)
                         .ignoresSafeArea(edges: .top)
@@ -103,7 +106,6 @@ public struct TableView: View {
         withHaptics
             .sheet(isPresented: $showSettings) { SettingsView(settings: $model.settings) }
             .sheet(isPresented: $showTutorial, onDismiss: { model.markRulesSeen() }) { TutorialView(model: tutorial) { showTutorial = false } }
-            .onAppear { if model.needsRulesIntroduction { showTutorial = true } }
             .sheet(isPresented: $showReview) {
                 if let review = model.handReview() {
                     ReviewView(review: review, names: model.seatNames, difficulty: model.settings.difficulty, describe: model.describe) { showReview = false }

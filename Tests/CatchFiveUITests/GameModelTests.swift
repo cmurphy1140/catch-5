@@ -77,7 +77,7 @@ import Testing
     for _ in 0..<3 { model.stepComputer() }
     let trick = try #require(model.match.hand.completedTricks.last)
     let west = try #require(model.explanation(for: trick.plays[1], inLastTrick: true))
-    #expect(west.hasPrefix("West played the \(trick.plays[1].card.name)"))
+    #expect(west.hasPrefix("\(Settings.defaultSeatNames[1]) played the \(trick.plays[1].card.name)"))
     let you = try #require(model.explanation(for: trick.plays[0], inLastTrick: true))
     #expect(you.hasPrefix("You played the"))
     if other != nil { #expect(you.contains("strategy would have")) }
@@ -175,7 +175,7 @@ import Testing
     let played = try #require(model.match.hand.currentTrick.last)
     #expect(.play(played.card) == EasyPlayer.decide(try PlayerView(match: before, seat: 1)))
     let text = try #require(model.explanation(for: played, inLastTrick: false))
-    #expect(text.hasPrefix("West (easy) played the \(played.card.name)"))
+    #expect(text.hasPrefix("\(Settings.defaultSeatNames[1]) (easy) played the \(played.card.name)"))
     #expect(text.contains("Standard"))
 }
 
@@ -341,7 +341,7 @@ import Testing
     let review = try #require(model.handReview())
     let west = try #require(review.tricks[0].plays.first { $0.play.seat == 1 })
     let text = model.describe(west)
-    #expect(text.hasPrefix("West (easy) played the \(west.play.card.name)"))
+    #expect(text.hasPrefix("\(Settings.defaultSeatNames[1]) (easy) played the \(west.play.card.name)"))
     #expect(text == model.explanation(for: west.play, inLastTrick: false, trickIndex: 0))
     #expect(!text.contains("::") && !text.contains("Play the"))
     #expect(model.finalPerformance == nil)
@@ -429,6 +429,79 @@ import Testing
     #expect(model.notice == nil)
 }
 
+@Test func castHasThreeDistinctNamesAndPortraits() {
+    #expect(Cast.opponents.count == 3)
+    #expect(Set(Cast.opponents.map(\.name)).count == 3)
+    #expect(Set(Cast.opponents.map(\.portrait)).count == 3)
+    #expect(Cast.opponents.map(\.name) == ["Hazel", "Otto", "Rue"])
+    #expect(Cast.playerChoices.count == 4)
+    #expect(Set(Cast.playerChoices).count == 4)
+    #expect(Cast.defaultPlayerPortrait == Cast.playerChoices[0])
+    #expect(Cast.seatWords == ["You", "West", "Partner", "East"])
+}
+
+@Test func settingsRoundTripKeepsPlayerNameAndPortrait() throws {
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: url) }
+    var settings = Settings()
+    #expect(!settings.hasSignedIn)
+    settings.playerName = "Connor"
+    settings.playerPortrait = Cast.playerChoices[2]
+    try SettingsStore.write(settings, to: url)
+    let read = try SettingsStore.read(from: url)
+    #expect(read == settings)
+    #expect(read.hasSignedIn && read.playerName == "Connor" && read.playerPortrait == Cast.playerChoices[2])
+}
+
+@Test func settingsWithoutPlayerFieldsLoadsSignedOut() throws {
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: url) }
+    try Data("{\"playSpeed\":\"relaxed\"}".utf8).write(to: url)
+    let settings = try SettingsStore.read(from: url)
+    #expect(settings.playerName == nil && !settings.hasSignedIn)
+    #expect(settings.playerPortrait == Cast.defaultPlayerPortrait)
+    #expect(settings.seatNames == ["You", "Hazel", "Otto", "Rue"])
+}
+
+@Test func oldSettingsFileMigratesDefaultSeatNamesToCast() throws {
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: url) }
+    try Data("{\"seatNames\":[\"You\",\"West\",\"Mum\",\"East\"]}".utf8).write(to: url)
+    let settings = try SettingsStore.read(from: url)
+    #expect(settings.seatNames == ["You", "Hazel", "Mum", "Rue"])
+}
+
+@MainActor @Test func matchInProgressIsFalseForFreshAndFinishedMatches() throws {
+    let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3))
+    #expect(!model.matchInProgress)
+    model.send(.bid(nil))
+    #expect(model.matchInProgress)
+    try finishMatch(model)
+    #expect(model.match.winner != nil)
+    #expect(!model.matchInProgress)
+    model.newGame()
+    #expect(!model.matchInProgress)
+}
+
+@MainActor @Test func signInTrimsNameAndSetsSeatZero() throws {
+    let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3))
+    #expect(!model.settings.hasSignedIn)
+    model.signIn(name: "  Connor ", portrait: Cast.playerChoices[3], difficulty: .easy)
+    #expect(model.settings.playerName == "Connor")
+    #expect(model.seatNames[0] == "Connor")
+    #expect(model.settings.playerPortrait == Cast.playerChoices[3])
+    #expect(model.settings.difficulty == .easy)
+    #expect(model.settings.hasSignedIn)
+}
+
+@MainActor @Test func seatSummaryIncludesSeatWord() throws {
+    let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3))
+    #expect(model.seatSummary(for: 1).hasPrefix("Hazel, West, "))
+    #expect(model.seatSummary(for: 3).hasSuffix("dealer"))
+    #expect(model.seatSummary(for: 0).hasPrefix("You, "))
+    #expect(model.seatSummary(for: 0).hasSuffix("to act"))
+}
+
 @Test func textBoostRaisesTheDefaultTwoStepsAndStopsAtTheLargest() {
     #expect(Theme.textBoostSteps == 2)
     #expect(DynamicTypeSize.large.boosted(by: Theme.textBoostSteps) == .xxLarge)
@@ -449,3 +522,9 @@ import Testing
     #expect(band.maxY == 100 && band.minY == 0)
     #expect(Theme.Motion.dealHold > Theme.Motion.trickHold)
 }
+
+@MainActor @Test func rootOpensOnLoginUntilSignedInThenOnTheTable() {
+    #expect(RootView.initialScreen(for: Settings()) == .login)
+    #expect(RootView.initialScreen(for: Settings(playerName: "Connor")) == .table)
+}
+

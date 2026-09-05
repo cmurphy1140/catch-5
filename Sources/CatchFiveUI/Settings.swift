@@ -8,7 +8,7 @@ public struct Settings: Codable, Equatable, Sendable {
     }
 
     public var playSpeed: PlaySpeed
-    /// Seat 0 is the human; the others are West, Partner and East by default.
+    /// Seat 0 is the human; the others default to the cast (Hazel, Otto, Rue).
     public var seatNames: [String]
     public var haptics: Bool
     public var difficulty: Difficulty
@@ -16,18 +16,29 @@ public struct Settings: Codable, Equatable, Sendable {
     public var hasSeenRules: Bool
     /// Tutorial lessons (0 to 4) whose exercise has been solved.
     public var completedLessons: Set<Int>
+    /// Nil until the login screen has been completed once.
+    public var playerName: String?
+    /// The face the human chose at login.
+    public var playerPortrait: Portrait
 
-    public static let defaultSeatNames = ["You", "West", "Partner", "East"]
+    public static let defaultSeatNames = ["You"] + Cast.opponents.map(\.name)
+    /// The defaults before the cast existed; files still carrying them migrate on load.
+    public static let legacySeatNames = ["You", "West", "Partner", "East"]
+
+    public var hasSignedIn: Bool { playerName != nil }
 
     public init(playSpeed: PlaySpeed = .normal, seatNames: [String] = Settings.defaultSeatNames,
                 haptics: Bool = true, difficulty: Difficulty = .standard, hasSeenRules: Bool = false,
-                completedLessons: Set<Int> = []) {
+                completedLessons: Set<Int> = [], playerName: String? = nil,
+                playerPortrait: Portrait = Cast.defaultPlayerPortrait) {
         self.playSpeed = playSpeed
         self.seatNames = seatNames
         self.haptics = haptics
         self.difficulty = difficulty
         self.hasSeenRules = hasSeenRules
         self.completedLessons = completedLessons
+        self.playerName = playerName
+        self.playerPortrait = playerPortrait
     }
 
     // Missing keys fall back to defaults so an older settings file keeps loading.
@@ -35,11 +46,22 @@ public struct Settings: Codable, Equatable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         playSpeed = try container.decodeIfPresent(PlaySpeed.self, forKey: .playSpeed) ?? .normal
         let names = try container.decodeIfPresent([String].self, forKey: .seatNames) ?? Settings.defaultSeatNames
-        seatNames = names.count == 4 ? names : Settings.defaultSeatNames
+        seatNames = names.count == 4 ? Settings.migrated(names) : Settings.defaultSeatNames
         haptics = try container.decodeIfPresent(Bool.self, forKey: .haptics) ?? true
         difficulty = try container.decodeIfPresent(Difficulty.self, forKey: .difficulty) ?? .standard
         hasSeenRules = try container.decodeIfPresent(Bool.self, forKey: .hasSeenRules) ?? false
         completedLessons = try container.decodeIfPresent(Set<Int>.self, forKey: .completedLessons) ?? []
+        playerName = try container.decodeIfPresent(String.self, forKey: .playerName)
+        playerPortrait = try container.decodeIfPresent(Portrait.self, forKey: .playerPortrait) ?? Cast.defaultPlayerPortrait
+    }
+
+    /// Seats 1 to 3 that still carry the old direction names take the cast's names; custom names are kept.
+    static func migrated(_ names: [String]) -> [String] {
+        var result = names
+        for seat in 1...3 where names[seat] == legacySeatNames[seat] {
+            result[seat] = defaultSeatNames[seat]
+        }
+        return result
     }
 
     /// Pause before a computer acts: longer before a lead so the last trick can be read.

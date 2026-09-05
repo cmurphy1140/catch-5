@@ -331,7 +331,8 @@ struct SeatView: View {
     /// badge line that is always reserved, so tiles never grow or shrink as the hand moves on.
     var body: some View {
         VStack(spacing: 4) {
-            Text(model.seatNames[seat]).font(.subheadline.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.7)
+            PortraitView(portrait: portrait, size: Theme.Table.portraitSize)
+            Text(model.seatNames[seat]).font(.headline).lineLimit(1).minimumScaleFactor(0.7)
             ZStack {
                 if hand.phase == .bidding {
                     Text(model.latestCall(for: seat) ?? "Waiting").font(.caption).opacity(0.75).lineLimit(1)
@@ -340,7 +341,7 @@ struct SeatView: View {
                         CardBackView(width: Theme.Table.seatBackWidth)
                             .offset(x: Double(index) * 4 - 4)
                     }
-                    Text(hand.hands[seat].count, format: .number).font(.caption2.weight(.bold).monospacedDigit())
+                    Text(hand.hands[seat].count, format: .number).font(.caption.weight(.bold).monospacedDigit())
                         .padding(.horizontal, 5).padding(.vertical, 1)
                         .background(.black.opacity(0.55), in: Capsule())
                         .offset(x: Theme.Table.seatBackWidth * 0.65, y: Theme.Table.seatBackWidth * 0.55)
@@ -360,18 +361,10 @@ struct SeatView: View {
         // No fill: the name, backs and badges sit straight on the felt; only the seat to act gets a ring.
         .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(.gold, lineWidth: active ? 2 : 0))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(summary)
+        .accessibilityLabel(model.seatSummary(for: seat))
     }
 
-    private var summary: String {
-        var parts = [model.seatNames[seat]]
-        if hand.phase == .bidding { parts.append(model.latestCall(for: seat) ?? "waiting") }
-        else if hand.auction.winner == seat { parts.append("bidder, \(hand.hands[seat].count) cards") }
-        else { parts.append("\(hand.hands[seat].count) cards") }
-        if hand.auction.dealer == seat { parts.append("dealer") }
-        if active { parts.append("to act") }
-        return parts.joined(separator: ", ")
-    }
+    private var portrait: Portrait { Cast.opponent(at: seat)?.portrait ?? model.settings.playerPortrait }
 }
 
 extension Suit {

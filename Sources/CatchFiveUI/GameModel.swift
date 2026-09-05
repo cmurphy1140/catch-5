@@ -62,6 +62,32 @@ public final class GameModel: ObservableObject {
     public var isHumanTurn: Bool { match.winner == nil && match.hand.nextSeat == 0 }
     public var seatNames: [String] { settings.seatNames }
 
+    /// True once something has happened this match and nobody has won yet; drives the menu's Continue button.
+    public var matchInProgress: Bool { match.actionCount > 0 && match.winner == nil }
+
+    /// The login screen's one write: the trimmed name becomes seat 0's name as well.
+    public func signIn(name: String, portrait: Portrait, difficulty: Difficulty) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        settings.playerName = trimmed
+        settings.seatNames[0] = trimmed
+        settings.playerPortrait = portrait
+        settings.difficulty = difficulty
+    }
+
+    /// One VoiceOver sentence for a seat tile: name, direction, call or card count, dealer, to act.
+    public func seatSummary(for seat: Int) -> String {
+        let hand = match.hand
+        var parts = [seatNames[seat]]
+        if seat != 0 { parts.append(Cast.seatWords[seat]) }
+        if hand.phase == .bidding { parts.append(latestCall(for: seat) ?? "waiting") }
+        else if hand.auction.winner == seat { parts.append("bidder, \(hand.hands[seat].count) cards") }
+        else { parts.append("\(hand.hands[seat].count) cards") }
+        if hand.auction.dealer == seat { parts.append("dealer") }
+        if hand.nextSeat == seat, match.winner == nil { parts.append("to act") }
+        return parts.joined(separator: ", ")
+    }
+
     /// The hand as shown: trumps first, highest to lowest, then the other suits in a fixed order.
     public var humanCards: [Card] {
         let trump = match.hand.trump
