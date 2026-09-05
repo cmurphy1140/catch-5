@@ -275,3 +275,28 @@ import Testing
     model.send(try #require(model.hint).action)
     #expect(model.errorMessage == nil)
 }
+
+@MainActor @Test func spokenDescriptionOfPlayNamesSeatAndCard() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    let model = GameModel(match: try Match(deck: deck, dealer: 3))
+    model.settings.seatNames[1] = "Mum"
+    #expect(model.spokenDescription(of: Play(seat: 1, card: Card(.hearts, .ten))) == "Mum played the ten of hearts")
+    #expect(model.spokenDescription(of: Play(seat: 0, card: Card(.spades, .ace))) == "You played the ace of spades")
+    #expect(model.spokenDescription(of: Play(seat: 1, card: Card(.hearts, .ten)), winner: 1) == "Mum played the ten of hearts and took the trick")
+}
+
+@MainActor @Test func accessibilityValueReflectsLegality() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    let model = GameModel(match: try Match(deck: deck, dealer: 0))   // West leads after the auction
+    for _ in 0..<3 { model.stepComputer() }
+    model.send(.bid(9))
+    #expect(model.accessibilityValue(for: model.humanCards[0]) == "waiting for the auction to finish")
+    model.send(.chooseTrump(.clubs))
+    #expect(model.isHumanTurn)
+    let legal = Set(model.match.hand.legalMoves(seat: 0))
+    for card in model.humanCards {
+        #expect(model.accessibilityValue(for: card) == (legal.contains(card) ? "playable" : "not legal now"))
+    }
+    model.send(.play(try #require(legal.first)))
+    #expect(model.accessibilityValue(for: model.humanCards[0]) == "waiting for your turn")
+}

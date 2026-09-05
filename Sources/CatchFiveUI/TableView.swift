@@ -4,6 +4,7 @@ import SwiftUI
 public struct TableView: View {
     @StateObject private var model: GameModel
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var confirmNewGame = false
     @State private var showSettings = false
     @State private var showRules = false
@@ -68,8 +69,8 @@ public struct TableView: View {
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("CATCH 5").font(.system(size: 34, weight: .bold, design: .serif))
-                Text("PARTNERSHIP PITCH · FIRST TO 25").font(.system(size: 9, weight: .medium, design: .monospaced)).tracking(1)
+                Text("CATCH 5").font(.system(.largeTitle, design: .serif).weight(.bold))
+                Text("PARTNERSHIP PITCH · FIRST TO 25").font(.system(.caption2, design: .monospaced).weight(.medium)).tracking(1)
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 6) {
@@ -94,7 +95,7 @@ public struct TableView: View {
                 Text(model.match.hand.trump.map { "\($0.glyph) TRUMP" } ?? "— TRUMP")
                     .font(.caption.monospaced())
                 if let contract = model.contract {
-                    Text(contract).font(.system(size: 9, design: .monospaced)).opacity(0.8)
+                    Text(contract).font(.system(.caption2, design: .monospaced)).opacity(0.8)
                 }
             }.multilineTextAlignment(.center).foregroundStyle(.gold)
             Spacer()
@@ -111,18 +112,28 @@ public struct TableView: View {
 
     private func score(_ title: String, value: Int) -> some View {
         VStack(spacing: 4) {
-            Text(title).font(.system(size: 9, design: .monospaced))
-            Text(value, format: .number).font(.system(size: 32, weight: .semibold, design: .serif))
-        }
+            Text(title).font(.system(.caption2, design: .monospaced))
+            Text(value, format: .number).font(.system(.title, design: .serif).weight(.semibold))
+        }.accessibilityElement(children: .combine)
     }
 
     private func opponent(_ seat: Int) -> some View {
         VStack(spacing: 6) {
             Text(model.seatNames[seat]).font(.subheadline.weight(.semibold))
             Text(seatDetail(seat)).font(.caption2).opacity(0.65)
-            if model.match.hand.auction.dealer == seat { Text("DEALER").font(.system(size: 8, design: .monospaced)).foregroundStyle(.gold) }
+            if model.match.hand.auction.dealer == seat { Text("DEALER").font(.system(.caption2, design: .monospaced)).foregroundStyle(.gold) }
         }.padding(12)
             .background(model.match.hand.nextSeat == seat ? .white.opacity(0.14) : .white.opacity(0.04), in: RoundedRectangle(cornerRadius: 12))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(seatSummary(seat))
+    }
+
+    /// One VoiceOver sentence per seat tile: name, detail, dealer and whose turn it is.
+    private func seatSummary(_ seat: Int) -> String {
+        var parts = [model.seatNames[seat], seatDetail(seat)]
+        if model.match.hand.auction.dealer == seat { parts.append("dealer") }
+        if model.match.hand.nextSeat == seat { parts.append("to act") }
+        return parts.joined(separator: ", ")
     }
 
     /// During the auction each seat shows its call; afterwards the bidder is marked and others show card counts.
@@ -192,9 +203,10 @@ public struct TableView: View {
                             Text(names[play.seat]).font(.caption2)
                         }
                     }.buttonStyle(.plain).foregroundStyle(.ivory)
+                    .accessibilityLabel(model.spokenDescription(of: play, winner: showingLast ? last?.winner : nil))
                     .accessibilityHint("Explains why this card was played")
-                    .transition(.asymmetric(insertion: .move(edge: Self.edge(for: play.seat)).combined(with: .opacity),
-                                            removal: .opacity))
+                    .transition(reduceMotion ? .opacity
+                                : .asymmetric(insertion: .move(edge: Self.edge(for: play.seat)).combined(with: .opacity), removal: .opacity))
                 }
                 if plays.isEmpty { Text("Waiting for the first card").font(.footnote).opacity(0.45).frame(height: 96) }
             }.frame(minHeight: 96)
@@ -249,7 +261,7 @@ public struct TableView: View {
     private func matchOver(_ winner: Int) -> some View {
         let performance = model.performance()
         return VStack(spacing: 8) {
-            Text(winner == 0 ? "YOU WIN THE MATCH" : "\(model.seatNames[1]) + \(model.seatNames[3]) WIN").font(.system(size: 14, weight: .bold, design: .monospaced)).tracking(2)
+            Text(winner == 0 ? "YOU WIN THE MATCH" : "\(model.seatNames[1]) + \(model.seatNames[3]) WIN").font(.system(.subheadline, design: .monospaced).weight(.bold)).tracking(2)
             Text("\(model.match.scores[0]) – \(model.match.scores[1]) after \(model.match.history.count) hands").font(.title3.weight(.semibold))
             if let performance {
                 Text("You made \(performance.bidsMade) of \(performance.bids) contracts and played the strategy's card \(performance.playsAgreed) of \(performance.plays) times.")
@@ -286,7 +298,8 @@ public struct TableView: View {
                                 .stroke(.gold, lineWidth: model.hint?.action == .play(card) ? 3 : 0))
                             .allowsHitTesting(playable)
                             .opacity(model.match.hand.phase == .playing && !playable ? 0.5 : 1)
-                            .transition(.asymmetric(insertion: .opacity, removal: .move(edge: .top).combined(with: .opacity)))
+                            .accessibilityValue(model.accessibilityValue(for: card))
+                            .transition(reduceMotion ? .opacity : .asymmetric(insertion: .opacity, removal: .move(edge: .top).combined(with: .opacity)))
                     }
                 }.padding(.bottom, 8)
                 .animation(.spring(duration: 0.45), value: model.revision)

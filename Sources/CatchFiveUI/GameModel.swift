@@ -114,6 +114,23 @@ public final class GameModel: ObservableObject {
         return "\(seatNames[bidder]) bid \(auction.isNineAndOut ? "9 and out" : String(bid))"
     }
 
+    /// VoiceOver wording for a played card: "West played the ten of hearts".
+    public func spokenDescription(of play: Play, winner: Int? = nil) -> String {
+        let base = "\(seatNames[play.seat]) played the \(play.card.name)"
+        return winner == play.seat ? base + " and took the trick" : base
+    }
+
+    /// VoiceOver value for a card in the human's hand.
+    public func accessibilityValue(for card: Card) -> String {
+        switch match.hand.phase {
+        case .bidding, .choosingTrump: return "waiting for the auction to finish"
+        case .finished: return "hand complete"
+        case .playing:
+            guard isHumanTurn else { return "waiting for your turn" }
+            return allows(.play(card)) ? "playable" : "not legal now"
+        }
+    }
+
     /// Whether the human's latest action in this hand can be taken back.
     public var canUndo: Bool { match.undoPoint(forSeat: 0) != nil }
 

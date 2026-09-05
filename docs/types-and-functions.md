@@ -215,6 +215,7 @@ classDiagram
 | `notice` | one-line note about something that happened without a tap, such as "You discarded 2 and drew 2."; cleared by the next action | `trumpChoiceReportsDiscards` |
 | `message(for:)` | rule errors in a player's words ("You must follow suit…") | `illegalPlayExplainsFollowSuitInPlainWords` |
 | `records`, `statistics`, `handReview()`, `performance()` | finished matches from `history.json`, totals over them, the finished hand's review and the human's record so far; a match is recorded exactly once when its winner is decided | `finishedMatchIsRecordedExactlyOnce`, `corruptHistoryDoesNotBlockPlay` |
+| `spokenDescription(of:winner:)`, `accessibilityValue(for:)` | VoiceOver wording for a played card ("West played the ten of hearts and took the trick") and for a hand card (playable, not legal now, waiting for your turn) | `spokenDescriptionOfPlayNamesSeatAndCard`, `accessibilityValueReflectsLegality` |
 | `canUndo`, `undo()` | take back the human's latest action this hand and every computer reply after it; saves and bumps `revision` | `undoneMatchSavesAndReloads` |
 | `hint`, `showHint()` | the strategy's advice for seat 0 on request; cleared by the next accepted action | `hintMatchesTheComputerStrategyAndClearsAfterActing` |
 | `explanation(for:inLastTrick:)`, `explain(_:inLastTrick:)`, `explanation` | why a card on the table or in the last trick was played; for the human's own card it compares with what the strategy preferred | `explanationsNameTheSeatAndCompareTheHumanToTheStrategy` |
@@ -232,8 +233,8 @@ classDiagram
 | `MatchRecord`, `Statistics`, `MatchHistoryStore` | `MatchHistory.swift`: one finished match (date, scores, hands, difficulty, human contracts and agreement); totals; JSON store with ISO 8601 dates | `statisticsAggregateAcrossRecords` |
 | `ReviewView`, `ScoreboardView`, `StatisticsView` | `ReviewView.swift`: the finished hand play by play with disagreements in gold; every hand of the match (tap the score bar); totals and recent matches (chart button) | manual |
 | `SettingsView` | sheet from the gear button: difficulty, play speed, four seat names, haptics toggle | manual |
-| `TableView` | the whole screen: header, scores and contract, three opponent tiles, status line naming who is thinking, discard notice, Hint and Undo buttons and advice panel on your turn (the suggested card is ringed in gold), trick area where tapping any played card explains it, a match-over card with the human's record, Review hand and Deal next hand buttons, hand, phase-specific controls, new-game confirmation, error alert, computer scheduler task, background save |
-| `CardView` | a 48×72 card face with accessibility label; `Suit.glyph`, `Suit.ink`, `Card.label` helpers |
+| `TableView` | the whole screen (text styles throughout, seat tiles and scores read as single VoiceOver elements, played cards announce seat and card, hand cards announce legality, Reduce Motion replaces slides with fades): header, scores and contract, three opponent tiles, status line naming who is thinking, discard notice, Hint and Undo buttons and advice panel on your turn (the suggested card is ringed in gold), trick area where tapping any played card explains it, a match-over card with the human's record, Review hand and Deal next hand buttons, hand, phase-specific controls, new-game confirmation, error alert, computer scheduler task, background save |
+| `CardView` | a card face that scales with Dynamic Type (`@ScaledMetric`, 48×72 at the default size) with an accessibility label; `Suit.glyph`, `Suit.ink`, `Card.label` helpers |
 | `HandSummaryView` | who took High, Low, Jack, Five, Game for the last hand and what was bid, using the configured seat names |
 | colour extensions | `.ivory`, `.felt`, `.gold` |
 

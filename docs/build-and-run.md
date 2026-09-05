@@ -50,7 +50,17 @@ flowchart TD
 
 Each `swiftc` call is the compiler invoked directly, with `-target arm64-apple-ios17.0-simulator` so the binary is built for the simulator, and `-swift-version 6`. The `-I` and `-L` flags tell later steps where to find the `.swiftmodule` and `.a` files from earlier steps.
 
-`project.yml` and `CatchFive.xcodeproj` exist for the day Xcode's simulator platform is installed; `xcodegen` regenerates the project from the YAML. They are not used by the script.
+`project.yml` and `CatchFive.xcodeproj` exist for the day Xcode's simulator platform is installed; `xcodegen` regenerates the project from the YAML. They are not used by the script, but the script does copy two things the store build also uses: the icon, scaled from `App/Assets.xcassets/AppIcon.appiconset/icon-1024.png` (rendered by `swift scripts/make-icon.swift <output>`), and `App/PrivacyInfo.xcprivacy`.
+
+## Toward the App Store
+
+Everything the archive needs is in the repository: the asset catalog with a 1024-pixel alpha-free icon, the privacy manifest (no tracking, no required-reason APIs), and `project.yml` with the bundle id, version 1.0, the card-games category and the icon setting. What this Mac cannot do is archive or sign for devices, because Xcode's iOS platform is not installed. On a Mac that has it:
+
+```bash
+xcodegen generate && xcodebuild -scheme CatchFiveApp -destination 'generic/platform=iOS' archive -archivePath work/CatchFive.xcarchive
+```
+
+Then upload the archive from Xcode's Organizer to TestFlight.
 
 ## Running on the simulator
 

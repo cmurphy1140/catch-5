@@ -23,18 +23,23 @@ extension Card {
         default: String(rank.rawValue)
         }
     }
-    var spoken: String { "\(label) of \(suit.rawValue)" }
+    var spoken: String { name }
 }
 
 struct CardView: View {
     let card: Card
+    // Cards grow with the reader's text size so the faces stay legible under Dynamic Type.
+    @ScaledMetric(relativeTo: .title2) private var width = 48.0
+    @ScaledMetric(relativeTo: .title2) private var rankSize = 23.0
+    @ScaledMetric(relativeTo: .title2) private var suitSize = 27.0
+
     var body: some View {
         VStack(spacing: 0) {
-            Text(card.label).font(.system(size: 23, weight: .bold, design: .serif))
-            Text(card.suit.glyph).font(.system(size: 27))
+            Text(card.label).font(.system(size: rankSize, weight: .bold, design: .serif))
+            Text(card.suit.glyph).font(.system(size: suitSize))
         }
         .foregroundStyle(card.suit.ink)
-        .frame(width: 48, height: 72)
+        .frame(width: width, height: width * 1.5)
         .background(.ivory, in: RoundedRectangle(cornerRadius: 8))
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(.black.opacity(0.15)))
         .shadow(color: .black.opacity(0.25), radius: 3, y: 3)
