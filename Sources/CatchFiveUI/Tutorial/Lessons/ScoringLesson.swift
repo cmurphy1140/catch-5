@@ -38,7 +38,7 @@ struct ScoringLesson: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("\(title) CAPTURED").font(.caption2.monospaced()).tracking(1).opacity(0.6)
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) { ForEach(cards, id: \.self) { CardView(card: $0).scaleEffect(0.85).frame(width: 42, height: 62) } }
+                HStack(spacing: 6) { ForEach(cards, id: \.self) { CardView(card: $0, width: Theme.Card.backWidth) } }
                     .padding(.bottom, 6)
             }
         }

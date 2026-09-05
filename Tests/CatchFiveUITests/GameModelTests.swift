@@ -363,3 +363,12 @@ import Testing
     }
     #expect(ExplainerLibrary.pages.first == ExplainerLibrary.indexPage)
 }
+
+@Test func fannedHandCardsKeepAThumbSizedStrip() {
+    // Six overlapped cards must fit the narrowest supported phone and each expose 44pt (docs/redesign-plan.md).
+    for width in [Theme.Card.handWidth, Theme.Card.handWidthWide] {
+        #expect(Theme.Card.touchStrip(width: width) >= Theme.Card.minimumTouchStrip)
+        #expect(width + 5 * Theme.Card.touchStrip(width: width) <= 375 - 32)
+    }
+    #expect(abs(Theme.Card.radius(width: 60) - 3.6) < 0.0001)
+}
