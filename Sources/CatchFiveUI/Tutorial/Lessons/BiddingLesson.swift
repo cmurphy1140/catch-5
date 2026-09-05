@@ -7,15 +7,13 @@ struct BiddingLesson: View {
     var body: some View {
         VStack(spacing: 16) {
             LessonText(paragraphs: [
-                "Bidding starts on the dealer's left and goes around once, ending with the dealer. A bid is how many of the nine points your team promises to take: at least 2, at most 9.",
-                "Each bid must beat the one before it, except that the dealer may match the high bid. If everyone passes, the dealer must bid 2. The high bidder names trump and leads first.",
-                "Make your bid and you add every point you took. Fall short and you lose the whole bid instead.",
-            ], tactic: "Count what you can see: the ace of a long suit is High, the five in that suit is five if you can protect it. Bid what you can take; a failed 4 costs more than being outbid.")
-            HStack {
+                "Bidding starts on the dealer's left and goes around once. A bid is how many of the nine points your team promises to take, from 2 to 9.",
+                "Each bid must beat the last; the dealer may match the high bid instead. If everyone passes, the dealer must bid 2.",
+                "The high bidder names trump and leads. Make the bid and you keep every point you took. Fall short and you lose the whole bid.",
+            ], tactic: "Count what you can see: an ace in a long suit is High, a protected five is five. Bid what you can take.")
+            HStack(spacing: 8) {
                 SeatTile(name: "West", detail: "Bid 2") {}
-                Spacer()
                 SeatTile(name: "Partner", detail: "Bid 3") {}
-                Spacer()
                 SeatTile(name: "East", detail: "Waiting", badge: "DEALER") {}
             }.disabled(true)
             Text("High bid: 3. Your bid.").font(.subheadline)

@@ -8,10 +8,10 @@ struct DealLesson: View {
     var body: some View {
         VStack(spacing: 16) {
             LessonText(paragraphs: [
-                "Four people sit around the table. You and the player across from you are partners; West and East are the other team.",
-                "One player is the dealer. Six cards go to each player, three at a time, starting with the player on the dealer's left and going clockwise. The dealer deals to themselves last.",
-                "The rest of the deck stays face down and out of play, even if it holds scoring cards.",
-            ], tactic: "Partners sit across from each other; the leftover deck is out of play, scoring cards included.")
+                "You and the player across from you are partners. West and East are the other team.",
+                "The dealer gives everyone six cards, three at a time, starting on their left and going clockwise, themselves last.",
+                "The rest of the deck stays face down and out of play, scoring cards included.",
+            ], tactic: "Partners sit across from each other. Cards left in the deck never score.")
             Text("East is dealing. Tap the seat that receives the first three cards.").font(.subheadline)
             VStack(spacing: 12) {
                 tile(2)
