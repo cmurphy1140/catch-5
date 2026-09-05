@@ -601,3 +601,70 @@ import Testing
     // Plenty of room: the tile keeps its full width.
     #expect(TableLayout.sideSeatWidth(available: 600) == Theme.Table.seatTileWidth)
 }
+
+@MainActor @Test func validationMessagesExplainRefusalsWithoutChangingTheMatch() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    let model = GameModel(match: try Match(deck: deck, dealer: 3))
+    // Your bid: a legal bid has no message; passing is legal too.
+    #expect(model.validationMessage(for: .bid(2)) == nil)
+    #expect(model.validationMessage(for: .bid(nil)) == nil)
+    model.send(.bid(nil))
+    let count = model.match.actionCount
+    // Hazel is bidding now: anything you try waits for her, and nothing is recorded.
+    #expect(model.validationMessage(for: .bid(3)) == "Wait for Hazel.")
+    model.refuse(.bid(3))
+    #expect(model.refusal == "Wait for Hazel.")
+    #expect(model.match.actionCount == count)
+    // Play until it is your turn to follow a computer's lead.
+    var followed = false
+    for _ in 0..<40 where !followed {
+        if model.isHumanTurn {
+            switch model.match.hand.phase {
+            case .choosingTrump: model.send(.chooseTrump(model.humanCards[0].suit))
+            case .playing:
+                if let led = model.match.hand.currentTrick.first?.card.suit,
+                   model.humanCards.contains(where: { $0.suit == led }),
+                   let offSuit = model.humanCards.first(where: { $0.suit != led }) {
+                    let before = model.match.actionCount
+                    #expect(model.validationMessage(for: .play(offSuit)) == "Follow \(led.rawValue); you still have \(led.rawValue).")
+                    #expect(model.match.actionCount == before)
+                    followed = true
+                } else {
+                    model.send(.play(try #require(model.match.hand.legalMoves(seat: 0).first)))
+                }
+            default: model.send(.bid(nil))
+            }
+        } else {
+            model.stepComputer()
+        }
+    }
+    #expect(followed, "the fixed deck should make you follow suit at least once")
+    // An accepted action clears the standing refusal.
+    #expect(model.refusal == nil)
+    #expect(model.validationMessage(for: .play(Card(.clubs, .two))) == nil || model.validationMessage(for: .play(Card(.clubs, .two))) == "That card is not in your hand.")
+}
+
+@MainActor @Test func dealerGetsBidContextAndNineAndOutStaysEngineChecked() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    // Dealer 3: you bid first and are not the dealer, so no context line.
+    let early = GameModel(match: try Match(deck: deck, dealer: 3))
+    #expect(early.auctionContext == nil)
+    // Dealer 0: the three computers bid before you; the line explains matching or the forced 2.
+    let model = GameModel(match: try Match(deck: deck, dealer: 0))
+    #expect(model.auctionContext == nil)   // not your turn yet
+    for _ in 0..<3 { model.stepComputer() }
+    #expect(model.isHumanTurn)
+    let context = try #require(model.auctionContext)
+    if let high = model.match.hand.auction.highestBid {
+        #expect(context == "As dealer you may match the high bid of \(high).")
+    } else {
+        #expect(context == "Everyone passed, so as dealer you must bid at least 2.")
+    }
+    // Confirming 9 and out still goes through the engine: after a pass it is refused, and nothing changes.
+    model.send(.bid(nil))
+    let count = model.match.actionCount
+    #expect(!model.allows(.nineAndOut))
+    model.send(.nineAndOut)
+    #expect(model.match.actionCount == count)
+    #expect(model.auctionContext == nil)
+}

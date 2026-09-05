@@ -15,6 +15,8 @@ struct TableSurface: View {
     let onReopenTrick: () -> Void
     let onCloseTrick: () -> Void
     let onReview: () -> Void
+    /// The 9-and-out pill asks the table to confirm before the bid is sent.
+    let onNineAndOut: () -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var hand: Hand { model.match.hand }
@@ -223,6 +225,9 @@ struct TableSurface: View {
                 .padding(.horizontal, 14).padding(.vertical, 6)
                 .background(Theme.Wood.inlay.opacity(0.85), in: Capsule())
                 .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
+            } else if let refusal = model.refusal {
+                Text(refusal).font(.footnote).multilineTextAlignment(.center).foregroundStyle(.ivory.opacity(0.9))
+                    .padding(.horizontal, 8)
             } else if let text = model.hint?.reason ?? model.explanation {
                 Text(text)
                     .font(.footnote).multilineTextAlignment(.center)
@@ -247,14 +252,20 @@ struct TableSurface: View {
 
     private var bidding: some View {
         VStack(spacing: Theme.Table.auctionButtonSpacing) {
+            if let context = model.auctionContext {
+                Text(context).font(.footnote).opacity(0.85).multilineTextAlignment(.center).padding(.bottom, 2)
+            }
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Theme.Table.auctionButtonSpacing), count: 4),
                       spacing: Theme.Table.auctionButtonSpacing) {
                 ForEach(2...9, id: \.self) { bid in actionButton(String(bid), action: .bid(bid)) }
             }
             HStack(spacing: Theme.Table.auctionButtonSpacing) {
                 actionButton("Pass", action: .bid(nil), font: .body.weight(.semibold))
-                actionButton("9 and out", action: .nineAndOut, font: .body.weight(.semibold))
-                    .accessibilityHint("Take all nine points or lose the game")
+                Button { onNineAndOut() } label: { Text("9 and out").font(.body.weight(.semibold)) }
+                    .buttonStyle(PillButtonStyle(fill: Theme.Wood.inlay))
+                    .disabled(!model.allows(.nineAndOut))
+                    .accessibilityHint(model.allows(.nineAndOut) ? "Take all nine points or lose the match; asks you to confirm"
+                                       : model.validationMessage(for: .nineAndOut) ?? "")
             }
         }
     }
@@ -271,9 +282,12 @@ struct TableSurface: View {
     /// Pills fill their column so neighbours almost touch: solid, tall, with a large label.
     private func actionButton(_ label: String, action: PlayerAction, fill: Color = Theme.Wood.inlay,
                               font: Font = .title3.weight(.semibold)) -> some View {
-        Button { model.send(action) } label: { Text(label).font(font) }
+        let allowed = model.allows(action)
+        return Button { model.send(action) } label: { Text(label).font(font) }
             .buttonStyle(PillButtonStyle(fill: fill))
-            .disabled(!model.allows(action))
+            .disabled(!allowed)
+            // A greyed pill still says why it is greyed to assistive technology.
+            .accessibilityHint(allowed ? "" : model.validationMessage(for: action) ?? "")
     }
 
     // MARK: Hand end
