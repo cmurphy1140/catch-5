@@ -106,7 +106,7 @@ classDiagram
 | `Suit` | enum, `CaseIterable` | clubs, diamonds, hearts, spades | used everywhere |
 | `Rank` | enum, `Int` raw values 2…14 | two … ace; `rawValue` orders cards | `highestTrumpWins` |
 | `Rank.gameValue` | computed property | 10→10, J→1, Q→2, K→3, A→4, else 0 | `cardValuesForGame` |
-| `Card` | struct, `Hashable`, `Codable` | one suit and one rank | everywhere |
+| `Card` | struct, `Hashable`, `Codable` | one suit and one rank; `name` spells it out ("queen of hearts") for explanations | everywhere |
 | `RuleError` | enum | invalidTrick, invalidSeat, outOfTurn, invalidBid, auctionComplete, invalidScoring, forbiddenNineAndOut | error assertions across suites |
 
 ## Sources/CatchFive/Tricks.swift
@@ -165,7 +165,9 @@ classDiagram
 |---|---|---|
 | `PlayerView` | own cards plus public facts, including every auction call and every completed trick; `init(match:seat:)` copies only what the seat may know | `changingHiddenCardsDoesNotChangeComputerDecision`, `computerSeesPublicAuctionCalls`, `computerSeesCompletedTricksButNotHiddenHands` |
 | `PlayerAction` | nineAndOut, bid(Int?), chooseTrump(Suit), play(Card) | |
-| `ComputerPlayer.decide(_:)` | returns nil unless it is this seat's turn | `computerDoesNotActOutsideItsTurn` |
+| `Advice` | an action plus its reasoning in plain words | `adviceNamesTheActionAndExplainsIt` |
+| `ComputerPlayer.advise(_:)` | the single source of truth: the action this strategy takes from a seat and why; nil unless it is that seat's turn | `adviceExplainsCardPlay` (also checks it agrees with `decide` through a whole match) |
+| `ComputerPlayer.decide(_:)` | `advise(_:)?.action` | `computerDoesNotActOutsideItsTurn` |
 | `ComputerPlayer.estimate(_:suit:)` | expected hand points if that suit were trump | `estimateRanksControlAndTheFiveAboveScatteredCards` |
 | bidding (private `bidAmount`) | bid the minimum needed if it is at most the whole-point estimate; never outbid partner; dealer takes forced 2 | `computerPassesWeakHandButDealerTakesForcedTwo`, `computerRaisesWithStrongSuitAndChoosesIt`, `computerBiddingIsCompetitiveAndUsuallyMakesContract` |
 | `ComputerPlayer.Knowledge` | built from a `PlayerView`: the set of unseen cards (other hands or stock), `unbeatable(_:led:)` (no unseen card can beat it), `pointValue(_:)` (five 5, jack 1, certain High 1, certain Low 1, plus 0.06 per Game point) and `controlValue(_:)` (what holding a trump is worth for later tricks; 0.8 extra when unbeatable, 0 on the last trick) | `computerSpendsTheAceToCaptureTheFive`, `computerDumpsTheTrickWhenItIsWorthlessAndNoTrumpIsFree` |
@@ -198,6 +200,7 @@ classDiagram
 | `stepComputer()` | one computer action for whichever non-human seat is due | `humanActionAdvancesComputersAndStopsForHuman` |
 | `allows(_:)` | dry run on a copy of the match | drives button enabling |
 | `latestCall(for:)`, `contract`, `seatNames` | wording for the auction display | `modelDescribesAuctionCallsAndContract` |
+| `hint`, `showHint()` | the strategy's advice for seat 0 on request; cleared by the next accepted action | `hintMatchesTheComputerStrategyAndClearsAfterActing` |
 | `nextHand()`, `newGame()` | fresh shuffled deck via `deck()` | |
 | `persist()`, `loadDefault()` | Application Support/CatchFive/game.json | manual simulator check |
 
@@ -205,7 +208,7 @@ classDiagram
 
 | Name | Purpose |
 |---|---|
-| `TableView` | the whole screen: header, scores and contract, three opponent tiles, status line, trick area, hand, phase-specific controls, new-game confirmation, error alert, computer scheduler task, background save |
+| `TableView` | the whole screen: header, scores and contract, three opponent tiles, status line, Hint button and advice panel on your turn (the suggested card is ringed in gold), trick area, hand, phase-specific controls, new-game confirmation, error alert, computer scheduler task, background save |
 | `CardView` | a 48×72 card face with accessibility label; `Suit.glyph`, `Suit.ink`, `Card.label` helpers |
 | `HandSummaryView` | who took High, Low, Jack, Five, Game for the last hand and what was bid |
 | colour extensions | `.ivory`, `.felt`, `.gold` |

@@ -48,3 +48,17 @@ import Testing
     #expect(model.latestCall(for: bidder) == "Bid \(bid)")
     #expect(model.contract == "\(GameModel.seatNames[bidder]) bid \(bid)")
 }
+
+@MainActor @Test func hintMatchesTheComputerStrategyAndClearsAfterActing() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    let model = GameModel(match: try Match(deck: deck, dealer: 3))
+    #expect(model.hint == nil)
+    model.showHint()
+    let hint = try #require(model.hint)
+    #expect(hint.action == ComputerPlayer.decide(try PlayerView(match: model.match, seat: 0)))
+    #expect(!hint.reason.isEmpty)
+    model.send(hint.action)
+    #expect(model.hint == nil)
+    model.showHint()
+    #expect(model.hint == nil)   // not the human's turn
+}

@@ -177,3 +177,11 @@ Each entry: what was decided, what it was chosen over, and why. Dates are when t
 **Decision:** keep the D18 player unchanged. Nothing cleared the two-point noise floor, and the two ideas with real complexity (voids, Monte Carlo) measured neutral or worse. The fixed hold-chance table appears to encode useful pessimism that the "more accurate" hypergeometric estimate loses, probably because opponents choose when to trump rather than trumping at random.
 
 **What might still work:** a proper search would need a better rollout model than the heuristic and an honest model of the stock, and a much larger time budget than the test suite can afford. Any future attempt should start by reproducing the 50% control run described above.
+
+## D23. Hints come from the same code that plays (2026-09-04)
+
+**Chosen:** `ComputerPlayer.advise(_:)` returns an `Advice` (action plus reason) and `decide(_:)` is just its action. The Hint button builds a `PlayerView` for seat 0 and shows the advice; the suggested card is ringed in the hand.
+
+**Over:** A separate explanation generator, or hints written as rules of thumb.
+
+**Why:** One path cannot drift from the other: a test plays a whole match and checks that advice and decision agree at every turn. The reasons are derived from the same facts the score uses (what is on the table, whether a card can be beaten, whether the five is being kept back), so they explain the computers' own play as much as they advise the human. Hints use only the human's `PlayerView`, so they never reveal hidden cards.
