@@ -24,11 +24,36 @@ struct SettingsView: View {
                         Text("Quick").tag(Settings.PlaySpeed.quick)
                     }.pickerStyle(.segmented)
                 }
-                Section("Names") {
-                    ForEach(0..<4, id: \.self) { seat in
-                        TextField(Settings.defaultSeatNames[seat], text: Binding(
-                            get: { settings.seatNames[seat] },
-                            set: { settings.seatNames[seat] = $0.trimmingCharacters(in: .whitespaces).isEmpty ? Settings.defaultSeatNames[seat] : $0 }))
+                Section("You") {
+                    TextField("Your name", text: Binding(
+                        get: { settings.playerName ?? settings.seatNames[0] },
+                        set: { new in
+                            let trimmed = new.trimmingCharacters(in: .whitespaces)
+                            guard !trimmed.isEmpty else { return }
+                            settings.playerName = trimmed
+                            settings.seatNames[0] = trimmed
+                        }))
+                    HStack(spacing: 16) {
+                        ForEach(Array(Cast.playerChoices.enumerated()), id: \.offset) { index, choice in
+                            Button { settings.playerPortrait = choice } label: {
+                                PortraitView(portrait: choice, size: 44)
+                                    .opacity(settings.playerPortrait == choice ? 1 : Theme.Card.dimmedOpacity)
+                                    .overlay(Circle().stroke(.gold, lineWidth: settings.playerPortrait == choice ? 3 : 0))
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Face \(index + 1)")
+                            .accessibilityAddTraits(settings.playerPortrait == choice ? .isSelected : [])
+                        }
+                    }.frame(maxWidth: .infinity)
+                }
+                Section("Opponents") {
+                    ForEach(1..<4, id: \.self) { seat in
+                        HStack(spacing: 12) {
+                            if let character = Cast.opponent(at: seat) { PortraitView(portrait: character.portrait, size: 28) }
+                            TextField(Settings.defaultSeatNames[seat], text: Binding(
+                                get: { settings.seatNames[seat] },
+                                set: { settings.seatNames[seat] = $0.trimmingCharacters(in: .whitespaces).isEmpty ? Settings.defaultSeatNames[seat] : $0 }))
+                        }
                     }
                 }
                 Section {
