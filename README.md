@@ -46,7 +46,7 @@ Initial dealing uses two packets of three starting left of dealer; refill goes c
 - `Sources/CatchFiveDemo`: the terminal demo.
 - `App/`: the nine-line app entry point, icon catalog and privacy manifest.
 - `Tests/`: 97 Swift Testing tests across engine and view model.
-- `scripts/`: `build-simulator.py` (hand-built simulator bundle), `make-icon.swift`, `export-docs.py` (PDF and PNG export for Claude Design).
+- `scripts/`: `install-phone.sh` (build, sign, install and launch on a connected iPhone), `build-simulator.py` (hand-built simulator bundle), `make-icon.swift`, `export-docs.py` (PDF and PNG export for Claude Design).
 - `docs/learning-path.md`: start here to read the code without an IDE; every page has diagrams.
 - `docs/catch-five-rules.md`: the house rules, which the in-app rules sheet quotes verbatim.
 - `docs/roadmap.md`: the six milestones, all done, and `docs/device-install.md`: putting the app on a phone.

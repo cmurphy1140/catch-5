@@ -46,6 +46,14 @@ xcrun devicectl manage pair --device "Iphone"
 
 ## Each build
 
+The short way, from the repo root with the phone plugged in and unlocked:
+
+```bash
+scripts/install-phone.sh
+```
+
+It finds the connected phone, builds signed, installs and launches; about fifteen seconds on this Mac. Pass a device name or identifier to choose a phone. The long way, for reference:
+
 From Xcode: open `CatchFive.xcodeproj`, pick the phone as the run destination, press Run. The first run on a free team asks the phone to trust the developer: Settings, then General, then VPN & Device Management, tap your Apple ID, Trust.
 
 From the terminal, the same thing (this is the sequence that worked on 2026-09-05; the phone's device name is "Iphone", or use its identifier from `devicectl list devices`):
