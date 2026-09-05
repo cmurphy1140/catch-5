@@ -7,6 +7,7 @@ public struct HandSummary: Sendable {
     public let dealer: Int
     public let bidder: Int
     public let bid: Int
+    public let isNineAndOut: Bool
     public let result: HandScore
     public let scores: [Int]
 }
@@ -33,6 +34,14 @@ public struct Match: Sendable {
         try hand.bid(seat: seat, amount: amount)
         actions.append(.bid(seat: seat, amount: amount))
     }
+    public mutating func bidNineAndOut(seat: Int) throws {
+        guard winner == nil else { throw MatchError.matchFinished }
+        guard (0..<4).contains(seat) else { throw RuleError.invalidSeat }
+        guard scores[seat % 2] >= 0 else { throw RuleError.forbiddenNineAndOut }
+        try hand.bid(seat: seat, amount: 9, nineAndOut: true)
+        actions.append(.nineAndOut(seat: seat))
+    }
+
     public mutating func chooseTrump(seat: Int, suit: Suit) throws {
         guard winner == nil else { throw MatchError.matchFinished }
         try hand.chooseTrump(seat: seat, suit: suit)
@@ -51,11 +60,11 @@ public struct Match: Sendable {
         guard let result = hand.result, let bidder = hand.auction.winner,
               let amount = hand.auction.highestBid else { throw HandError.wrongPhase }
         let outcome = try settle(scores: scores, points: result.points,
-                                 bidder: bidder % 2, bid: .points(amount))
+                                 bidder: bidder % 2, bid: hand.auction.isNineAndOut ? .nineAndOut : .points(amount))
         scores = outcome.scores
         winner = outcome.winner
         history.append(HandSummary(number: handNumber, dealer: hand.auction.dealer,
-                                   bidder: bidder, bid: amount, result: result, scores: scores))
+                                   bidder: bidder, bid: amount, isNineAndOut: hand.auction.isNineAndOut, result: result, scores: scores))
     }
     public mutating func startNextHand(deck: [Card]) throws {
         guard winner == nil else { throw MatchError.matchFinished }

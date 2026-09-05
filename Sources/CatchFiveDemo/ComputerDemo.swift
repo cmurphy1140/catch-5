@@ -18,6 +18,7 @@ func runComputerMatch() throws {
             throw DemoError.noLegalMove
         }
         switch action {
+        case .nineAndOut: print("Seat \(seat): 9 and out")
         case let .bid(amount): print("Seat \(seat): \(amount.map { "bid \($0)" } ?? "pass")")
         case let .chooseTrump(suit): print("Seat \(seat): trump is \(suit.rawValue)")
         case let .play(card): print("Seat \(seat): \(label(card))")

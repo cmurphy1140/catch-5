@@ -23,6 +23,7 @@ extension PlayerView {
 }
 
 public enum PlayerAction: Equatable, Sendable {
+    case nineAndOut
     case bid(Int?)
     case chooseTrump(Suit)
     case play(Card)
@@ -97,6 +98,7 @@ extension Match {
     /// Human and computer actions use the same checked entry points.
     public mutating func apply(_ action: PlayerAction, seat: Int) throws {
         switch action {
+        case .nineAndOut: try bidNineAndOut(seat: seat)
         case let .bid(amount): try bid(seat: seat, amount: amount)
         case let .chooseTrump(suit): try chooseTrump(seat: seat, suit: suit)
         case let .play(card): try play(seat: seat, card: card)

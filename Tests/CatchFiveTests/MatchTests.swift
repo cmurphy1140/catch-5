@@ -102,3 +102,26 @@ private func playCards(_ count: Int, in match: inout Match) throws {
     #expect(match.scores == [26, 16])
     #expect(match.history.count == 5)
 }
+
+@Test func specialBidFlowsThroughMatchAndSavedGame() throws {
+    var match = try Match(deck: matchDeck(1), dealer: 3)
+    try match.bidNineAndOut(seat: 0)
+    for seat in 1...3 { try match.bid(seat: seat, amount: nil) }
+    match = try MatchSave.decode(MatchSave.encode(match))
+    #expect(match.hand.auction.isNineAndOut)
+    try match.chooseTrump(seat: 0, suit: .diamonds)
+    try playCards(24, in: &match)
+    #expect(match.winner == 1)
+    #expect(match.history.first?.isNineAndOut == true)
+    #expect(try MatchSave.decode(MatchSave.encode(match)).winner == 1)
+}
+
+@Test func negativeTeamCannotDeclareNineAndOut() throws {
+    var match = try Match(deck: matchDeck(1), dealer: 3)
+    try prepare(&match, bid: 4)
+    try playCards(24, in: &match)
+    try match.startNextHand(deck: matchDeck(2))
+    try match.bid(seat: 1, amount: nil)
+    #expect(throws: RuleError.forbiddenNineAndOut) { try match.bidNineAndOut(seat: 2) }
+    #expect(match.hand.nextSeat == 2)
+}

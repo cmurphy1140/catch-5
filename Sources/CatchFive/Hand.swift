@@ -39,9 +39,9 @@ public struct Hand: Sendable {
         nextSeat = auction.nextSeat
     }
 
-    public mutating func bid(seat: Int, amount: Int?) throws {
+    public mutating func bid(seat: Int, amount: Int?, nineAndOut: Bool = false) throws {
         guard phase == .bidding else { throw HandError.wrongPhase }
-        try auction.act(seat: seat, bid: amount)
+        try auction.act(seat: seat, bid: amount, nineAndOut: nineAndOut)
         nextSeat = auction.nextSeat
         if nextSeat == nil {
             phase = .choosingTrump

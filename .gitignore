@@ -5,3 +5,6 @@ DerivedData/
 build/
 .build/
 *.ipa
+work/
+.vscode/
+.swiftpm/

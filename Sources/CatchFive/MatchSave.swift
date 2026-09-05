@@ -5,6 +5,7 @@ public enum SaveError: Error, Equatable {
 }
 
 enum SavedAction: Codable, Sendable {
+    case nineAndOut(seat: Int)
     case bid(seat: Int, amount: Int?)
     case trump(seat: Int, suit: Suit)
     case play(seat: Int, card: Card)
@@ -12,6 +13,7 @@ enum SavedAction: Codable, Sendable {
 
     func apply(to match: inout Match) throws {
         switch self {
+        case let .nineAndOut(seat): try match.bidNineAndOut(seat: seat)
         case let .bid(seat, amount): try match.bid(seat: seat, amount: amount)
         case let .trump(seat, suit): try match.chooseTrump(seat: seat, suit: suit)
         case let .play(seat, card): try match.play(seat: seat, card: card)

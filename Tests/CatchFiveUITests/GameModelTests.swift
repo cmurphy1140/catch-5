@@ -1,0 +1,35 @@
+import CatchFive
+import CatchFiveUI
+import Foundation
+import Testing
+
+@MainActor @Test func humanActionAdvancesComputersAndStopsForHuman() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    let model = GameModel(match: try Match(deck: deck, dealer: 3))
+    model.send(.bid(9))
+    #expect(model.match.hand.nextSeat == 1)
+    for _ in 0..<3 { model.stepComputer() }
+    #expect(model.isHumanTurn)
+    #expect(model.match.hand.phase == .choosingTrump)
+    model.stepComputer()
+    #expect(model.match.hand.phase == .choosingTrump)
+    model.send(.chooseTrump(.hearts))
+    #expect(model.match.hand.phase == .playing)
+    model.send(.play(try #require(model.humanCards.first)))
+    #expect(model.match.hand.currentTrick.count == 1)
+}
+
+@MainActor @Test func acceptedHumanMoveSavesAndInvalidMoveShowsError() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: url) }
+    let model = GameModel(match: try Match(deck: deck, dealer: 3), saveURL: url)
+    model.send(.bid(1))
+    #expect(model.errorMessage != nil)
+    #expect(model.match.hand.nextSeat == 0)
+    model.send(.bid(2))
+    #expect(model.errorMessage == nil)
+    let restored = try MatchSave.read(from: url)
+    #expect(restored.hand.auction.highestBid == 2)
+    #expect(restored.hand.nextSeat == 1)
+}
