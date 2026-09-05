@@ -84,8 +84,21 @@ public struct Advice: Equatable, Sendable {
     public let reason: String
 }
 
+/// How strong the computer seats play. Hints and explanations always use the standard strategy.
+public enum Difficulty: String, Codable, CaseIterable, Sendable {
+    case easy, standard
+}
+
 public enum ComputerPlayer {
     public static func decide(_ view: PlayerView) -> PlayerAction? { advise(view)?.action }
+
+    /// The action a computer of the given difficulty takes from `view`'s seat.
+    public static func decide(_ view: PlayerView, difficulty: Difficulty) -> PlayerAction? {
+        switch difficulty {
+        case .easy: EasyPlayer.decide(view)
+        case .standard: decide(view)
+        }
+    }
 
     /// The action this strategy would take from `view`'s seat, with its reasoning. Nil when it is not that seat's turn.
     public static func advise(_ view: PlayerView) -> Advice? {

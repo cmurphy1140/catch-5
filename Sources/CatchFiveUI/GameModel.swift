@@ -48,7 +48,7 @@ public final class GameModel: ObservableObject {
         var discards: Int?
         perform {
             let view = try PlayerView(match: match, seat: seat)
-            guard let action = ComputerPlayer.decide(view) else { return }
+            guard let action = ComputerPlayer.decide(view, difficulty: settings.difficulty) else { return }
             discards = discardCount(for: action)
             try match.apply(action, seat: seat)
         }
@@ -96,6 +96,13 @@ public final class GameModel: ObservableObject {
         // Advice reads "Play the X: reason"; keep only the reason after the colon.
         let reason = advice.reason.split(separator: ":", maxSplits: 1).last.map { $0.trimmingCharacters(in: .whitespaces) } ?? advice.reason
         let name = seatNames[play.seat]
+        if play.seat != 0, settings.difficulty == .easy {
+            // Easy seats follow the old fixed rules, so show what the standard strategy would have done.
+            if case let .play(preferred) = advice.action, preferred != play.card {
+                return "\(name) (easy) played the \(play.card.name). Standard would have played the \(preferred.name): \(reason)"
+            }
+            return "\(name) (easy) played the \(play.card.name), as Standard would: \(reason)"
+        }
         if play.seat == 0, advice.action != .play(play.card), case let .play(preferred) = advice.action {
             return "You played the \(play.card.name). The strategy would have played the \(preferred.name): \(reason)"
         }

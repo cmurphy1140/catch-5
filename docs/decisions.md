@@ -201,3 +201,11 @@ Each entry: what was decided, what it was chosen over, and why. Dates are when t
 **Over:** `UserDefaults`, or threading preferences into the engine.
 
 **Why:** The engine stays free of preferences, so nothing in the rules changes with a name or a speed. A JSON file next to the save is easy to inspect, matches how the game is stored, and needs no privacy-manifest reason. Keeping one `seatNames` source in the view model ended the three duplicated name lists the roadmap found.
+
+## D26. The frozen benchmark player is the Easy difficulty (PR #9, 2026-09-04)
+
+**Chosen:** `BaselinePlayer` moved from the test target into the package as `EasyPlayer`. `Difficulty` (easy, standard) lives in `Settings`; `ComputerPlayer.decide(_:difficulty:)` routes to it. Hints and explanations always use the standard strategy, and explanations for Easy seats say so and show what Standard would have played.
+
+**Over:** Writing a deliberately weakened player, or dropping the benchmark.
+
+**Why:** The frozen player already exists, is deterministic, and measured about one match in three against the current player, which is a real on-ramp for newcomers. One copy serves both jobs, and the "never improve it" contract now protects the difficulty setting as well as the benchmark's yardstick.

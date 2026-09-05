@@ -44,7 +44,7 @@ flowchart BT
     L3["Match coordinator (8 tests)<br/>MatchTests<br/>five-hand fixture with hand-checked scores 2–7, 10–5, 12–12, 19–14, 26–16"]
     L4["Persistence (7 tests)<br/>SaveTests<br/>resume in every phase, corrupt files, disk errors"]
     L5["Computer players (15 tests)<br/>ComputerPlayerTests<br/>single decisions + 24 shuffled matches + 200-match bidding calibration"]
-    L5b["Strategy benchmark (2 tests)<br/>StrategyBenchmark + BaselinePlayer<br/>600 mirrored matches against the frozen PR #2 player"]
+    L5b["Strategy benchmark (2 tests)<br/>StrategyBenchmark + EasyPlayer<br/>600 mirrored matches against the frozen PR #2 player"]
     L6["View model (3 tests)<br/>GameModelTests<br/>human/computer handoff, save on success, error on illegal move"]
     L7["Manual: simulator<br/>screenshots of bidding, trump choice, play, hand summary"]
     L1 --> L2 --> L3 --> L4 --> L5 --> L5b --> L6 --> L7
@@ -91,7 +91,7 @@ The numbers came from a throwaway harness that printed, for each estimated-point
 
 ## Benchmarks: measuring strength, not just legality
 
-`Tests/CatchFiveTests/BaselinePlayer.swift` is a frozen copy of the computer player as merged in PR #2. It is never improved. `StrategyBenchmark.swift` plays every seed twice with the teams swapped (`mirroredBenchmark`), so seat and dealer advantages cancel, and reports the candidate's win rate and average score margin. `benchmarkHarnessIsFairWhenBothSidesUseTheSameStrategy` checks that identical strategies come out exactly 50/50 with zero margin. `computerPlayerBeatsFrozenBaseline` then requires the shipped player to win at least 58% of 600 matches with a margin of at least two points; the 2026-09-04 player measured 66% and +5.5.
+`Sources/CatchFive/EasyPlayer.swift` is a frozen copy of the computer player as merged in PR #2; it doubles as the "Easy" difficulty and is never improved. `StrategyBenchmark.swift` plays every seed twice with the teams swapped (`mirroredBenchmark`), so seat and dealer advantages cancel, and reports the candidate's win rate and average score margin. `benchmarkHarnessIsFairWhenBothSidesUseTheSameStrategy` checks that identical strategies come out exactly 50/50 with zero margin. `computerPlayerBeatsFrozenBaseline` then requires the shipped player to win at least 58% of 600 matches with a margin of at least two points; the 2026-09-04 player measured 66% and +5.5.
 
 The same harness is how strategy ideas are judged during development: freeze the current player as a reference copy in the test target, change `ComputerPlayer`, and compare. Parameter values in the play policy (control weights, hold chances, bid margin) were chosen by running a grid of variants through it, each on 1200 matches, and keeping the best. See [decisions.md](decisions.md) D17 to D20.
 

@@ -157,3 +157,23 @@ import Testing
     model.send(.play(model.humanCards[0]))
     #expect(model.notice == nil)
 }
+
+@MainActor @Test func easySettingDrivesComputersButNotHintsAndLabelsExplanations() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    let model = GameModel(match: try Match(deck: deck, dealer: 3))
+    model.settings.difficulty = .easy
+    model.send(.bid(9))
+    for _ in 0..<3 { model.stepComputer() }
+    model.send(.chooseTrump(.clubs))
+    model.showHint()
+    let hint = try #require(model.hint)
+    #expect(hint.action == ComputerPlayer.decide(try PlayerView(match: model.match, seat: 0)))   // Standard, not Easy
+    model.send(hint.action)
+    let before = model.match
+    model.stepComputer()
+    let played = try #require(model.match.hand.currentTrick.last)
+    #expect(.play(played.card) == EasyPlayer.decide(try PlayerView(match: before, seat: 1)))
+    let text = try #require(model.explanation(for: played, inLastTrick: false))
+    #expect(text.hasPrefix("West (easy) played the \(played.card.name)"))
+    #expect(text.contains("Standard"))
+}

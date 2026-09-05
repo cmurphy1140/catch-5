@@ -27,7 +27,7 @@ flowchart LR
 **Tests first:** `humanCardsSortTrumpFirst`, `delayDependsOnPlaySpeedAndLeadPosition`, `settingsRoundTripThroughDisk`, `seatNamesFlowIntoCallsAndContract`, `illegalPlayExplainsFollowSuitInPlainWords`.
 **Risks:** Sorting must not break the card-keyed `ForEach` animation (it will not; cards remain unique). Keep `Settings` out of the engine module.
 
-## M2. Difficulty levels (S)
+## M2. Difficulty levels (S) — done in PR #9
 
 **Goal:** Offer Easy (the frozen PR #2 player) and Standard (the D18 player).
 

@@ -244,3 +244,20 @@ struct RepeatableRandom: RandomNumberGenerator {
         try PlayerView(match: match, replaying: Play(seat: 0, card: Card(.clubs, .two)), inCompletedTrick: 0)
     }
 }
+
+@Test func easyDifficultyPlaysTheFrozenPlayerAndStandardTheCurrentOne() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    var random = RepeatableRandom(state: 5)
+    var match = try Match(deck: deck.shuffled(using: &random), dealer: 2)
+    var differed = 0
+    while match.winner == nil {
+        if match.hand.phase == .finished { try match.startNextHand(deck: deck.shuffled(using: &random)); continue }
+        let seat = try #require(match.hand.nextSeat)
+        let view = try PlayerView(match: match, seat: seat)
+        #expect(ComputerPlayer.decide(view, difficulty: .easy) == EasyPlayer.decide(view))
+        #expect(ComputerPlayer.decide(view, difficulty: .standard) == ComputerPlayer.decide(view))
+        if ComputerPlayer.decide(view, difficulty: .easy) != ComputerPlayer.decide(view) { differed += 1 }
+        try match.apply(try #require(ComputerPlayer.decide(view, difficulty: seat % 2 == 0 ? .easy : .standard)), seat: seat)
+    }
+    #expect(differed > 0)
+}

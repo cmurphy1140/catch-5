@@ -169,6 +169,8 @@ classDiagram
 | `Advice` | an action plus its reasoning in plain words | `adviceNamesTheActionAndExplainsIt` |
 | `ComputerPlayer.advise(_:)` | the single source of truth: the action this strategy takes from a seat and why; nil unless it is that seat's turn | `adviceExplainsCardPlay` (also checks it agrees with `decide` through a whole match) |
 | `ComputerPlayer.decide(_:)` | `advise(_:)?.action` | `computerDoesNotActOutsideItsTurn` |
+| `Difficulty`, `ComputerPlayer.decide(_:difficulty:)` | `easy` routes to `EasyPlayer`, `standard` to `decide(_:)`; hints and explanations always use standard | `easyDifficultyPlaysTheFrozenPlayerAndStandardTheCurrentOne` |
+| `EasyPlayer` (`Sources/CatchFive/EasyPlayer.swift`) | the "Easy" computer: a frozen copy of the PR #2 player, also the benchmark's fixed opponent, never to be improved | `computerPlayerBeatsFrozenBaseline` |
 | `ComputerPlayer.estimate(_:suit:)` | expected hand points if that suit were trump | `estimateRanksControlAndTheFiveAboveScatteredCards` |
 | bidding (private `bidAmount`) | bid the minimum needed if it is at most the whole-point estimate; never outbid partner; dealer takes forced 2 | `computerPassesWeakHandButDealerTakesForcedTwo`, `computerRaisesWithStrongSuitAndChoosesIt`, `computerBiddingIsCompetitiveAndUsuallyMakesContract` |
 | `ComputerPlayer.Knowledge` | built from a `PlayerView`: the set of unseen cards (other hands or stock), `unbeatable(_:led:)` (no unseen card can beat it), `pointValue(_:)` (five 5, jack 1, certain High 1, certain Low 1, plus 0.06 per Game point) and `controlValue(_:)` (what holding a trump is worth for later tricks; 0.8 extra when unbeatable, 0 on the last trick) | `computerSpendsTheAceToCaptureTheFive`, `computerDumpsTheTrickWhenItIsWorthlessAndNoTrumpIsFree` |
@@ -179,8 +181,7 @@ classDiagram
 
 | Name | Purpose |
 |---|---|
-| `BaselinePlayer` (`Tests/CatchFiveTests/BaselinePlayer.swift`) | frozen copy of the PR #2 player, the fixed opponent for strength measurements; never improved |
-| `playSeededMatch`, `mirroredBenchmark`, `BenchmarkResult` (`Tests/CatchFiveTests/StrategyBenchmark.swift`) | play seeded matches between two strategies, each seed twice with teams swapped; `computerPlayerBeatsFrozenBaseline` guards the shipped player's strength |
+| `playSeededMatch`, `mirroredBenchmark`, `BenchmarkResult` (`Tests/CatchFiveTests/StrategyBenchmark.swift`) | play seeded matches between two strategies, each seed twice with teams swapped; `computerPlayerBeatsFrozenBaseline` guards the shipped player's strength against `EasyPlayer` |
 
 ## Sources/CatchFive/MatchSave.swift
 
@@ -214,8 +215,8 @@ classDiagram
 
 | Name | Purpose |
 |---|---|
-| `Settings`, `SettingsStore` | `Settings.swift`: Codable preferences with defaults for missing keys, and `delay(leadingTrick:)` for the computer pause per play speed; the store reads and writes JSON atomically | `delayDependsOnPlaySpeedAndLeadPosition`, `settingsRoundTripThroughDiskAndTolerateMissingKeys` |
-| `SettingsView` | sheet from the gear button: play speed, four seat names, haptics toggle | manual |
+| `Settings`, `SettingsStore` | `Settings.swift`: Codable preferences (including `difficulty`) with defaults for missing keys, and `delay(leadingTrick:)` for the computer pause per play speed; the store reads and writes JSON atomically | `delayDependsOnPlaySpeedAndLeadPosition`, `settingsRoundTripThroughDiskAndTolerateMissingKeys` |
+| `SettingsView` | sheet from the gear button: difficulty, play speed, four seat names, haptics toggle | manual |
 | `TableView` | the whole screen: header, scores and contract, three opponent tiles, status line naming who is thinking, discard notice, Hint button and advice panel on your turn (the suggested card is ringed in gold), trick area where tapping any played card explains it, hand, phase-specific controls, new-game confirmation, error alert, computer scheduler task, background save |
 | `CardView` | a 48×72 card face with accessibility label; `Suit.glyph`, `Suit.ink`, `Card.label` helpers |
 | `HandSummaryView` | who took High, Low, Jack, Five, Game for the last hand and what was bid, using the configured seat names |
