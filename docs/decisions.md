@@ -342,3 +342,11 @@ D36 is taken by the cast, login and menu work on the parallel branch.
 
 **Why:** Task 3 of the roadmap. A shake without a reason teaches nothing; the reason costs one dry run. The dealer's rights are the one part of the auction a newcomer cannot guess from the pills alone. Nine and out is the only bid that can end the match by itself, which is what earns it a confirmation.
 
+## D43. The hand-end card leads with the verdict and the arithmetic (PR #27, 2026-09-05)
+
+**Chosen:** `HandOutcome` turns the engine's `HandSummary` and the previous scores into the order a player wants: "Contract made" or "Contract set" (or "9 and out made" / "failed") in gold, then "Connor + Otto bid 4 · captured 6 · score 2 → 8" and the defenders' line, then the point-by-point rows, then notes only when a rule decided something: a Game tie going to the bidder, a Five or Jack that was never dealt, both teams reaching 25 on one hand. The review sheet says that Standard's choice is a recommendation, not proof that another legal play was wrong.
+
+**Over:** Leading with the five category rows and leaving the reader to work out whether the bid made and why the score moved; a permanent list of every rule on the card.
+
+**Why:** Task 4 of the roadmap. The first question after a hand is "did we make it and what did it cost", and the scores in the header only show the result of the arithmetic. Building the wording from numbers the engine already computed keeps the card honest and lets the edge cases be tested without playing a hand to reach them.
+
