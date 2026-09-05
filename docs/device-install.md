@@ -14,7 +14,7 @@ flowchart LR
     F --> G["Phone: Developer Mode on,<br/>trust the developer profile"]
 ```
 
-Running `xcodebuild -destination 'generic/platform=iOS'` today fails with "iOS 26.5 is not installed. Please download and install the platform from Xcode > Settings > Components." That download is the blocker; everything else is ready.
+Until the platform is downloaded, `xcodebuild -destination 'generic/platform=iOS'` fails with "iOS 26.5 is not installed. Please download and install the platform from Xcode > Settings > Components." With it installed, the whole path below was run on 2026-09-05 and the app launched on the phone.
 
 ## One-time setup
 
@@ -36,31 +36,33 @@ security find-certificate -c "Apple Development" -p | openssl x509 -noout -subje
 
    It is set in `project.yml` under `settings.base` as `DEVELOPMENT_TEAM` (done on 2026-09-05 for Connor's personal team, `9LDVUD49X7`) and the project regenerated with `xcodegen generate`. `CODE_SIGN_STYLE: Automatic` lets Xcode create the provisioning profile the first time you build.
 
-4. **Prepare the phone.** Settings, then Privacy & Security, then Developer Mode, switch it on and restart. Connect the phone by cable the first time and tap Trust. It then appears in:
+4. **Prepare and pair the phone.** Settings, then Privacy & Security, then Developer Mode, switch it on and restart. Connect the phone by cable, unlock it, and tap Trust. Then pair it with the Mac's developer tools, either from Xcode's Window, Devices and Simulators, or from the terminal (a prompt appears on the phone):
 
 ```bash
-xcrun devicectl list devices
+xcrun devicectl manage pair --device "Iphone"
 ```
 
-   The paired iPhone 16 Pro shows here already (state "unavailable" until it is connected and unlocked).
+   Afterwards `xcrun devicectl list devices` shows the phone as "available (paired)". Xcode's "not available because it is unpaired" message means this step is missing.
 
 ## Each build
 
 From Xcode: open `CatchFive.xcodeproj`, pick the phone as the run destination, press Run. The first run on a free team asks the phone to trust the developer: Settings, then General, then VPN & Device Management, tap your Apple ID, Trust.
 
-From the terminal, the same thing:
+From the terminal, the same thing (this is the sequence that worked on 2026-09-05; the phone's device name is "Iphone", or use its identifier from `devicectl list devices`):
 
 ```bash
-DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project CatchFive.xcodeproj -scheme CatchFiveApp -destination 'generic/platform=iOS' -derivedDataPath work/derived -allowProvisioningUpdates build
+cd ~/Developer/active/cardgame-io && DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project CatchFive.xcodeproj -scheme CatchFiveApp -destination 'id=DE373CFB-3B3B-5D2C-8ABC-7F1552B74DE2' -derivedDataPath work/derived -allowProvisioningUpdates build
 ```
 
 ```bash
-xcrun devicectl device install app --device "Connor's Phone" work/derived/Build/Products/Debug-iphoneos/CatchFiveApp.app
+xcrun devicectl device install app --device DE373CFB-3B3B-5D2C-8ABC-7F1552B74DE2 work/derived/Build/Products/Debug-iphoneos/CatchFiveApp.app
 ```
 
 ```bash
-xcrun devicectl device process launch --device "Connor's Phone" com.cardgame.catchfive
+xcrun devicectl device process launch --device DE373CFB-3B3B-5D2C-8ABC-7F1552B74DE2 com.cardgame.catchfive
 ```
+
+`-allowProvisioningUpdates` lets `xcodebuild` create the "iOS Team Provisioning Profile" on first use, signed with the Apple Development certificate.
 
 With a free team, rebuild and reinstall within seven days or the app stops opening; saved games and settings survive a reinstall because they live in the app's own container.
 
