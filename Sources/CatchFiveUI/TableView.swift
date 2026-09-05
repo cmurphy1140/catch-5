@@ -7,12 +7,16 @@ public struct TableView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var confirmNewGame = false
     @State private var showSettings = false
-    @State private var showRules = false
+    @State private var showTutorial = false
+    @StateObject private var tutorial: TutorialModel
     @State private var showReview = false
     @State private var showScoreboard = false
     @State private var showStatistics = false
 
-    public init(model: GameModel) { _model = StateObject(wrappedValue: model) }
+    public init(model: GameModel) {
+        _model = StateObject(wrappedValue: model)
+        _tutorial = StateObject(wrappedValue: model.makeTutorial())
+    }
 
     public var body: some View {
         ScrollView {
@@ -51,8 +55,8 @@ public struct TableView: View {
         .sensoryFeedback(.impact(weight: .light), trigger: model.match.hand.completedTricks.count) { _, _ in model.settings.haptics }
         .sensoryFeedback(.success, trigger: model.match.history.count) { _, _ in model.settings.haptics }
         .sheet(isPresented: $showSettings) { SettingsView(settings: $model.settings) }
-        .sheet(isPresented: $showRules, onDismiss: { model.markRulesSeen() }) { RulesView { showRules = false } }
-        .onAppear { if model.needsRulesIntroduction { showRules = true } }
+        .sheet(isPresented: $showTutorial, onDismiss: { model.markRulesSeen() }) { TutorialView(model: tutorial) { showTutorial = false } }
+        .onAppear { if model.needsRulesIntroduction { showTutorial = true } }
         .sheet(isPresented: $showReview) {
             if let review = model.handReview() {
                 ReviewView(review: review, names: model.seatNames, difficulty: model.settings.difficulty, describe: model.describe) { showReview = false }
@@ -82,7 +86,7 @@ public struct TableView: View {
                 HStack(spacing: 14) {
                     Button { showStatistics = true } label: { Image(systemName: "chart.bar") }
                         .accessibilityLabel("Statistics")
-                    Button { showRules = true } label: { Image(systemName: "book") }
+                    Button { showTutorial = true } label: { Image(systemName: "book") }
                         .accessibilityLabel("How to play")
                     Button { showSettings = true } label: { Image(systemName: "gearshape") }
                         .accessibilityLabel("Settings")

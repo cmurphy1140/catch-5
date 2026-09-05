@@ -141,7 +141,12 @@ public final class GameModel: ObservableObject {
         perform { match = try match.rewound(toActionCount: point) }
     }
 
-    /// True until the player has dismissed the rules sheet once.
+    /// The tutorial's state, sharing completion with `Settings` so it persists with the other preferences.
+    public func makeTutorial() -> TutorialModel {
+        TutorialModel(completed: settings.completedLessons) { [weak self] completed in self?.settings.completedLessons = completed }
+    }
+
+    /// True until the player has dismissed the tutorial once.
     public var needsRulesIntroduction: Bool { !settings.hasSeenRules }
     public func markRulesSeen() { settings.hasSeenRules = true }
 
