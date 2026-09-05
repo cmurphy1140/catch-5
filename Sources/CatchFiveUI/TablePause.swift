@@ -11,6 +11,8 @@ struct TablePause: Equatable, Hashable {
     var dialogShown = false
     /// The player reopened the last trick to look at it.
     var inspectingTrick = false
+    /// The draw for dealer is on the table before the first hand.
+    var drawShown = false
 
-    var isPaused: Bool { !sceneActive || welcomeShown || sheetShown || dialogShown || inspectingTrick }
+    var isPaused: Bool { !sceneActive || welcomeShown || sheetShown || dialogShown || inspectingTrick || drawShown }
 }

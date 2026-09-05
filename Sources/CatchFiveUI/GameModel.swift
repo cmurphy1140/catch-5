@@ -16,6 +16,8 @@ public final class GameModel: ObservableObject {
     @Published public private(set) var explanation: String?
     /// A one-line note about something that happened without a tap, such as the discard after trump.
     @Published public private(set) var notice: String?
+    /// How the first dealer of this match was chosen; shown until the first action, or dismissed.
+    @Published private(set) var dealerDraw: DealerDraw?
     /// Why the human's last refused tap was refused, in the player's words; cleared by the next accepted action.
     @Published public private(set) var refusal: String?
     /// The human's most recent accepted action, for the undo toast and haptics; nil after undo or a new hand.
@@ -46,6 +48,15 @@ public final class GameModel: ObservableObject {
     }
 
     public var statistics: Statistics { Statistics(records) }
+
+    public func dismissDealerDraw() { dealerDraw = nil }
+
+    /// A fresh match with the dealer decided by a draw, shown on the table until the first action.
+    static func freshMatch() -> (match: Match, draw: DealerDraw) {
+        let draw = DealerDraw.draw(from: deck())
+        // The generated deck is always a valid, unique 52-card deck.
+        return (try! Match(deck: deck(), dealer: draw.dealer), draw)
+    }
 
     /// The finished hand's outcome in the player's order: contract, arithmetic, defenders, deciding rules.
     var lastHandOutcome: HandOutcome? {
@@ -322,7 +333,9 @@ public final class GameModel: ObservableObject {
         notice = nil
     }
     public func newGame() {
-        perform { match = try Match(deck: Self.deck(), dealer: 3) }
+        let draw = DealerDraw.draw(from: Self.deck())
+        perform { match = try Match(deck: Self.deck(), dealer: draw.dealer) }
+        dealerDraw = draw
         recordedCurrentMatch = false
         finalPerformance = nil
         lastHumanAction = nil
@@ -341,6 +354,7 @@ public final class GameModel: ObservableObject {
         }
         errorMessage = nil
         refusal = nil
+        dealerDraw = nil   // the first action puts the draw away
         hint = nil
         explanation = nil
         persist()
@@ -416,9 +430,10 @@ public final class GameModel: ObservableObject {
             }
         }
         let records = MatchHistoryStore.readSettingAsideCorruption(at: historyURL)
-        // The generated deck is always a valid, unique 52-card deck.
-        let fresh = GameModel(match: try! Match(deck: deck(), dealer: 3), saveURL: url, settings: settings, settingsURL: settingsURL,
+        let start = freshMatch()
+        let fresh = GameModel(match: start.match, saveURL: url, settings: settings, settingsURL: settingsURL,
                               records: records, historyURL: historyURL)
+        fresh.dealerDraw = start.draw
         if FileManager.default.fileExists(atPath: url.path) {
             do {
                 let restored = GameModel(match: try MatchSave.read(from: url), saveURL: url, settings: settings, settingsURL: settingsURL,
