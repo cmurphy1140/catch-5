@@ -12,15 +12,18 @@ public struct Settings: Codable, Equatable, Sendable {
     public var seatNames: [String]
     public var haptics: Bool
     public var difficulty: Difficulty
+    /// The rules sheet opens by itself until the player has dismissed it once.
+    public var hasSeenRules: Bool
 
     public static let defaultSeatNames = ["You", "West", "Partner", "East"]
 
     public init(playSpeed: PlaySpeed = .normal, seatNames: [String] = Settings.defaultSeatNames,
-                haptics: Bool = true, difficulty: Difficulty = .standard) {
+                haptics: Bool = true, difficulty: Difficulty = .standard, hasSeenRules: Bool = false) {
         self.playSpeed = playSpeed
         self.seatNames = seatNames
         self.haptics = haptics
         self.difficulty = difficulty
+        self.hasSeenRules = hasSeenRules
     }
 
     // Missing keys fall back to defaults so an older settings file keeps loading.
@@ -31,6 +34,7 @@ public struct Settings: Codable, Equatable, Sendable {
         seatNames = names.count == 4 ? names : Settings.defaultSeatNames
         haptics = try container.decodeIfPresent(Bool.self, forKey: .haptics) ?? true
         difficulty = try container.decodeIfPresent(Difficulty.self, forKey: .difficulty) ?? .standard
+        hasSeenRules = try container.decodeIfPresent(Bool.self, forKey: .hasSeenRules) ?? false
     }
 
     /// Pause before a computer acts: longer before a lead so the last trick can be read.

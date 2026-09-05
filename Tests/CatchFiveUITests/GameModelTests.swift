@@ -177,3 +177,27 @@ import Testing
     #expect(text.hasPrefix("West (easy) played the \(played.card.name)"))
     #expect(text.contains("Standard"))
 }
+
+@Test func rulesSheetContainsEveryHouseRuleParagraph() throws {
+    // The rules document is the source of truth; the sheet must quote every rule paragraph verbatim.
+    let docs = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        .appendingPathComponent("docs/catch-five-rules.md")
+    let text = try String(contentsOf: docs, encoding: .utf8)
+    let rules = text.components(separatedBy: "## Pending")[0]
+    let paragraphs = rules.split(separator: "\n").map(String.init).filter { !$0.isEmpty && !$0.hasPrefix("#") }
+    #expect(paragraphs.count >= 8)
+    for paragraph in paragraphs { #expect(RulesText.allText.contains(paragraph), "missing: \(paragraph.prefix(40))") }
+    #expect(RulesText.sections.flatMap(\.paragraphs).count == paragraphs.count)
+}
+
+@MainActor @Test func firstLaunchShowsRulesOnce() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: url) }
+    let model = GameModel(match: try Match(deck: deck, dealer: 3), settingsURL: url)
+    #expect(model.needsRulesIntroduction)
+    model.markRulesSeen()
+    #expect(!model.needsRulesIntroduction)
+    let reloaded = GameModel(match: try Match(deck: deck, dealer: 3), settings: try SettingsStore.read(from: url))
+    #expect(!reloaded.needsRulesIntroduction)
+}

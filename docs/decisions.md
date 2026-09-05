@@ -209,3 +209,11 @@ Each entry: what was decided, what it was chosen over, and why. Dates are when t
 **Over:** Writing a deliberately weakened player, or dropping the benchmark.
 
 **Why:** The frozen player already exists, is deterministic, and measured about one match in three against the current player, which is a real on-ramp for newcomers. One copy serves both jobs, and the "never improve it" contract now protects the difficulty setting as well as the benchmark's yardstick.
+
+## D27. The rules sheet quotes the rules document and a test keeps them equal (PR #10, 2026-09-04)
+
+**Chosen:** `RulesText` holds the house rules as paragraphs copied verbatim from `docs/catch-five-rules.md`, grouped under short headings. A test reads the document at test time and fails if any rule paragraph is missing from the sheet or the counts differ. The sheet opens by itself until dismissed once (`Settings.hasSeenRules`), and from a book button afterwards.
+
+**Over:** Loading the Markdown file into the app bundle, or rewriting the rules in friendlier prose.
+
+**Why:** The hand-built simulator bundle has no resource pipeline, so the text has to live in code; the test makes the copy safe. Quoting the document verbatim keeps one wording of the rules everywhere, which matters because the document is what Connor confirmed.

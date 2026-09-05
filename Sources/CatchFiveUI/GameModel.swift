@@ -82,6 +82,10 @@ public final class GameModel: ObservableObject {
         return "\(seatNames[bidder]) bid \(auction.isNineAndOut ? "9 and out" : String(bid))"
     }
 
+    /// True until the player has dismissed the rules sheet once.
+    public var needsRulesIntroduction: Bool { !settings.hasSeenRules }
+    public func markRulesSeen() { settings.hasSeenRules = true }
+
     /// Ask the computer strategy what it would do from seat 0 and why.
     public func showHint() {
         guard isHumanTurn, let view = try? PlayerView(match: match, seat: 0) else { return }

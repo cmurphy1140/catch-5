@@ -40,7 +40,7 @@ flowchart LR
 **Tests first:** `easyDifficultyPlaysTheFrozenPlayer`, `hintIgnoresDifficulty`, `explanationForEasySeatIsLabelled`, existing benchmark still passes unchanged.
 **Risks:** Someone "fixes" EasyPlayer and silently shifts the benchmark; guard with a doc comment and a decision entry.
 
-## M3. Rules sheet and first run (S)
+## M3. Rules sheet and first run (S) — done in PR #10
 
 **Goal:** A new player can learn the house rules inside the app before the first bid.
 

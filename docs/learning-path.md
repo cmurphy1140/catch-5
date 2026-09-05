@@ -49,6 +49,10 @@ You will meet these words constantly. Each is defined once here and used without
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --filter playMustFollowSuitAndWinningPlayerLeadsNext
 ```
 
+## The rules inside the app
+
+`Sources/CatchFiveUI/RulesText.swift` quotes every paragraph of [catch-five-rules.md](catch-five-rules.md) and a test compares the two, so editing the rules document is the only way to change what the app says.
+
 ## Keeping these pages live
 
 Rule for every future change: if a commit adds or renames a type, function, phase, or test, the same commit updates the relevant page here. `CLAUDE.md` states this so automated sessions follow it too.
