@@ -16,7 +16,7 @@ struct TrumpLesson: View {
                 ForEach(model.showRefill && correct ? TutorialFixtures.refilledHand : TutorialFixtures.biddingHand, id: \.self) { card in
                     let fresh = model.showRefill && correct && !TutorialFixtures.biddingHand.contains(card)
                     CardView(card: card)
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(fresh ? Color.gold : .clear, lineWidth: 3))
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(fresh ? Color.ivory : .clear, lineWidth: 3))
                         .opacity(correct && !model.showRefill && card.suit != .spades ? 0.35 : 1)
                 }
             }
@@ -31,7 +31,7 @@ struct TrumpLesson: View {
             if correct {
                 Toggle("Discard and refill", isOn: $model.showRefill).tint(.ivory.opacity(0.6)).font(.footnote)
             }
-            Feedback(text: model.showRefill && correct ? "Three new cards, ringed in gold. One more spade came in; the two side cards stay because everything not spades was already thrown away." : model.trumpFeedback)
+            Feedback(text: model.showRefill && correct ? "Three new cards, ringed. One more spade came in; the two side cards stay because everything not spades was already thrown away." : model.trumpFeedback)
         }
     }
 }

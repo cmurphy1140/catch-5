@@ -9,21 +9,18 @@ struct HandFanView: View {
     let onIllegal: (Card) -> Void
     @Binding var shakes: [Card: Int]
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.horizontalSizeClass) private var sizeClass
     @ScaledMetric(relativeTo: .title2) private var scaledStandard = Theme.Card.handWidth
     @ScaledMetric(relativeTo: .title2) private var scaledWide = Theme.Card.handWidthWide
-
-    /// The card width after Dynamic Type scaling, matching what `CardView` draws.
-    private var scaledWidth: Double { sizeClass == .regular ? scaledWide : scaledStandard }
 
     var body: some View {
         let cards = model.humanCards
         let playing = model.match.hand.phase == .playing
-        let width = sizeClass == .regular ? Theme.Card.handWidthWide : Theme.Card.handWidth
         VStack(spacing: 6) {
             // The fan fits the available width: the overlap tightens when Dynamic Type grows the cards.
             GeometryReader { geometry in
-                let scaled = scaledWidth
+                let wide = geometry.size.width + 32 >= Theme.Card.wideScreenWidth
+                let width = wide ? Theme.Card.handWidthWide : Theme.Card.handWidth
+                let scaled = wide ? scaledWide : scaledStandard
                 let strip = min(scaled + Theme.Card.handOverlap, (geometry.size.width - 16 - scaled) / Double(max(cards.count - 1, 1)))
                 HStack(spacing: strip - scaled) {
                 ForEach(Array(cards.enumerated()), id: \.element) { index, card in
@@ -43,15 +40,14 @@ struct HandFanView: View {
                     .offset(y: reduceMotion ? 0 : fanDrop(index, of: cards.count))
                     .allowsHitTesting(playing)
                     .accessibilityValue(model.accessibilityValue(for: card))
-                    .accessibilityAddTraits(playable ? [] : .isStaticText)
-                    .matchedGeometryEffect(id: card, in: namespace)
-                    .transition(.identity)
+                    .modifier(MatchedCard(card: card, namespace: namespace, enabled: !reduceMotion))
+                    .transition(reduceMotion ? .opacity : .identity)
                     .zIndex(Double(index))
                 }
                 }
                 .frame(width: geometry.size.width, height: geometry.size.height, alignment: .bottom)
             }
-            .frame(height: scaledWidth * Theme.Card.ratio + 16 + Theme.Card.fanDrop)
+            .frame(height: max(scaledStandard, scaledWide) * Theme.Card.ratio + 16 + Theme.Card.fanDrop)
             if !cards.isEmpty {
                 Text("YOUR HAND").font(.caption2.monospaced()).tracking(1).opacity(0.55)
             }
@@ -74,20 +70,31 @@ struct HandFanView: View {
     }
 }
 
-/// Three quick side-to-side oscillations; runs whenever `trigger` changes.
+/// Three quick side-to-side oscillations over 0.3 s; runs whenever `trigger` changes.
 struct ShakeEffect: ViewModifier {
     let trigger: Int
     func body(content: Content) -> some View {
+        let a = Theme.Motion.shakeAmplitude
         content.keyframeAnimator(initialValue: 0.0, trigger: trigger) { view, x in
             view.offset(x: x)
         } keyframes: { _ in
             KeyframeTrack(\.self) {
-                CubicKeyframe(-6, duration: 0.05)
-                CubicKeyframe(6, duration: 0.08)
-                CubicKeyframe(-5, duration: 0.07)
-                CubicKeyframe(3, duration: 0.05)
+                CubicKeyframe(-a, duration: 0.05)
+                CubicKeyframe(a, duration: 0.08)
+                CubicKeyframe(-a * 0.8, duration: 0.07)
+                CubicKeyframe(a * 0.5, duration: 0.05)
                 CubicKeyframe(0, duration: 0.05)
             }
         }
+    }
+}
+
+/// Joins a hand card to its pile counterpart so a play flies between them; off under Reduce Motion.
+struct MatchedCard: ViewModifier {
+    let card: Card
+    let namespace: Namespace.ID
+    let enabled: Bool
+    func body(content: Content) -> some View {
+        if enabled { content.matchedGeometryEffect(id: card, in: namespace) } else { content }
     }
 }

@@ -113,8 +113,36 @@ The gameplay screen is one view, `TableView`, with sheets. Sheets (`SettingsView
 
 ## Verification
 
-- `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test` after every step (97 tests today plus the ones named above).
+- `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test` after every step (101 tests after this pull request).
 - Simulator screenshots per step on the Catch 5 iPhone and an iPhone SE-width device for each phase: auction, trump, lead, mid-trick, trick complete, hand end, match end; at default and largest Dynamic Type; with Reduce Motion on.
 - On the phone via `scripts/install-phone.sh` for steps 6 and 9: feel the lift, flight, collapse and haptics; confirm legal-card lift is visible in daylight.
+
+## Verification record (PR #20 review pass, 2026-09-05)
+
+A superpowers code review of the first cut rated it "not ready to merge" on six points; all were fixed before merge.
+
+| Finding | Fix |
+|---|---|
+| Auction and trump phases overflowed the SE (375 × 667 pt) and the table was unusable at accessibility sizes | Bid grid and suit buttons take the pile's place; the surface scrolls only when content cannot fit (D34); cards capped at XXXL, table text at AX2 |
+| Undo only reachable during the four-second toast | "Undo last action" in the gear menu, disabled when nothing can be undone |
+| Discard notice hidden behind the toast | The toast reads "♥ named trump · You discarded 5 and drew 5. · Undo"; the notice then stands alone until the next human action |
+| Match-over card truncated on the SE | The hand-end card scrolls and its buttons stack when they do not fit |
+| VoiceOver order across the spatial layout | `accessibilityElement(children: .contain)` on the surface with sort priorities on seats and the pile |
+| Minor: trick haptic fired on hand start, reopen not animated, static-text trait on cards, `matchedGeometryEffect` under Reduce Motion, literal numbers, a stale docs row, no simulator build in CI | All applied; the scheduler's decisions were extracted into `TableScheduler.plan` with a test |
+
+Screenshot matrix, taken with `xcrun simctl ui <udid> content_size …` and a saved game for each phase copied into the app container (see [testing.md](testing.md)):
+
+| Phase | iPhone SE 375 × 667 | iPhone 16 Pro 393 × 852 |
+|---|---|---|
+| Auction, your bid | default ✓ · XXXL scrolls to reach Pass · AX5 scrolls | default ✓ · XXXL ✓ · AX5 scrolls |
+| Choose trump | default ✓ · XXXL scrolls · AX5 scrolls | default ✓ · XXXL ✓ · AX5 scrolls |
+| Mid-trick, three cards down | default ✓ · XXXL scrolls to the status line · AX5 scrolls | default ✓ · XXXL ✓ · AX5 ✓ |
+| Trick just taken, you lead | default ✓ (reopen control present) | default ✓ |
+| Hand end card | default ✓ · XXXL ✓ · AX5 card scrolls | default ✓ · XXXL ✓ · AX5 card scrolls |
+| Match over card | default ✓ · XXXL ✓ · AX5 card scrolls | default ✓ · XXXL ✓ · AX5 card scrolls |
+| Undo toast with notice | ✓ (verified with a 30 s toast, then restored to 4 s) | ✓ |
+| Gear menu with Undo | ✓ | ✓ |
+
+"Scrolls" means the surface or card scrolls to reach the rest; nothing is clipped and no control is unreachable. The fan keeps all six cards on screen in every cell.
 
 Sources: [Parachute thumb zone](https://parachutedesign.ca/blog/thumb-zone-ux/), [Elaris thumb zones](https://elaris.software/blog/mobile-ux-thumb-zones-2025/), [WWDC24 Design advanced games](https://developer.apple.com/videos/play/wwdc2024/10085/), [HIG Designing for games](https://developer.apple.com/design/human-interface-guidelines/designing-for-games), [PrintNinja card dimensions](https://printninja.com/card-dimensions/), [Pure Solitaire dimensions](https://www.puresolitaire.games/blog/playing-card-dimensions-deck-size/), [5 UX lessons from a card game](https://medium.com/@acbassettone/5-ux-ui-lessons-from-designing-a-card-game-b689d3f3187), [GDKeys card UI](https://gdkeys.com/the-card-games-ui-design-of-fairtravel-battle/), [Median typography](https://median.co/blog/apples-ui-dos-and-donts-typography), [Design+Code Dynamic Type](https://designcode.io/ios-design-handbook-typography-and-dynamic-type/), [WebAIM contrast](https://webaim.org/articles/contrast/), [Muzli dark elevation](https://medium.muz.li/mastering-elevation-for-dark-ui-a-comprehensive-guide-04cc770dd0d6), [WWDC23 Animate with springs](https://developer.apple.com/videos/play/wwdc2023/10158/), [Use Your Loaf Reduce Motion](https://useyourloaf.com/blog/reducing-motion-of-animations/), [Hacking with Swift sensory feedback](https://www.hackingwithswift.com/quick-start/swiftui/how-to-add-haptic-effects-using-sensory-feedback), [Swift with Majid sensory feedback](https://swiftwithmajid.com/2023/10/10/sensory-feedback-in-swiftui/), [UIImpactFeedbackGenerator](https://developer.apple.com/documentation/uikit/uiimpactfeedbackgenerator), [Lofelt Core Haptics](https://medium.com/lofelt/10-things-you-should-know-about-designing-for-apple-core-haptics-9219fdebdcaa).

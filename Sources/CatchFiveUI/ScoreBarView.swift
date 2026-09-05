@@ -11,6 +11,8 @@ struct ScoreBarView: View {
     let contract: String?
     let handNumber: Int
     let youDeal: Bool
+    let canUndo: Bool
+    let onUndo: () -> Void
     let onScores: () -> Void
     let onSettings: () -> Void
     let onStatistics: () -> Void
@@ -23,6 +25,8 @@ struct ScoreBarView: View {
                 Text("CATCH 5").font(.system(.title3, design: .serif).weight(.bold))
                 Spacer()
                 Menu {
+                    Button("Undo last action", systemImage: "arrow.uturn.backward", action: onUndo).disabled(!canUndo)
+                    Divider()
                     Button("Settings", systemImage: "gearshape", action: onSettings)
                     Button("Statistics", systemImage: "chart.bar", action: onStatistics)
                     Button("How to play", systemImage: "book", action: onTutorial)
@@ -38,19 +42,29 @@ struct ScoreBarView: View {
                 VStack(spacing: 2) {
                     HStack(alignment: .firstTextBaseline) {
                         team(usLabel, us, .leading)
-                        Spacer()
+                        Spacer(minLength: 12)
                         team(themLabel, them, .trailing)
                     }
-                    HStack {
-                        Text(trumpLine).foregroundStyle(.gold)
-                        Spacer()
-                        Text("HAND \(handNumber)\(youDeal ? " · YOU DEAL" : "")").opacity(0.7)
-                    }.font(.system(.caption, design: .monospaced))
+                    // One line normally; two at accessibility text sizes.
+                    ViewThatFits(in: .horizontal) {
+                        HStack { trumpText; Spacer(minLength: 12); handText }
+                        VStack(alignment: .leading, spacing: 0) { trumpText.lineLimit(2); handText }.frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .font(.system(.caption, design: .monospaced)).lineLimit(1)
                 }
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityHint("Shows every hand of this match")
+        }
+    }
+
+    private var trumpText: some View { Text(trumpLine).foregroundStyle(.gold) }
+
+    private var handText: some View {
+        HStack(spacing: 0) {
+            if youDeal { Text("YOU DEAL · ").foregroundStyle(.gold) }
+            Text("HAND \(handNumber)").opacity(0.7)
         }
     }
 
@@ -61,7 +75,7 @@ struct ScoreBarView: View {
 
     private func team(_ label: String, _ value: Int, _ alignment: HorizontalAlignment) -> some View {
         VStack(alignment: alignment, spacing: 0) {
-            Text(label).font(.system(.caption2, design: .monospaced)).opacity(0.7)
+            Text(label).font(.system(.caption2, design: .monospaced)).opacity(0.7).lineLimit(1).minimumScaleFactor(0.7)
             Text(value, format: .number).font(.system(.title, design: .serif).weight(.semibold)).monospacedDigit()
         }.accessibilityElement(children: .combine)
     }

@@ -28,7 +28,7 @@ A five-lesson "How to play" flow for novices, replacing or sitting alongside the
 | --- | --- | --- | --- |
 | 1 · Deal | Tap the seat that receives the first three cards when East (seat 3) deals. | Seats only. Dealer badge on East. | You (seat 0). Fixed key: `(dealer + 1) % 4`. |
 | 2 · Bidding | Auction shows West bid 2, Partner bid 3, East dealer waiting. Tap a bid 2…9, Pass, or 9 and out. | Hand `A♠ K♠ 5♠ 9♥ 3♣ 7♦`. West bid 2, Partner bid 3, East (dealer) to follow. Fixed answer key (see note below). | Legal: 4…9, Pass, 9 and out. Preferred: 4. Feedback strings in the reference build. Buttons 2 and 3 render disabled (`allows`-style greying). |
-| 3 · Trump | Won the bid at 4; tap a suit. | Same hand. Refill hand after choosing spades: `A♠ K♠ 5♠ 8♠ Q♣ 2♥`. | Spades. On correct: non-spades fade to 35%, "Discard and refill" toggle shows the refilled hand with the three new cards ringed in gold. |
+| 3 · Trump | Won the bid at 4; tap a suit. | Same hand. Refill hand after choosing spades: `A♠ K♠ 5♠ 8♠ Q♣ 2♥`. | Spades. On correct: non-spades fade to 35%, "Discard and refill" toggle shows the refilled hand with the three new cards ringed in ivory. |
 | 4a · Tricks | West led K♦, spades trump. Tap a card you may play. | Hand `9♦ A♠ 7♣ 2♦ Q♥ 8♠`. Verified with `legalCards(in:led:)`, the function `Hand.legalMoves` uses. | 9♦ or 2♦. After a correct tap, advance to 4b after ~2.5 s. |
 | 4b · Tricks | Four cards on the table; tap the winner. | `K♦ West · 9♦ Partner · 2♠ East · A♦ You`. | 2♠ (East). Check with `trickWinner(_:trump: .spades)`. |
 | 5 · Scoring | Assign High, Low, Jack, Five, Game to Us or Them. | Us: `A♠ 3♠ 10♣ 7♥ 7♦ 9♣ 4♦ 8♠`. Them: `5♠ J♠ 10♥ Q♦ 2♣ K♥ 9♦ 8♣`. They bid 4. Scores before: 10–5. (The reference build had `6♥` for Them, which leaves Game with Us at 14 to 13 because the ace of spades counts 4; the engine test caught it.) | Us: High, Low. Them: Jack, Five, Game. Check with `scoreHand(captured:trump:bidder:)`. On all correct, show settlement 10→12, 5→12 via `settle`. |
@@ -49,7 +49,7 @@ Rules text and tactic boxes are in the reference build, one lesson per screen. T
 
 - Reuse `CardView` unchanged (48×72, ivory, radius 8). Captured piles in lesson 5 may use a 40×60 variant.
 - Panels: `.white.opacity(0.06)` radius 16; seat tiles `.white.opacity(0.04)` radius 12; trick area radius 24 with the 8% white stroke, as in `TableView.trick`.
-- Feedback text is `.gold`, footnote size, reserved height so the layout does not jump. Tactic box matches `hintRow`: gold 10% fill, 40% gold stroke, radius 12.
+- Feedback text is ivory, footnote size, reserved height so the layout does not jump. Tactic box: ivory 10% fill, 40% ivory stroke, radius 12 (gold was withdrawn from both in the redesign's gold audit, D33).
 - Selection ring: 3pt gold stroke for a correct pick, 3pt `.white.opacity(0.6)` for an incorrect one. Illegal bids greyed to 35% ivory, not hidden.
 - All tap targets at least 44pt. Chapter pills are 44pt tall.
 - Primary footer button is the one solid gold fill on the screen (`.borderedProminent.tint(.gold)`, black label), matching "Deal next hand".

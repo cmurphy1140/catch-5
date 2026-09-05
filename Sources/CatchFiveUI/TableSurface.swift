@@ -25,30 +25,39 @@ struct TableSurface: View {
         return ([], nil, false)
     }
 
+    private var inAuction: Bool { hand.phase == .bidding || hand.phase == .choosingTrump }
+
     var body: some View {
         GeometryReader { geometry in
             let reach = CGSize(width: geometry.size.width / 2 + 40, height: geometry.size.height / 2 + 40)
-            VStack(spacing: 8) {
-                Spacer(minLength: 0)
-                SeatView(model: model, seat: 2).accessibilitySortPriority(20)
-                HStack(alignment: .center) {
-                    SeatView(model: model, seat: 1).accessibilitySortPriority(30)
-                    Spacer(minLength: 4)
-                    centre(reach: reach)
-                    Spacer(minLength: 4)
-                    SeatView(model: model, seat: 3).accessibilitySortPriority(10)
+            // Scrolls only when the content cannot fit, which happens at accessibility text sizes.
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 8) {
+                    Spacer(minLength: 0)
+                    SeatView(model: model, seat: 2).accessibilitySortPriority(20)
+                    HStack(alignment: .center) {
+                        SeatView(model: model, seat: 1).accessibilitySortPriority(30)
+                        Spacer(minLength: 4)
+                        if !inAuction { centre(reach: reach) }
+                        Spacer(minLength: 4)
+                        SeatView(model: model, seat: 3).accessibilitySortPriority(10)
+                    }
+                    statusLine.accessibilitySortPriority(4)
+                    if model.isHumanTurn, hand.phase == .bidding { bidding }
+                    if model.isHumanTurn, hand.phase == .choosingTrump { trumpChoice }
+                    commentary
+                    Spacer(minLength: 0)
                 }
-                statusLine.accessibilitySortPriority(4)
-                commentary
-                if model.isHumanTurn, hand.phase == .bidding { bidding }
-                if model.isHumanTurn, hand.phase == .choosingTrump { trumpChoice }
-                Spacer(minLength: 0)
+                .frame(width: geometry.size.width)
+                .frame(minHeight: geometry.size.height)
             }
+            .scrollBounceBehavior(.basedOnSize)
             .frame(width: geometry.size.width, height: geometry.size.height)
             // The finished hand's card takes over the table; what is underneath fades back.
             .opacity(hand.phase == .finished ? 0.12 : 1)
             .overlay { if hand.phase == .finished { finishedCard } }
         }
+        .accessibilityElement(children: .contain)
     }
 
     // MARK: Pile
@@ -77,15 +86,16 @@ struct TableSurface: View {
             }
         }
         .accessibilitySortPriority(5)
+        .dynamicTypeSize(...Theme.Card.maximumTypeSize)
     }
 
     /// Where each seat's card rests on the pile: nudged toward the seat that played it.
     static func pileOffset(for seat: Int) -> CGSize {
         switch seat {
-        case 1: CGSize(width: -30, height: 4)
-        case 2: CGSize(width: 0, height: -22)
-        case 3: CGSize(width: 30, height: 4)
-        default: CGSize(width: 0, height: 24)
+        case 1: CGSize(width: -Theme.Table.sideNudge, height: 4)
+        case 2: CGSize(width: 0, height: -Theme.Table.partnerNudge)
+        case 3: CGSize(width: Theme.Table.sideNudge, height: 4)
+        default: CGSize(width: 0, height: Theme.Table.ownNudge)
         }
     }
 
@@ -165,57 +175,85 @@ struct TableSurface: View {
         }
     }
 
+    /// Hint reasons and explanations. Reserves no space during the auction, where every point counts.
     @ViewBuilder private var commentary: some View {
         let text = model.hint?.reason ?? model.explanation
-        Text(text ?? (pile.plays.isEmpty ? " " : "Tap a card to see why it was played"))
-            .font(.footnote).multilineTextAlignment(.center)
-            .foregroundStyle(.ivory.opacity(text == nil ? 0.35 : 0.85))
-            .frame(maxWidth: .infinity, minHeight: 36, alignment: .top)
-            .padding(.horizontal, 8)
-            .accessibilityLabel(text.map { model.hint != nil ? "Hint: \($0)" : $0 } ?? "")
+        if let text {
+            Text(text)
+                .font(.footnote).multilineTextAlignment(.center)
+                .foregroundStyle(.ivory.opacity(0.85))
+                .frame(maxWidth: .infinity, alignment: .top)
+                .padding(.horizontal, 8)
+                .accessibilityLabel(model.hint != nil ? "Hint: \(text)" : text)
+        } else if !inAuction {
+            Text(pile.plays.isEmpty ? " " : "Tap a card to see why it was played")
+                .font(.footnote).foregroundStyle(.ivory.opacity(0.35))
+                .frame(maxWidth: .infinity, minHeight: 36, alignment: .top)
+                .accessibilityHidden(true)
+        }
     }
 
     // MARK: Phase controls
 
     private var bidding: some View {
-        VStack(spacing: 8) {
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 8) {
+        VStack(spacing: 6) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 6) {
                 ForEach(2...9, id: \.self) { bid in actionButton(String(bid), action: .bid(bid)) }
             }
-            HStack { actionButton("Pass", action: .bid(nil)); actionButton("9 and out", action: .nineAndOut) }
-            Text("9 and out: take all nine or lose the game.").font(.caption2).opacity(0.5)
+            HStack {
+                actionButton("Pass", action: .bid(nil))
+                actionButton("9 and out", action: .nineAndOut)
+                    .accessibilityHint("Take all nine points or lose the game")
+            }
         }
     }
 
     private var trumpChoice: some View {
-        HStack { ForEach(Suit.allCases, id: \.self) { suit in actionButton(suit.glyph, action: .chooseTrump(suit)) } }
+        HStack {
+            ForEach(Suit.allCases, id: \.self) { suit in
+                actionButton(suit.glyph, action: .chooseTrump(suit), tint: suit.buttonTint)
+                    .accessibilityLabel(suit.rawValue)
+            }
+        }
     }
 
-    private func actionButton(_ label: String, action: PlayerAction) -> some View {
-        Button(label) { model.send(action) }.buttonStyle(.bordered).tint(.ivory.opacity(0.8))
+    private func actionButton(_ label: String, action: PlayerAction, tint: Color = .ivory.opacity(0.8)) -> some View {
+        Button(label) { model.send(action) }.buttonStyle(.bordered).tint(tint)
             .disabled(!model.allows(action)).frame(minHeight: 44)
     }
 
     // MARK: Hand end
 
     private var finishedCard: some View {
-        VStack(spacing: 12) {
-            if let winner = model.match.winner { matchOver(winner) }
-            HandSummaryView(match: model.match, names: model.seatNames)
-            HStack(spacing: 12) {
-                Button(action: onReview) { Label("Review", systemImage: "list.bullet.rectangle") }
-                    .buttonStyle(.bordered).tint(.ivory.opacity(0.8)).lineLimit(1).fixedSize()
-                Button(model.match.winner == nil ? "Deal next hand" : "Play again") {
-                    if model.match.winner == nil { model.nextHand() } else { model.newGame() }
-                }.buttonStyle(.borderedProminent).tint(.gold).foregroundStyle(.black).lineLimit(1).fixedSize()
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(spacing: 12) {
+                if let winner = model.match.winner { matchOver(winner) }
+                HandSummaryView(match: model.match, names: model.seatNames)
+                // Side by side when they fit, stacked at accessibility text sizes.
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 12) { reviewButton; dealButton }
+                    VStack(spacing: 8) { dealButton; reviewButton }
+                }
             }
+            .padding(12)
         }
-        .padding(16)
+        .scrollBounceBehavior(.basedOnSize)
         .background(Color(red: 0.05, green: 0.14, blue: 0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(.ivory.opacity(0.15)))
-        .padding(12)
-        .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
+        .padding(8)
+        .transition(reduceMotion ? .opacity : .offset(y: 12).combined(with: .opacity))
         .accessibilitySortPriority(40)
+    }
+
+    private var reviewButton: some View {
+        Button(action: onReview) { Label("Review", systemImage: "list.bullet.rectangle") }
+            .buttonStyle(.bordered).tint(.ivory.opacity(0.8)).lineLimit(1)
+    }
+
+    private var dealButton: some View {
+        Button(model.match.winner == nil ? "Deal next hand" : "Play again") {
+            if model.match.winner == nil { model.nextHand() } else { model.newGame() }
+        }.buttonStyle(.borderedProminent).tint(.gold).foregroundStyle(.black).lineLimit(1)
     }
 
     /// The card shown once a team reaches 25 or a 9-and-out resolves.
@@ -245,26 +283,26 @@ struct SeatView: View {
         VStack(spacing: 4) {
             Text(model.seatNames[seat]).font(.subheadline.weight(.semibold)).lineLimit(1)
             if hand.phase == .bidding {
-                Text(model.latestCall(for: seat) ?? "Waiting").font(.caption).opacity(0.75).frame(height: 30)
+                Text(model.latestCall(for: seat) ?? "Waiting").font(.caption).opacity(0.75)
             } else {
                 ZStack {
                     ForEach(0..<min(3, max(1, hand.hands[seat].count)), id: \.self) { index in
-                        CardBackView(width: Theme.Card.backWidth * 0.55)
+                        CardBackView(width: Theme.Table.seatBackWidth)
                             .offset(x: Double(index) * 4 - 4)
                     }
-                    if hand.hands[seat].isEmpty { Color.clear.frame(width: 22, height: 33) }
+                    if hand.hands[seat].isEmpty { Color.clear.frame(width: Theme.Table.seatBackWidth, height: Theme.Table.seatBackWidth * Theme.Card.ratio) }
                     Text(hand.hands[seat].count, format: .number).font(.caption2.weight(.bold).monospacedDigit())
                         .padding(.horizontal, 5).padding(.vertical, 1)
                         .background(.black.opacity(0.55), in: Capsule())
                         .offset(x: 14, y: 12)
-                }.frame(height: 40)
+                }.frame(height: 40).dynamicTypeSize(...Theme.Card.maximumTypeSize)
             }
             VStack(spacing: 0) {
                 if hand.auction.dealer == seat { Text("DEALER").font(.system(.caption2, design: .monospaced)).foregroundStyle(.gold) }
                 if hand.auction.winner == seat, hand.phase != .bidding { Text("BIDDER").font(.system(.caption2, design: .monospaced)).opacity(0.7) }
-            }.frame(minHeight: 14)
+            }
         }
-        .padding(.horizontal, 10).padding(.vertical, 8)
+        .padding(.horizontal, 10).padding(.vertical, 6)
         .frame(minWidth: 84)
         .background(.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(.gold, lineWidth: active ? 2 : 0))
@@ -280,5 +318,12 @@ struct SeatView: View {
         if hand.auction.dealer == seat { parts.append("dealer") }
         if active { parts.append("to act") }
         return parts.joined(separator: ", ")
+    }
+}
+
+extension Suit {
+    /// Button tint for a suit choice: the red suits get a red that stays readable on the felt.
+    var buttonTint: Color {
+        self == .hearts || self == .diamonds ? Color(red: 0.93, green: 0.42, blue: 0.46) : .ivory.opacity(0.8)
     }
 }

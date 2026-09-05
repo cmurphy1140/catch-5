@@ -46,12 +46,12 @@ flowchart BT
     L5["Computer players (19 tests)<br/>ComputerPlayerTests<br/>single decisions, advice wording, 24 shuffled matches, 200-match bidding calibration"]
     L5b["Strategy benchmark (2 tests)<br/>StrategyBenchmark + EasyPlayer<br/>600 mirrored matches against the frozen PR #2 player"]
     L5c["Review and undo (6 tests)<br/>ReviewTests, UndoTests<br/>replayed views explain every play; rewinding the action log"]
-    L6["View model and tutorial (28 tests)<br/>GameModelTests, TutorialModelTests<br/>hints, explanations, settings, history, accessibility wording, tutorial fixtures vs the engine"]
+    L6["View model and tutorial (33 tests)<br/>GameModelTests, TutorialModelTests<br/>hints, explanations, settings, history, accessibility wording, the toast and notice, the scheduler's decisions, theme metrics, tutorial fixtures vs the engine"]
     L7["Manual: simulator<br/>screenshots of each screen and sheet"]
     L1 --> L2 --> L3 --> L4 --> L5 --> L5b --> L5c --> L6 --> L7
 ```
 
-Total: 96 automated tests, about 3.5 s (the strategy benchmark is most of that). Every layer above the first uses the real code beneath it; nothing is mocked. If `trickWinner` broke, the failure would show up in one small trick test *and* in the 208-hand simulation, and the small one tells you exactly what changed.
+Total: 101 automated tests, about 3.5 s (the strategy benchmark is most of that). Every layer above the first uses the real code beneath it; nothing is mocked. If `trickWinner` broke, the failure would show up in one small trick test *and* in the 208-hand simulation, and the small one tells you exactly what changed.
 
 ## Two kinds of test, deliberately
 
@@ -98,14 +98,14 @@ The same harness is how strategy ideas are judged during development: freeze the
 
 ## What is not automated
 
-- Visual layout and animation. Checked by building with `scripts/build-simulator.py`, launching on the "Catch 5 iPhone" simulator and taking screenshots of each screen and sheet.
+- Visual layout and animation. Checked by building with `scripts/build-simulator.py`, launching on the "Catch 5 iPhone" (393 pt) and "Catch 5 SE" (375 × 667 pt) simulators and taking screenshots of each phase at the default, XXXL and AX5 text sizes; `xcrun simctl ui <udid> content_size <size>` sets the size and a saved game copied into the app container sets the phase. The record is in [redesign-plan.md](redesign-plan.md).
 - Save/restore across app relaunch. Verified manually by killing and relaunching the app mid-trick; the engine side of the same path is covered by `SaveTests`.
 - VoiceOver and Dynamic Type at the largest sizes, and haptics: the wording is unit-tested, the experience is checked by hand.
 - Card motion (flights, the trick hold and collapse, press-lift, shake) and Reduce Motion fallbacks: checked on the simulator and on the phone.
 
 ## Continuous integration
 
-`.github/workflows/tests.yml` runs `swift test` on a macOS runner for every pull request and push to `main`, so a red suite blocks a merge even when nobody runs it locally.
+`.github/workflows/tests.yml` runs two jobs on a macOS runner for every pull request and push to `main`: `swift test` (with the `.build` folder cached between runs) and `scripts/build-simulator.py`, which proves the app bundle still links and carries its icon, manifest and explainer pages. A newer push cancels the run in progress. A red job blocks a merge even when nobody runs the suite locally.
 
 ## Reading a failure
 

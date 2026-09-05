@@ -267,3 +267,12 @@ Portrait iPhone first, with iPad allowed in the same 640-point column, stays the
 **Over:** The previous dashboard order (scores, tiles, text, buttons, an often-empty trick panel, small cards in a horizontal scroll view) and gold on every accent.
 
 **Why:** Research on one-handed use puts primary actions at the bottom; the hand and the auction controls now live there. Fanned cards at 60 pt keep a 44 pt strip each, so six fit without scrolling on a 375 pt screen. Reserving gold makes the seat to act and the winning card readable at a glance. Collapsing tricks conflicts with tap-to-explain (D24), so a reopen control keeps that feature. One animation per accepted action, keyed on `revision` (D8), is what lets a card fly from the hand to the pile in a single transaction.
+
+## D34. The table scrolls only when it must, and cards stop growing at XXXL (PR #20, 2026-09-05)
+
+**Chosen:** `TableSurface` sits in a `ScrollView` with `.scrollBounceBehavior(.basedOnSize)` and a minimum height equal to the space it is given, so on every phone at the default text size nothing scrolls, and at accessibility sizes the table scrolls instead of clipping. During the auction the bid grid or the suit buttons take the pile's place rather than stacking under a reserved footprint, which is what lets the auction fit a 375 × 667 pt screen. Card widths follow Dynamic Type up to XXXL and stop; table text follows it up to AX2 and stops; sheets stay uncapped. Undo lives in the gear menu as well as in the four-second toast, and the toast carries the discard notice so the two never hide each other.
+
+**Over:** A strictly non-scrolling surface (clipped the Pass row on the SE and became unusable at AX sizes); shrinking cards below 44 pt strips; letting the hand fan grow past the screen at AX5; a toast-only Undo that vanished after four seconds.
+
+**Why:** The one-handed-use research behind D33 is about the default case, and a scroll view that engages only when content cannot fit costs that case nothing. Apple's guidance for games allows bounding the size of game pieces where growth would break play; a fan of six cards is that case, and the corner index stays legible at XXXL. The caps sit above the views whose `@ScaledMetric` values read them, because a cap applied inside a view does not reach the view's own scaled metrics (the first attempt piled the cards up at AX5 for exactly that reason).
+

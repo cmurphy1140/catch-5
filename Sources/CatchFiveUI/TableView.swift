@@ -38,16 +38,21 @@ public struct TableView: View {
                          usLabel: teamLabel(0), themLabel: teamLabel(1),
                          trump: model.match.hand.trump, contract: model.contract,
                          handNumber: model.match.handNumber, youDeal: model.match.hand.auction.dealer == 0,
+                         canUndo: model.canUndo, onUndo: { model.undo() },
                          onScores: { showScoreboard = true }, onSettings: { showSettings = true },
                          onStatistics: { showStatistics = true }, onTutorial: { showTutorial = true },
                          onNewGame: { confirmNewGame = true })
             TableSurface(model: model, namespace: cards, collapsedTricks: collapsedTricks, reopenedTrick: reopenedTrick,
-                         onReopenTrick: { reopenedTrick = model.match.hand.completedTricks.count },
+                         onReopenTrick: { withAnimation(motion(Theme.Motion.collapse)) { reopenedTrick = model.match.hand.completedTricks.count } },
                          onReview: { showReview = true })
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             toastSlot
+            // Cards stop growing at XXXL so the fan keeps six cards on screen; the cap must sit above the
+            // fan's own scaled metrics, which read it from the environment.
             HandFanView(model: model, namespace: cards, onIllegal: shake, shakes: $shakes)
+                .dynamicTypeSize(...Theme.Card.maximumTypeSize)
         }
+        .dynamicTypeSize(...Theme.maximumTableTypeSize)
         .padding(.horizontal, 16).padding(.top, 4).padding(.bottom, 6)
         .frame(maxWidth: 640)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -63,7 +68,7 @@ public struct TableView: View {
             .animation(motion(Theme.Motion.flight), value: model.revision)
             .task(id: model.revision) { await advance() }
             .onChange(of: model.match.handNumber) { _, _ in collapsedTricks = 0; reopenedTrick = nil }
-            .onChange(of: model.revision) { _, _ in reopenedTrick = nil }
+            .onChange(of: model.revision) { _, _ in withAnimation(motion(Theme.Motion.collapse)) { reopenedTrick = nil } }
             .onChange(of: model.lastHumanAction) { _, action in toast = action }
             .task(id: toast) {
                 guard toast != nil else { return }
@@ -80,7 +85,7 @@ public struct TableView: View {
             .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.6), trigger: model.lastHumanAction) { _, new in playHaptic(new) }
             .sensoryFeedback(.selection, trigger: model.lastHumanAction) { _, new in callHaptic(new) }
             .sensoryFeedback(.impact(flexibility: .rigid, intensity: 0.4), trigger: shakeCount) { _, _ in model.settings.haptics }
-            .sensoryFeedback(trickFeedback, trigger: model.match.hand.completedTricks.count) { _, new in model.settings.haptics && new > 0 }
+            .sensoryFeedback(trickFeedback, trigger: model.match.hand.completedTricks.count) { old, new in model.settings.haptics && new > old }
             .sensoryFeedback(.success, trigger: model.match.history.count) { _, new in model.settings.haptics && new > 0 }
             .sensoryFeedback(.impact(weight: .heavy), trigger: model.match.winner) { _, new in model.settings.haptics && new != nil }
     }
@@ -140,25 +145,25 @@ public struct TableView: View {
     private func advance() async {
         let hand = model.match.hand
         if collapsedTricks > hand.completedTricks.count { collapsedTricks = hand.completedTricks.count }
-        var held = false
-        if hand.currentTrick.isEmpty, hand.completedTricks.count > collapsedTricks, hand.phase == .playing {
+        let step = TableScheduler.plan(hand: hand, collapsedTricks: collapsedTricks)
+        if step.hold {
             try? await Task.sleep(for: Theme.Motion.trickHold)
             guard !Task.isCancelled else { return }
             withAnimation(motion(Theme.Motion.collapse)) { collapsedTricks = hand.completedTricks.count }
-            held = true
         }
         guard !model.isHumanTurn, hand.nextSeat != nil, model.match.winner == nil else { return }
-        try? await Task.sleep(for: model.settings.delay(leadingTrick: hand.currentTrick.isEmpty && !held))
+        try? await Task.sleep(for: model.settings.delay(leadingTrick: step.leading))
         guard !Task.isCancelled else { return }
         model.stepComputer()
     }
 
-    /// Between the table and the hand: the undo toast after your play, or a one-line notice.
+    /// Between the table and the hand: the undo toast after your play (with any notice), a notice on its
+    /// own, or your standing call during the auction.
     @ViewBuilder private var toastSlot: some View {
         ZStack {
             if let toast, model.canUndo {
                 HStack(spacing: 12) {
-                    Text(model.describe(toast)).font(.footnote)
+                    Text([model.describe(toast), model.notice].compactMap { $0 }.joined(separator: " · ")).font(.footnote).lineLimit(1)
                     Button("Undo") { model.undo() }.font(.footnote.weight(.semibold)).tint(.ivory)
                         .accessibilityHint("Takes back your last action and the replies after it")
                 }
@@ -167,9 +172,21 @@ public struct TableView: View {
                 .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
             } else if let notice = model.notice {
                 Text(notice).font(.caption).opacity(0.8)
+            } else if model.match.hand.phase == .bidding, let call = model.latestCall(for: 0) {
+                Text("You: \(call)").font(.caption).opacity(0.8)
             }
         }
-        .frame(height: 32)
+        .frame(height: 28)
         .animation(motion(Theme.Motion.overlay), value: toast)
+    }
+}
+
+/// The scheduler's decisions, kept pure so they can be tested without a view.
+enum TableScheduler {
+    /// Whether a finished trick still needs its hold before collapsing, and whether the coming
+    /// computer play is a lead (which gets the longer pause) rather than a follow.
+    static func plan(hand: Hand, collapsedTricks: Int) -> (hold: Bool, leading: Bool) {
+        let hold = hand.phase == .playing && hand.currentTrick.isEmpty && hand.completedTricks.count > collapsedTricks
+        return (hold, hand.currentTrick.isEmpty && !hold)
     }
 }

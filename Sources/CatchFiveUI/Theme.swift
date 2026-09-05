@@ -22,23 +22,39 @@ public enum Theme {
         public static let liftPressed = 6.0
         public static let pressedScale = 1.04
         public static let dimmedOpacity = 0.55
+        /// Screens at least this wide (points) get the wider hand cards.
+        public static let wideScreenWidth = 402.0
+        /// Card faces stop scaling with Dynamic Type past this size; the surrounding text keeps scaling.
+        public static let maximumTypeSize = DynamicTypeSize.xxxLarge
 
         /// The visible strip of each hand card at a given width.
         public static func touchStrip(width: Double) -> Double { width + handOverlap }
     }
 
+    /// Text on the gameplay screen scales with Dynamic Type up to this size. Sheets scroll and stay uncapped.
+    public static let maximumTableTypeSize = DynamicTypeSize.accessibility2
+
+    public enum Table {
+        /// How far a played card is nudged from the pile's centre toward its seat.
+        public static let sideNudge = 30.0
+        public static let partnerNudge = 22.0
+        public static let ownNudge = 24.0
+        /// The pile's reserved footprint around a card, so the table does not jump between tricks.
+        public static let pileMarginX = 64.0
+        public static let pileMarginY = 48.0
+        public static let seatBackWidth = 22.0
+    }
+
     public enum Motion {
-        public static let lift = Animation.spring(duration: 0.3, bounce: 0.15)
         public static let press = Animation.spring(duration: 0.2, bounce: 0.2)
         public static let flight = Animation.spring(duration: 0.45, bounce: 0)
-        public static let arrive = Animation.spring(duration: 0.4, bounce: 0)
         public static let collapse = Animation.spring(duration: 0.5, bounce: 0)
         public static let overlay = Animation.spring(duration: 0.35, bounce: 0)
         /// Reduce Motion replaces every flight with this crossfade.
         public static let reduced = Animation.easeInOut(duration: 0.2)
         /// How long a finished trick stays on the table, winner ringed, before it collapses.
         public static let trickHold: Duration = .milliseconds(900)
-        public static let shakeSeconds = 0.3
+        public static let shakeAmplitude = 6.0
         public static let toastSeconds = 4.0
     }
 }
