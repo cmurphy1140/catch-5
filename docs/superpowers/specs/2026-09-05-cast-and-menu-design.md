@@ -156,7 +156,7 @@ The existing 101 tests must still pass. The simulator screenshot pass from `docs
 - `docs/architecture.md`: the screen flow diagram above and `RootView` in the layer table.
 - `docs/types-and-functions.md`: `RootView`, `LoginView`, `MainMenuView`, `Portrait`, `Character`, `Cast`, `PortraitView`, the new `Settings` fields, `GameModel.matchInProgress` and `signIn`.
 - `docs/testing.md`: the tests above.
-- `docs/decisions.md`: D35, "A fixed cast, a one-time name prompt and a menu-first launch".
+- `docs/decisions.md`: D36, "A fixed cast, a one-time name prompt and a menu-first launch".
 - `docs/learning-path.md`: no new page.
 
 ## Risks

@@ -1177,7 +1177,7 @@ git commit -m "Layout fixes from the accessibility screenshot pass"
 
 ---
 
-### Task 12: Living documentation and decision D35
+### Task 12: Living documentation and decision D36
 
 **Files:**
 - Modify: `docs/architecture.md`, `docs/types-and-functions.md`, `docs/testing.md`, `docs/decisions.md`
@@ -1235,7 +1235,7 @@ Under "The pyramid here" (or wherever view-model tests are listed), add one sent
 - [ ] **Step 4: `docs/decisions.md`**, append:
 
 ```markdown
-## D35. A fixed cast, a one-time name prompt and a menu-first launch (PR #22, 2026-09-05)
+## D36. A fixed cast, a one-time name prompt and a menu-first launch (PR #22, 2026-09-05)
 
 **Chosen:** Three named opponents, Hazel, Otto and Rue, always fill West, Partner and East, drawn in SwiftUI from a `Portrait` recipe rather than image assets. The human types a name once on a login screen and picks one of four faces; the name becomes seat 0's name in `Settings.seatNames`, so the rest of the app is unchanged. The app opens on a main menu with Continue, New match, Tutorial, Rules, Match history and Settings; the table gains a back chevron and no longer opens the tutorial by itself. Old settings files that still carry West, Partner and East migrate to the cast's names; custom names are kept.
 
@@ -1250,7 +1250,7 @@ Use the real PR number once the PR exists (Task 13); leave `#22` if it matches.
 
 ```bash
 git add docs/architecture.md docs/types-and-functions.md docs/testing.md docs/decisions.md
-git commit -m "docs: cast, login and menu; decision D35"
+git commit -m "docs: cast, login and menu; decision D36"
 ```
 
 ---

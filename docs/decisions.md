@@ -276,7 +276,7 @@ Portrait iPhone first, with iPad allowed in the same 640-point column, stays the
 
 **Why:** The one-handed-use research behind D33 is about the default case, and a scroll view that engages only when content cannot fit costs that case nothing. Apple's guidance for games allows bounding the size of game pieces where growth would break play; a fan of six cards is that case, and the corner index stays legible at XXXL. The caps sit above the views whose `@ScaledMetric` values read them, because a cap applied inside a view does not reach the view's own scaled metrics (the first attempt piled the cards up at AX5 for exactly that reason).
 
-## D35. A fixed cast, a one-time name prompt and a menu-first launch (PR #22, 2026-09-05)
+## D36. A fixed cast, a one-time name prompt and a menu-first launch (PR #22, 2026-09-05)
 
 **Chosen:** Three named opponents, Hazel, Otto and Rue, always fill West, Partner and East, drawn in SwiftUI from a `Portrait` recipe rather than image assets. The human types a name once on a login screen and picks one of four faces; the name becomes seat 0's name in `Settings.seatNames`, so the rest of the app is unchanged. The app opens on a main menu with Continue, New match, Tutorial, Rules, Match history and Settings; the table gains a back chevron and no longer opens the tutorial by itself. Old settings files that still carry West, Partner and East migrate to the cast's names; custom names are kept.
 
