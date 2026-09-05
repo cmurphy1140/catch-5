@@ -5,6 +5,11 @@ import SwiftUI
 /// `Theme.Wood.grainRunsHorizontally` picks the grain's direction; everything below is written in
 /// terms of "along" the grain and "across" it.
 struct WoodGrainView: View {
+    /// How the edges fall away: a radial pool of light for full-screen wood, or a top-to-bottom shade for
+    /// the header band, where a radial falloff on a short strip reads as a spotlight.
+    enum Vignette { case radial, linear }
+    var vignette: Vignette = .radial
+
     var body: some View {
         Canvas(rendersAsynchronously: true) { context, size in
             let horizontal = Theme.Wood.grainRunsHorizontally
@@ -54,11 +59,21 @@ struct WoodGrainView: View {
                 context.stroke(path, with: .color((light ? Theme.Wood.streakLight : Theme.Wood.streakDark).opacity(alpha)),
                                lineWidth: strong ? random.next(in: 1.2...2.4) : random.next(in: 0.5...1.4))
             }
-            // Vignette: the edges fall away so the cards and the pile read as the lit centre.
-            context.fill(bounds, with: .radialGradient(
-                Gradient(colors: [.clear, .black.opacity(0.5)]),
-                center: CGPoint(x: size.width / 2, y: size.height * 0.45),
-                startRadius: size.width * 0.35, endRadius: size.height * 0.8))
+            switch vignette {
+            case .radial:
+                // The edges fall away so the cards and the pile read as the lit centre.
+                context.fill(bounds, with: .radialGradient(
+                    Gradient(colors: [.clear, .black.opacity(0.5)]),
+                    center: CGPoint(x: size.width / 2, y: size.height * 0.45),
+                    startRadius: size.width * 0.35, endRadius: size.height * 0.8))
+            case .linear:
+                // One board, lit evenly, with a shadow gathering along its lower edge.
+                context.fill(bounds, with: .linearGradient(
+                    Gradient(stops: [.init(color: .black.opacity(0.12), location: 0),
+                                     .init(color: .clear, location: 0.3),
+                                     .init(color: .black.opacity(0.38), location: 1)]),
+                    startPoint: .zero, endPoint: CGPoint(x: 0, y: size.height)))
+            }
         }
         .accessibilityHidden(true)
     }
@@ -67,9 +82,32 @@ struct WoodGrainView: View {
 /// The felt of the playing area: the lighter felt in the middle, falling to a darker green at the edges.
 struct FeltView: View {
     var body: some View {
-        RadialGradient(colors: [Theme.Wood.feltEdge, Theme.Wood.felt, Theme.Wood.feltDark],
-                       center: UnitPoint(x: 0.5, y: 0.45), startRadius: 40, endRadius: 720)
-            .accessibilityHidden(true)
+        ZStack {
+            RadialGradient(colors: [Theme.Wood.feltEdge, Theme.Wood.felt, Theme.Wood.feltDark],
+                           center: UnitPoint(x: 0.5, y: 0.45), startRadius: 40, endRadius: 720)
+            // The nap of the cloth: a seeded stipple of faint light and dark flecks on a jittered grid,
+            // so the felt reads as fibre rather than paint. Drawn once; the seed keeps it still.
+            Canvas(rendersAsynchronously: true) { context, size in
+                var random = GrainRandom(seed: Theme.Wood.seed + 1)
+                let step = Theme.Wood.feltStipple
+                var y = 0.0
+                while y < size.height {
+                    var x = 0.0
+                    while x < size.width {
+                        let cx = x + random.next(in: 0...step)
+                        let cy = y + random.next(in: 0...step)
+                        let light = random.next(in: 0...1) < 0.5
+                        let alpha = random.next(in: 0.03...0.11)
+                        let d = random.next(in: 0.8...1.6)
+                        context.fill(Path(ellipseIn: CGRect(x: cx, y: cy, width: d, height: d)),
+                                     with: .color(light ? Theme.Wood.feltLight.opacity(alpha) : Color.black.opacity(alpha)))
+                        x += step
+                    }
+                    y += step
+                }
+            }
+        }
+        .accessibilityHidden(true)
     }
 }
 

@@ -302,3 +302,11 @@ D36 is taken by the cast, login and menu work on the parallel branch.
 
 **Why:** The engine already discards and refills in one action, so the hand's diff is exactly the animation's cast list; SwiftUI's asymmetric transitions carry their own timing, so the stagger needs no extra state. Choosing the transition by phase avoids tracking "why did this card leave", and the only insertion during early play is the refill. The deck gives the deal a source the eye can follow and shows the stock count for free.
 
+## D38. The header is lit as one board, seats grow, the pile card shrinks, and the felt gets a nap (PR #22, 2026-09-05)
+
+**Chosen:** `WoodGrainView` takes a `vignette`: the header band uses a linear top-to-bottom shade (a little dark at the very top, clear through the middle, darker along the frown edge), while the reading sheets keep the radial pool of light. Seat tiles grow (36 pt portraits, 30 pt card backs, headline names, 116 pt tiles) and the pile card drops from 74 to 62 pt so the people at the table outweigh the card in play. `FeltView` draws a seeded stipple of faint light and dark flecks on a 4 pt jittered grid over the felt gradient.
+
+**Over:** Keeping the radial vignette everywhere (on a short strip it reads as a spotlight around the Dynamic Island, which Connor flagged from a screenshot); an image texture for the felt.
+
+**Why:** A vignette sized for a full screen has nowhere to fall away on a 180 pt band, so its centre becomes a bright disc; a linear shade keeps the grain and gives the band one light. With named, drawn opponents the seats carry more meaning than before, and a 62 pt pile card still shows rank and suit at a glance. The stipple costs one `Canvas` pass with the same seeded generator as the grain, so it is identical on every launch and needs no asset.
+

@@ -334,7 +334,7 @@ struct SeatView: View {
     var body: some View {
         VStack(spacing: 4) {
             PortraitView(portrait: portrait, size: Theme.Table.portraitSize)
-            Text(model.seatNames[seat]).font(.subheadline.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.7)
+            Text(model.seatNames[seat]).font(.headline).lineLimit(1).minimumScaleFactor(0.7)
             ZStack {
                 if hand.phase == .bidding {
                     Text(model.latestCall(for: seat) ?? "Waiting").font(.caption).opacity(0.75).lineLimit(1)
@@ -343,7 +343,7 @@ struct SeatView: View {
                         CardBackView(width: Theme.Table.seatBackWidth)
                             .offset(x: Double(index) * 4 - 4)
                     }
-                    Text(hand.hands[seat].count, format: .number).font(.caption2.weight(.bold).monospacedDigit())
+                    Text(hand.hands[seat].count, format: .number).font(.caption.weight(.bold).monospacedDigit())
                         .padding(.horizontal, 5).padding(.vertical, 1)
                         .background(.black.opacity(0.55), in: Capsule())
                         .offset(x: Theme.Table.seatBackWidth * 0.65, y: Theme.Table.seatBackWidth * 0.55)

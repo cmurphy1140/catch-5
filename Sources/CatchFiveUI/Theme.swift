@@ -9,7 +9,7 @@ public enum Theme {
         public static func radius(width: Double) -> Double { width * 0.06 }
         public static let handWidth = 64.0
         public static let handWidthWide = 68.0
-        public static let pileWidth = 74.0
+        public static let pileWidth = 62.0
         public static let backWidth = 40.0
         public static let tutorialWidth = 48.0
         /// Spacing between fanned hand cards; negative so they overlap.
@@ -54,6 +54,9 @@ public enum Theme {
         /// The lit centre of the felt, and its darkest edge.
         public static let feltEdge = Color(red: 0.16, green: 0.34, blue: 0.26)
         public static let feltDark = Color(red: 0.04, green: 0.13, blue: 0.10)
+        /// The light flecks of the felt's nap, and the grid step (points) of the stipple.
+        public static let feltLight = Color(red: 0.55, green: 0.80, blue: 0.62)
+        public static let feltStipple = 4.0
         /// Grain runs across the screen (a board laid the long way under the phone) when true, top to bottom when false.
         public static let grainRunsHorizontally = true
         public static let seed: UInt64 = 11
@@ -70,10 +73,10 @@ public enum Theme {
         /// The pile's reserved footprint around a card, so the table does not jump between tricks.
         public static let pileMarginX = 64.0
         public static let pileMarginY = 48.0
-        public static let seatBackWidth = 24.0
-        public static let portraitSize = 28.0
+        public static let seatBackWidth = 30.0
+        public static let portraitSize = 36.0
         /// Seat tiles share one width; their height follows the phase (call text in the auction, backs in play).
-        public static let seatTileWidth = 110.0
+        public static let seatTileWidth = 116.0
         /// The round status-line buttons (last trick, hint): visible disc and hit area.
         public static let statusButtonSize = 38.0
         public static let statusButtonHitSize = 48.0

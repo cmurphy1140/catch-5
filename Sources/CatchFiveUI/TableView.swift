@@ -48,7 +48,7 @@ public struct TableView: View {
                 // A solid header band: runs up behind the status bar and ends in a frown, the corners
                 // hanging lower than the middle, so the scores sit on one colour and the wood starts beneath.
                 .background {
-                    WoodGrainView()
+                    WoodGrainView(vignette: .linear)
                         .clipShape(HeaderBandShape(dip: Theme.Table.headerDip))
                         .shadow(color: .black.opacity(0.45), radius: 10, y: 4)
                         .ignoresSafeArea(edges: .top)
