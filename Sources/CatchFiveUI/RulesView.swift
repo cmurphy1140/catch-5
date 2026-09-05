@@ -46,6 +46,16 @@ struct RulesView: View {
             case .reading: "Reading the table"
             }
         }
+        /// The rule you can try under this chapter, judged live by the engine.
+        var trial: RuleTrial.Kind? {
+            switch self {
+            case .deal: .dealerMatch
+            case .play: .followSuit
+            case .nineAndOut: .nineAndOutBelowZero
+            default: nil
+            }
+        }
+
         /// The verbatim paragraphs from `RulesText`, found by title so a new or moved section can never
         /// land under the wrong heading; the last chapter is the screen notes.
         var paragraphs: [String] {
@@ -78,7 +88,13 @@ struct RulesView: View {
                 .contentMargins(.bottom, 240, for: .scrollContent)
                 .scrollPosition(id: $current, anchor: .top)
                 .safeAreaInset(edge: .top, spacing: 0) { rail(proxy) }
-                .onAppear { if let initial { chosen = initial; proxy.scrollTo(initial, anchor: .top) } }
+                // The jump waits one beat so every panel has laid out and the target exists.
+                .task {
+                    guard let initial else { return }
+                    chosen = initial
+                    try? await Task.sleep(for: .milliseconds(80))
+                    proxy.scrollTo(initial, anchor: .top)
+                }
                 // A tap's choice stays lit until the page arrives there; a drag hands control back to the scroll.
                 .onChange(of: current) { _, now in if now == chosen { chosen = nil } }
                 .simultaneousGesture(DragGesture(minimumDistance: 8).onChanged { _ in chosen = nil })
@@ -144,6 +160,7 @@ struct RulesView: View {
             figure(chapter)
             // The last chapter is the screen notes themselves, drawn once with icons.
             if chapter != .reading { rule(chapter) }
+            if let trial = chapter.trial { RuleTrialView(kind: trial) }
         }
         .padding(18)
         .background(Theme.Wood.inlay.opacity(0.85), in: RoundedRectangle(cornerRadius: 18, style: .continuous))

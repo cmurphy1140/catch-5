@@ -269,7 +269,7 @@ public final class GameModel: ObservableObject {
     }
 
     /// Rule errors in the words a player would use.
-    public static func message(for error: Error) -> String {
+    nonisolated public static func message(for error: Error) -> String {
         switch error {
         case HandError.mustFollowSuit: "You must follow suit: play a card of the suit that was led if you have one."
         case HandError.cardNotHeld: "That card is not in your hand."

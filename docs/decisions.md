@@ -326,3 +326,11 @@ D36 is taken by the cast, login and menu work on the parallel branch.
 
 **Why:** Connor asked for a much better layout with an interactive flow and its own colour scheme, distinct from the tutorial. The tutorial is wood, pills and exercises; the rules are felt, panels and figures, so the two read as different rooms. Building figures from the real components keeps them in the app's language, and checking their numbers against the engine keeps them true. A review of the first cut moved the house numbers into `HouseRules` so the ladder and the target quote the engine rather than repeat it, built the trick captions and VoiceOver labels from the same data as the figures, capped the card-sized parts at XXXL, and gave the rail chips 44 pt targets.
 
+## D50. Rules you can try, judged by the engine (PR #30, 2026-09-05)
+
+**Chosen:** Three chapters of the rules sheet end with a "Try it" panel: follow suit (hearts led, spades trump, six cards in your hand), the dealer's right to match (you are dealer facing a bid of 3), and 9 and out below zero (a failed 9 last hand left you at −9). Each `RuleTrial` is a real `Match` built through the engine from a crafted deck, so the position is exactly what the game would deal, and `attempt(_:)` hands whatever the reader tries to the engine on a copy: a refusal comes back in the words the table uses, an acceptance is played out with the standard strategy and described. Reset restores the position. A test drives all three through the engine.
+
+**Over:** A scripted quiz with authored right answers (that is the tutorial's job); a second rules implementation inside the sheet; a "Try it" that only animates.
+
+**Why:** From the research brief's "rulebook you can demonstrate": a rule is learned by being refused once, safely. Building the positions with the engine and judging with the engine means the sheet can never teach a move the game rejects, which is the brief's one hard requirement.
+

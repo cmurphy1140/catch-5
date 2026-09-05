@@ -567,3 +567,39 @@ import Testing
     #expect(reached.winner == 0)
     #expect(throws: RuleError.invalidBid) { try settle(scores: [0, 0], points: [1, 0], bidder: 0, bid: .points(HouseRules.bidRange.upperBound + 1)) }
 }
+
+@Test func ruleTrialsAreJudgedByTheEngine() throws {
+    // Follow suit: hearts led, you hold hearts, spades are trump.
+    var follow = RuleTrial.make(.followSuit)
+    let hand = follow.offeredCards
+    #expect(hand.count == 6 && hand.filter { $0.suit == .hearts }.count == 2 && hand.filter { $0.suit == .spades }.count == 2)
+    #expect(follow.match.hand.currentTrick.first?.card.suit == .hearts && follow.match.hand.trump == .spades)
+    let offSuit = try #require(hand.first { $0.suit == .clubs })
+    let trump = try #require(hand.first { $0.suit == .spades })
+    let heart = try #require(hand.first { $0.suit == .hearts })
+    #expect(follow.attempt(.play(offSuit)) == .refused("Follow hearts; you still have hearts."))
+    #expect(follow.attempt(.play(trump)) == .refused("Follow hearts; you still have hearts."))
+    guard case let .accepted(text) = follow.attempt(.play(heart)) else { Issue.record("a heart is legal"); return }
+    #expect(text.contains("the trick with the"))
+    // Refusals never moved the position; an acceptance plays the trick out; reset brings it back.
+    #expect(follow.match.hand.completedTricks.count == 1)
+    follow.reset()
+    #expect(follow.match.hand.completedTricks.isEmpty && follow.match.hand.currentTrick.count == 3)
+
+    // The dealer may match: Hazel bid 3, you are dealer.
+    var dealer = RuleTrial.make(.dealerMatch)
+    #expect(dealer.match.hand.auction.highestBid == 3 && dealer.match.hand.nextSeat == 0)
+    #expect(dealer.offeredActions == [.bid(nil), .bid(2), .bid(3), .bid(4)])
+    if case .refused = dealer.attempt(.bid(2)) {} else { Issue.record("2 cannot beat 3") }
+    guard case let .accepted(matched) = dealer.attempt(.bid(3)) else { Issue.record("the dealer may match"); return }
+    #expect(matched.contains("match"))
+    dealer.reset()
+    guard case let .accepted(passed) = dealer.attempt(.bid(nil)) else { Issue.record("passing is legal"); return }
+    #expect(passed.contains("Hazel"))
+
+    // 9 and out below zero: a failed 9 last hand left you at -9.
+    var nine = RuleTrial.make(.nineAndOutBelowZero)
+    #expect(nine.match.scores[0] < 0 && nine.match.hand.nextSeat == 0)
+    #expect(nine.attempt(.nineAndOut) == .refused(GameModel.message(for: RuleError.forbiddenNineAndOut)))
+    if case .accepted = nine.attempt(.bid(2)) {} else { Issue.record("a normal bid is still allowed") }
+}
