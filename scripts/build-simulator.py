@@ -36,6 +36,12 @@ if icon.exists():
         subprocess.run(['sips', '-z', str(pixels), str(pixels), str(icon), '--out', str(app / f'AppIcon60x60{scale}.png')],
                        check=True, capture_output=True)
     info['CFBundleIcons'] = {'CFBundlePrimaryIcon': {'CFBundleIconFiles': ['AppIcon60x60'], 'CFBundleIconName': 'AppIcon'}}
+explainer = root / 'App' / 'Explainer'
+if explainer.exists():
+    target = app / 'Explainer'
+    target.mkdir(exist_ok=True)
+    for page in explainer.glob('*.dc.html'):
+        (target / page.name).write_bytes(page.read_bytes())
 privacy = root / 'App' / 'PrivacyInfo.xcprivacy'
 if privacy.exists():
     (app / 'PrivacyInfo.xcprivacy').write_bytes(privacy.read_bytes())

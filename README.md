@@ -1,10 +1,10 @@
 # Catch 5
 
-A SwiftUI iOS card-game app in development, starting with Catch 5 (Pitch with Fives) using custom partnership rules and a winning score of 25.
+A SwiftUI iPhone app for Catch 5 (Pitch with Fives) under the house rules in `docs/catch-five-rules.md`: partnerships, first to 25, and a 9-and-out bid.
 
 ## Current Status
 
-The pure Swift engine runs complete matches, and a SwiftUI table lets one human play against three computer players with automatic save and restore. A repeatable text demonstration also runs a normal-bid match to completion.
+Feature complete for single-player: a pure Swift rules engine, three computer opponents, and a SwiftUI table with coaching built in. It runs in the iOS simulator on this Mac; installing on a phone is the next step (`docs/device-install.md`).
 
 - Normal four-seat bidding with dealer matching and forced opening bid.
 - Follow-suit validation and trick winner calculation.
@@ -16,9 +16,8 @@ The pure Swift engine runs complete matches, and a SwiftUI table lets one human 
 - Computer bidding from an expected-points estimate; card play scores every legal card from trick memory (unseen cards, unbeatable trumps, certain High/Low, control kept) using only a restricted PlayerView.
 - Auction call history per seat, shown on the table during bidding and summarised as the contract afterwards.
 - SwiftUI table with bidding, trump choice, legal-card play, last-trick recap, hand summary, a Hint button that explains what the computer strategy would do from your seat, tap-to-explain on every played card, a settings sheet (difficulty, play speed, seat names, haptics), a five-lesson tutorial with engine-checked exercises shown on first launch (rules sheet inside it), undo of your last action, a hand review against the strategy, a scoreboard, match history with statistics, Dynamic Type and VoiceOver support, a trump-first sorted hand, plain-word rule errors, and save on every accepted action.
-- 96 Swift Testing tests, including 208 deterministic hands, 24 shuffled computer matches and a 600-match strength benchmark against a frozen earlier player.
+- 97 Swift Testing tests, including 208 deterministic hands, 24 shuffled computer matches and a 600-match strength benchmark against a frozen earlier player.
 
-`Auction` accepts normal bids and 9-and-out, treating 9-and-out as outranking a normal 9 with dealer matching allowed. Both are confirmed house rules.
 
 ## Run Tests
 
@@ -36,29 +35,24 @@ With Xcode selected as the default developer directory, `swift test` is sufficie
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift run catch-five-demo
 ```
 
-This prints a deterministic five-hand match, ending Team 0: 26, Team 1: 16. It uses deliberately simple legal moves and ordered deck rotations for inspection, not a production shuffle or strategic opponents. No Xcode editor is needed.
+This prints a deterministic five-hand match, ending Team 0: 26, Team 1: 16, using simple legal moves and ordered decks so every trick can be checked by hand. Add `--save-roundtrip` to see it save and restore mid-trick, or `--computer` to watch four standard computer players finish a shuffled match.
 
-Add `--save-roundtrip` to the demo command to see it save and restore mid-trick. Engine APIs support disk saves; automatic saving when the app closes will be connected with the UI.
-
-Add `--computer` to watch four baseline computer players complete a match with fresh shuffled decks. This mode is separate from the fixed save-roundtrip demo. The strategy is a simple heuristic, not a trained or expert player.
-
-Initial dealing uses two packets of three starting left of dealer. Refill gives each player their replacements clockwise, starting left of dealer. These are provisional packet-order defaults.
+Initial dealing uses two packets of three starting left of dealer; refill goes clockwise from the dealer's left. These packet orders are defaults, not confirmed house rules.
 
 ## Structure
 
-- `Sources/CatchFive`: pure Swift rules; no UI dependencies.
-- `Tests/CatchFiveTests`: repeatable rule tests with explicit card fixtures.
-- `docs/learning-path.md`: start here to read the code without an IDE; links the architecture, game-flow, types, testing, decision-log and build pages, all with diagrams.
-- `docs/catch-five-rules.md`: confirmed house rules.
-- `docs/roadmap.md`: the planned milestones and their order.
-- `docs/engine-plan.md`: initial implementation milestone.
-- `docs/code-map.md`: plain-language architecture and source-to-test connections.
-- `scripts/export-docs.py`: renders the explainer pages to PDF and their diagrams to PNG in `work/docs-export/` for upload to Claude Design.
+- `Sources/CatchFive`: pure Swift rules, computer players, save format. No UI imports.
+- `Sources/CatchFiveUI`: `GameModel` view model, the table, sheets, settings and the tutorial.
+- `Sources/CatchFiveDemo`: the terminal demo.
+- `App/`: the nine-line app entry point, icon catalog and privacy manifest.
+- `Tests/`: 97 Swift Testing tests across engine and view model.
+- `scripts/`: `build-simulator.py` (hand-built simulator bundle), `make-icon.swift`, `export-docs.py` (PDF and PNG export for Claude Design).
+- `docs/learning-path.md`: start here to read the code without an IDE; every page has diagrams.
+- `docs/catch-five-rules.md`: the house rules, which the in-app rules sheet quotes verbatim.
+- `docs/roadmap.md`: the six milestones, all done, and `docs/device-install.md`: putting the app on a phone.
 
-Team-indexed inputs use `[team0, team1]`. Team 0 seats are 0/2, team 1 seats are 1/3. The Hand coordinator enforces turn order, card ownership and six-trick completion before scoring. Its read-only state includes all hands for diagnostics; PlayerView restricts computer strategy to its own cards and public auction/trick information; the future UI must similarly keep opponents’ cards hidden. Captured-card scoring can also be used independently on supplied card collections.
+Team-indexed values use `[team0, team1]`. Team 0 seats are 0/2, team 1 seats are 1/3. `Hand` enforces turn order, card ownership and six-trick completion before scoring; `PlayerView` limits computers and hints to a seat's own cards plus public information, and the table keeps opponents' cards hidden.
 
 ## Next
 
-Refine computer strategy through playtesting. Build the simulator app with `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer python3 scripts/build-simulator.py` when Xcode's iOS platform is unavailable. Export the explainer pages for Claude Design with `python3 scripts/export-docs.py`, which writes PDFs and diagram PNGs to `work/docs-export/`.
-
-Use tested milestone commits on short-lived branches off `main` to track progress.
+Install on a phone: follow `docs/device-install.md`. Work happens on short-lived branches off `main`, merged by pull request with the tests green and the docs updated in the same commit.

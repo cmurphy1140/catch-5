@@ -14,6 +14,8 @@ targets:
       - path: App
       - path: App/Assets.xcassets
       - path: App/PrivacyInfo.xcprivacy
+      - path: App/Explainer
+        type: folder
     dependencies:
       - package: CatchFivePackage
         product: CatchFiveUI

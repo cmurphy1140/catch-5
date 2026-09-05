@@ -345,3 +345,21 @@ import Testing
     #expect(!text.contains("::") && !text.contains("Play the"))
     #expect(model.finalPerformance == nil)
 }
+
+@Test func explainerPagesAreBundledTogether() throws {
+    // The pages link to each other by file name, so the folder must hold every one the library lists.
+    let folder = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        .appendingPathComponent("App/Explainer")
+    let files = try FileManager.default.contentsOfDirectory(atPath: folder.path).filter { $0.hasSuffix(".dc.html") }
+    #expect(files.count == 10)
+    for page in ExplainerLibrary.pages {
+        let url = folder.appendingPathComponent("\(page).dc.html")
+        #expect(FileManager.default.fileExists(atPath: url.path), "missing \(page)")
+        let data = try Data(contentsOf: url)
+        #expect(data.count > 50_000)
+        // Self-contained: no script or stylesheet fetched from the network.
+        let head = String(decoding: data.prefix(20_000), as: UTF8.self)
+        #expect(!head.contains("src=\"http") && !head.contains("href=\"http"), "\(page) references the network")
+    }
+    #expect(ExplainerLibrary.pages.first == ExplainerLibrary.indexPage)
+}

@@ -26,7 +26,7 @@ flowchart LR
 
 | Command | What it does | When to use |
 |---|---|---|
-| `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test` | Compiles every target and runs all tests (57 as of this page) | After every change |
+| `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test` | Compiles every target and runs all tests (96 as of this page) | After every change |
 | `... swift test --filter <name>` | Runs one test by function name | While working on one rule |
 | `... swift run catch-five-demo` | Plays a fixed five-hand match in the terminal and prints every trick | To watch the engine without the app. Add `--computer` for shuffled computer play, `--save-roundtrip` to see save/restore mid-trick |
 | `... python3 scripts/build-simulator.py` | Produces `work/simulator-build/CatchFive.app` for the iOS simulator | To run the real app |
@@ -50,7 +50,7 @@ flowchart TD
 
 Each `swiftc` call is the compiler invoked directly, with `-target arm64-apple-ios17.0-simulator` so the binary is built for the simulator, and `-swift-version 6`. The `-I` and `-L` flags tell later steps where to find the `.swiftmodule` and `.a` files from earlier steps.
 
-`project.yml` and `CatchFive.xcodeproj` exist for the day Xcode's simulator platform is installed; `xcodegen` regenerates the project from the YAML. They are not used by the script, but the script does copy two things the store build also uses: the icon, scaled from `App/Assets.xcassets/AppIcon.appiconset/icon-1024.png` (rendered by `swift scripts/make-icon.swift <output>`), and `App/PrivacyInfo.xcprivacy`.
+`project.yml` and `CatchFive.xcodeproj` exist for the day Xcode's iOS platform is installed ([device-install.md](device-install.md)); `xcodegen` regenerates the project from the YAML. They are not used by the script, but the script does copy three things the store build also uses: the `App/Explainer` folder of bundled documentation pages, the icon, scaled from `App/Assets.xcassets/AppIcon.appiconset/icon-1024.png` (rendered by `swift scripts/make-icon.swift <output>`), and `App/PrivacyInfo.xcprivacy`.
 
 ## Toward the App Store
 

@@ -4,6 +4,7 @@ import SwiftUI
 struct SettingsView: View {
     @Binding var settings: Settings
     @Environment(\.dismiss) private var dismiss
+    @State private var showExplainer = false
 
     var body: some View {
         NavigationStack {
@@ -33,7 +34,15 @@ struct SettingsView: View {
                 Section {
                     Toggle("Haptics on tricks and hands", isOn: $settings.haptics)
                 }
+                Section {
+                    Button { showExplainer = true } label: { Label("How Catch 5 is built", systemImage: "doc.text.magnifyingglass") }
+                } header: { Text("About") } footer: {
+                    Text("The engineering explainer: architecture, game flow, every type, the tests and the decision log, readable offline.")
+                }
             }
+            #if canImport(UIKit)
+            .sheet(isPresented: $showExplainer) { ExplainerView { showExplainer = false } }
+            #endif
             .navigationTitle("Settings")
             .toolbar { Button("Done") { dismiss() } }
         }

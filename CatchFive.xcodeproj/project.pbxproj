@@ -7,13 +7,17 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		196ACFD1BDF12D1C68EB2805 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 9B3E579D68599CFF3F7B4383 /* PrivacyInfo.xcprivacy */; };
 		2B0BD89E9D1950AD6CE9D931 /* CatchFiveUI in Frameworks */ = {isa = PBXBuildFile; productRef = 8C3AEDE87BDF11591300F118 /* CatchFiveUI */; };
+		65AD9165C27E75A83C624D4B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C30CE2B9240F2C4094DBAFAB /* Assets.xcassets */; };
 		8389536425FF69B74BBC1DE5 /* CatchFiveApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0A21C058444C61FC449F3F4 /* CatchFiveApp.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		53E2688F74876BBCCCD1A00B /* cardgame-io */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "cardgame-io"; path = .; sourceTree = SOURCE_ROOT; };
+		09661FAA1C3506ADA3F2A835 /* catch-5-app-2985e8 */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "catch-5-app-2985e8"; path = .; sourceTree = SOURCE_ROOT; };
+		9B3E579D68599CFF3F7B4383 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		A0A21C058444C61FC449F3F4 /* CatchFiveApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatchFiveApp.swift; sourceTree = "<group>"; };
+		C30CE2B9240F2C4094DBAFAB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		F01AF627757685E129B9142A /* CatchFiveApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = CatchFiveApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -32,7 +36,9 @@
 		1F25F5D57E87C593555967D5 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				C30CE2B9240F2C4094DBAFAB /* Assets.xcassets */,
 				A0A21C058444C61FC449F3F4 /* CatchFiveApp.swift */,
+				9B3E579D68599CFF3F7B4383 /* PrivacyInfo.xcprivacy */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -49,7 +55,7 @@
 		9E1D7A103B7DCEF4FA33CF7B /* Packages */ = {
 			isa = PBXGroup;
 			children = (
-				53E2688F74876BBCCCD1A00B /* cardgame-io */,
+				09661FAA1C3506ADA3F2A835 /* catch-5-app-2985e8 */,
 			);
 			name = Packages;
 			sourceTree = "<group>";
@@ -70,6 +76,7 @@
 			buildConfigurationList = 0FD302E4218F032E6F275379 /* Build configuration list for PBXNativeTarget "CatchFiveApp" */;
 			buildPhases = (
 				D65F07D7E6C429985A6FA0E0 /* Sources */,
+				2AE7E62F095AD8B883C76F33 /* Resources */,
 				4E4CC33D821939219FF9EAAB /* Frameworks */,
 			);
 			buildRules = (
@@ -119,6 +126,18 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		2AE7E62F095AD8B883C76F33 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				65AD9165C27E75A83C624D4B /* Assets.xcassets in Resources */,
+				196ACFD1BDF12D1C68EB2805 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		D65F07D7E6C429985A6FA0E0 /* Sources */ = {
@@ -257,14 +276,17 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Catch 5";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.card-games";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.cardgame.catchfive;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;
@@ -278,14 +300,17 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Catch 5";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.card-games";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.cardgame.catchfive;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;

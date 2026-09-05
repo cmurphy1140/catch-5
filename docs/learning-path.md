@@ -15,6 +15,7 @@ This is the front door to the living documentation. Each linked page is kept in 
 | 7 | [code-map.md](code-map.md) | Older call-trace walkthroughs (match scoring, save/resume, computer path); still accurate |
 | 8 | [roadmap.md](roadmap.md) | The six milestones toward a shippable app, all done, with dependencies, tests written first and risks |
 | 9 | [tutorial-spec.md](tutorial-spec.md) | The in-app "How to play" tutorial: five lessons, their fixtures and answer keys, and the tests that check them against the engine |
+| 10 | [device-install.md](device-install.md) | Putting the app on your own iPhone: what this Mac is missing, the one-time setup, and the build-and-install commands |
 
 ## Swift vocabulary used in these pages
 
@@ -57,5 +58,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --filter pla
 ## Keeping these pages live
 
 Rule for every future change: if a commit adds or renames a type, function, phase, or test, the same commit updates the relevant page here. `CLAUDE.md` states this so automated sessions follow it too.
+
+**Reading these pages in the app.** The Claude Design exports of these pages are bundled in the app (`App/Explainer`) and open from Settings under "How Catch 5 is built". They are a snapshot: after changing a page here, re-export it and replace the file in that folder.
 
 **Exporting these pages.** `python3 scripts/export-docs.py`, run from the repo root, renders every page here to PDF and every Mermaid diagram to PNG in the gitignored `work/docs-export/` folder, along with a combined `catch-five-explainer.pdf` and a paste-ready prompt for Claude Design. The reading-order table above drives its page list, so a page added to the table is exported on the next run. [build-and-run.md](build-and-run.md) describes the pipeline.

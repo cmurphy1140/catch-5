@@ -8,6 +8,7 @@ flowchart TB
         TV[TableView]
         CV[CardView]
         HS[HandSummaryView]
+        SH["Sheets: Settings, Tutorial + Rules,<br/>Review, Scoreboard, Statistics"]
     end
     subgraph VM["View model — GameModel (Sources/CatchFiveUI/GameModel.swift)"]
         GM["GameModel: ObservableObject<br/>owns one Match<br/>send(), stepComputer(), allows(), persist()"]
@@ -25,12 +26,13 @@ flowchart TB
     TV --> GM
     CV --> GM
     HS --> GM
+    SH --> GM
     GM --> M
     GM --> CP
     GM --> MS
 ```
 
-Dependencies only point downward. The engine module imports nothing but the Swift standard library and Foundation. That is not a style preference; it is what lets all 57 tests run on the Mac in under half a second with no simulator.
+Dependencies only point downward. The engine module imports nothing but the Swift standard library and Foundation. That is not a style preference; it is what lets all 96 tests run on the Mac in a few seconds with no simulator.
 
 ## MVVM, mapped to this repo
 
