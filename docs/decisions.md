@@ -2,7 +2,7 @@
 
 Each entry: what was decided, what it was chosen over, and why. Dates are when the decision landed in the repo. Newest last.
 
-## D1. A dependency-free rules engine (2026-08)
+## D1. A dependency-free rules engine (PR #1, merged 2026-09-04)
 
 **Chosen:** `Sources/CatchFive` imports only the standard library and Foundation. No SwiftUI, no Combine, no packages.
 
@@ -10,7 +10,7 @@ Each entry: what was decided, what it was chosen over, and why. Dates are when t
 
 **Why:** Rules are the part that must be exactly right and change least. Keeping them UI-free means they compile on macOS in the test runner, run 200 matches in under half a second, and can be reused by a terminal demo, a future server, or a different UI without change.
 
-## D2. Value types everywhere in the engine (2026-08)
+## D2. Value types everywhere in the engine (PR #1, merged 2026-09-04)
 
 **Chosen:** `Hand`, `Match`, `Auction` are structs with `private(set)` state and `mutating` methods.
 
@@ -18,7 +18,7 @@ Each entry: what was decided, what it was chosen over, and why. Dates are when t
 
 **Why:** Copying is free and explicit. Validation can work on a copy and commit only on success (`var updated = self … self = updated`), giving transaction semantics without any undo code. `allows(_:)` in the UI is a one-line dry run for the same reason. Structs are also trivially `Sendable`, which Swift 6 strict concurrency demands.
 
-## D3. Throwing validation instead of Bool returns (2026-08)
+## D3. Throwing validation instead of Bool returns (PR #1, merged 2026-09-04)
 
 **Chosen:** Every rule check throws a case of `RuleError`, `HandError`, or `MatchError`.
 
@@ -26,7 +26,7 @@ Each entry: what was decided, what it was chosen over, and why. Dates are when t
 
 **Why:** A thrown error names the rule that was broken, tests can assert the exact case, and the caller cannot forget to check because `try` is mandatory.
 
-## D4. Match settles automatically, redeals explicitly (2026-08)
+## D4. Match settles automatically, redeals explicitly (PR #1, merged 2026-09-04)
 
 **Chosen:** The sixth trick scores and settles the hand inside `Match.play`. Starting the next hand requires a separate `startNextHand(deck:)`.
 
@@ -34,7 +34,7 @@ Each entry: what was decided, what it was chosen over, and why. Dates are when t
 
 **Why:** Scoring twice or forgetting to score are both classic bugs; making it automatic and testing it happens exactly once (`matchScoresOnlyAfterLastCardAndOnlyOnce`) removes them. The explicit redeal exists so the screen can show the hand summary before cards disappear.
 
-## D5. Saves are replay logs, not board snapshots (2026-08)
+## D5. Saves are replay logs, not board snapshots (PR #1, merged 2026-09-04)
 
 **Chosen:** `MatchSave` stores the initial deck, dealer, and every accepted action. Loading replays them through the real rule methods.
 
@@ -42,7 +42,7 @@ Each entry: what was decided, what it was chosen over, and why. Dates are when t
 
 **Why:** A snapshot can describe an impossible position; a replay cannot. It also means no separate decoding validation, tiny files, and human-readable JSON. Cost: replay time grows with match length (fine for a local game) and rule changes alter how old saves replay, hence the `version` field.
 
-## D6. Computers see a `PlayerView`, never the `Match` (2026-08)
+## D6. Computers see a `PlayerView`, never the `Match` (PR #1, merged 2026-09-04)
 
 **Chosen:** `PlayerView(match:seat:)` copies the seat's own cards and public information only.
 
@@ -50,13 +50,13 @@ Each entry: what was decided, what it was chosen over, and why. Dates are when t
 
 **Why:** It makes cheating structurally impossible rather than a matter of discipline, and `changingHiddenCardsDoesNotChangeComputerDecision` proves it. The same shape is what a networked opponent would receive.
 
-## D7. Computer actions go through the same `apply` as humans (2026-08)
+## D7. Computer actions go through the same `apply` as humans (PR #1, merged 2026-09-04)
 
 **Chosen:** `ComputerPlayer.decide` proposes; `Match.apply` checks.
 
 **Why:** A strategy bug can never corrupt a game; it just throws, and the simulation test would fail loudly.
 
-## D8. A revision counter drives the computer scheduler (2026-09)
+## D8. A revision counter drives the computer scheduler (PR #1, merged 2026-09-04)
 
 **Chosen:** `GameModel.revision` increments on every accepted action; `TableView` uses `.task(id: model.revision)` with a short sleep.
 
@@ -64,7 +64,7 @@ Each entry: what was decided, what it was chosen over, and why. Dates are when t
 
 **Why:** SwiftUI cancels and restarts an id-keyed task for free. A human tap bumps the revision, which cancels any sleeping computer task, so ordering bugs cannot occur. The pause between plays is what makes the game readable.
 
-## D9. Build the simulator app with `swiftc` directly (2026-09)
+## D9. Build the simulator app with `swiftc` directly (PR #1, merged 2026-09-04)
 
 **Chosen:** `scripts/build-simulator.py` compiles the modules and assembles the `.app` bundle by hand.
 
@@ -72,13 +72,13 @@ Each entry: what was decided, what it was chosen over, and why. Dates are when t
 
 **Why:** The installed Xcode requires an iOS platform download that is not present, so `xcodebuild` cannot resolve a destination. The script uses the same compiler and SDK and produces a bundle the simulator runs. `project.yml` remains so Xcode can be used when the platform is installed.
 
-## D10. 9-and-out precedence (confirmed 2026-09-04)
+## D10. 9-and-out precedence (PR #2, 2026-09-04)
 
 **Chosen:** A 9-and-out declaration outranks a normal 9. The dealer may match it with their own 9-and-out and thereby takes the bid.
 
-**History:** The engine implemented this behaviour provisionally in August and the docs flagged it as unconfirmed. Connor confirmed the dealer-match rule on 2026-09-04.
+**History:** PR #1 implemented this behaviour provisionally and the docs flagged it as unconfirmed. Connor confirmed the dealer-match rule on 2026-09-04.
 
-## D11. Auction calls are recorded in the engine, not the view (2026-09-04)
+## D11. Auction calls are recorded in the engine, not the view (PR #2, 2026-09-04)
 
 **Chosen:** `Auction.calls` stores each accepted `AuctionCall`; `PlayerView` exposes it; `GameModel` turns it into words.
 
@@ -86,13 +86,13 @@ Each entry: what was decided, what it was chosen over, and why. Dates are when t
 
 **Why:** The engine is the only place that knows which calls were accepted. Storing it there means saves replay it, computers can use it, and the view is stateless. Rejected calls are deliberately not recorded.
 
-## D12. Cards stay readable during bidding (2026-09-04)
+## D12. Cards stay readable during bidding (PR #2, 2026-09-04)
 
 **Chosen:** Hand cards use `allowsHitTesting(playable)` rather than `.disabled(!playable)`.
 
 **Why:** SwiftUI's plain button style dims disabled buttons, which greyed the whole hand while bidding, when reading it matters most. Hit testing switches interaction off without touching appearance; opacity is applied only in the playing phase for illegal cards.
 
-## D13. Bid from an expected-points estimate with a half-point margin (2026-09-04)
+## D13. Bid from an expected-points estimate with a half-point margin (PR #2, 2026-09-04)
 
 **Chosen:** `ComputerPlayer.estimate` sums heuristic weights (High, Low, Jack, Five, control, trump count, refill chance). The bid cap is `floor(estimate − 0.5)`; the computer bids the minimum needed up to that cap.
 
@@ -100,13 +100,13 @@ Each entry: what was decided, what it was chosen over, and why. Dates are when t
 
 **Why:** Measured over 200 seeded matches, the old bidder let two thirds of hands fall to a forced dealer 2. The estimate is calibrated (estimate 5 → 5.6 points made on average). Bidding the full estimate was rejected on economics: in Pitch, being outbid costs about one point relative, while failing a 4 costs roughly nine, so a margin is worth more than aggression. The regression test guards both the competitiveness and the contract rate.
 
-## D14. Keep the trump five off leads (2026-09-04)
+## D14. Keep the trump five off leads (PR #2, 2026-09-04)
 
 **Chosen:** When leading, the computer excludes the trump five unless it is the only legal card.
 
 **Why:** The five is worth more than every other point combined. Leading it hands opponents a free capture with any higher trump. Leading the ace instead draws trumps out while the five stays protected.
 
-## D15. Trick animation keyed by card, not seat (2026-09-04)
+## D15. Trick animation keyed by card, not seat (PR #2, 2026-09-04)
 
 **Chosen:** `ForEach(plays, id: \.card)` with per-seat entry edges and `.animation(value: model.revision)`.
 
@@ -114,7 +114,7 @@ Each entry: what was decided, what it was chosen over, and why. Dates are when t
 
 **Why:** Seat ids repeat every trick, so SwiftUI would treat a new trick as the old views changing content and skip the transition. Cards are unique within a hand, so keying by card makes the old trick leave and the new lead arrive as distinct animations.
 
-## D16. Living documentation in `docs/` (2026-09-04)
+## D16. Living documentation in `docs/` (PR #2, 2026-09-04)
 
 **Chosen:** Flat Markdown pages with Mermaid diagrams, linked from [learning-path.md](learning-path.md), updated in the same commit as the code they describe.
 
