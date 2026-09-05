@@ -196,11 +196,12 @@ struct TableSurface: View {
     // MARK: Phase controls
 
     private var bidding: some View {
-        VStack(spacing: 6) {
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 6) {
+        VStack(spacing: Theme.Table.auctionButtonSpacing) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Theme.Table.auctionButtonSpacing), count: 4),
+                      spacing: Theme.Table.auctionButtonSpacing) {
                 ForEach(2...9, id: \.self) { bid in actionButton(String(bid), action: .bid(bid)) }
             }
-            HStack {
+            HStack(spacing: Theme.Table.auctionButtonSpacing) {
                 actionButton("Pass", action: .bid(nil))
                 actionButton("9 and out", action: .nineAndOut)
                     .accessibilityHint("Take all nine points or lose the game")
@@ -209,7 +210,7 @@ struct TableSurface: View {
     }
 
     private var trumpChoice: some View {
-        HStack {
+        HStack(spacing: Theme.Table.auctionButtonSpacing) {
             ForEach(Suit.allCases, id: \.self) { suit in
                 actionButton(suit.glyph, action: .chooseTrump(suit), tint: suit.buttonTint)
                     .accessibilityLabel(suit.rawValue)
@@ -217,9 +218,14 @@ struct TableSurface: View {
         }
     }
 
+    /// Pills fill their column so neighbours almost touch, and stand a little taller than the 44 pt minimum.
     private func actionButton(_ label: String, action: PlayerAction, tint: Color = .ivory.opacity(0.8)) -> some View {
-        Button(label) { model.send(action) }.buttonStyle(.bordered).tint(tint)
-            .disabled(!model.allows(action)).frame(minHeight: 44)
+        Button { model.send(action) } label: {
+            Text(label).font(.body.weight(.semibold))
+                .frame(maxWidth: .infinity, minHeight: Theme.Table.auctionButtonHeight - 14)
+        }
+        .buttonStyle(.bordered).tint(tint)
+        .disabled(!model.allows(action))
     }
 
     // MARK: Hand end
@@ -238,7 +244,7 @@ struct TableSurface: View {
             .padding(12)
         }
         .scrollBounceBehavior(.basedOnSize)
-        .background(Color(red: 0.05, green: 0.14, blue: 0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(Theme.Wood.inlay, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(.ivory.opacity(0.15)))
         .padding(8)
         .transition(reduceMotion ? .opacity : .offset(y: 12).combined(with: .opacity))
@@ -304,8 +310,8 @@ struct SeatView: View {
         }
         .padding(.horizontal, 10).padding(.vertical, 6)
         .frame(minWidth: 84)
-        .background(.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(.gold, lineWidth: active ? 2 : 0))
+        .background(Theme.Wood.inlay.opacity(0.55), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(active ? .gold : .ivory.opacity(0.08), lineWidth: active ? 2 : 1))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(summary)
     }

@@ -1,6 +1,7 @@
 import CatchFive
 @testable import CatchFiveUI
 import Foundation
+import SwiftUI
 import Testing
 
 @MainActor @Test func humanActionAdvancesComputersAndStopsForHuman() throws {
@@ -426,4 +427,13 @@ import Testing
     // Play a card: the notice belongs to the previous action and clears.
     model.send(.play(try #require(model.humanCards.first)))
     #expect(model.notice == nil)
+}
+
+@Test func textBoostRaisesTheDefaultTwoStepsAndStopsAtTheLargest() {
+    #expect(Theme.textBoostSteps == 2)
+    #expect(DynamicTypeSize.large.boosted(by: Theme.textBoostSteps) == .xxLarge)
+    #expect(DynamicTypeSize.accessibility5.boosted(by: Theme.textBoostSteps) == .accessibility5)
+    #expect(DynamicTypeSize.xSmall.boosted(by: -3) == .xSmall)
+    // Cards still stop at XXXL, so a user two steps below it is the last to see them grow.
+    #expect(DynamicTypeSize.xLarge.boosted(by: Theme.textBoostSteps) == Theme.Card.maximumTypeSize)
 }

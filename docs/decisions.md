@@ -276,3 +276,11 @@ Portrait iPhone first, with iPad allowed in the same 640-point column, stays the
 
 **Why:** The one-handed-use research behind D33 is about the default case, and a scroll view that engages only when content cannot fit costs that case nothing. Apple's guidance for games allows bounding the size of game pieces where growth would break play; a fan of six cards is that case, and the corner index stays legible at XXXL. The caps sit above the views whose `@ScaledMetric` values read them, because a cap applied inside a view does not reach the view's own scaled metrics (the first attempt piled the cards up at AX5 for exactly that reason).
 
+## D35. A drawn walnut table, larger text everywhere, and the iPhone 16 as the only verified device (PR #21, 2026-09-05)
+
+**Chosen:** `WoodGrainView` draws the background in a `Canvas` from a fixed seed: a warm gradient, tonal bands, a few hundred wavy grain lines at uneven spacing (some swinging wide like figure in a board), and a vignette. Seat tiles, panels and the hand-end card sit on a dark inlay colour instead of translucent white. Every text style renders two Dynamic Type steps above the system setting (`Theme.textBoostSteps`, applied at the root of `TableView` so sheets inherit it), which keeps the user's own size setting meaningful while making the whole app read larger. The bid, pass and suit pills fill their columns with 6 pt between them and stand 52 pt tall. Connor asked for all three, and for the layout to be judged on the iPhone 16 alone.
+
+**Over:** A felt gradient (Connor: too generic); a wood image asset, which would need a resource pipeline the hand-built simulator bundle does not have; bumping each font style by hand across forty views; keeping the SE and accessibility-size matrix as a gate.
+
+**Why:** A procedural texture costs one file and no build changes, is identical on every launch, and stays crisp at any size. Boosting the environment's `dynamicTypeSize` is one line, testable, and composes with the existing caps (cards still stop at XXXL, table text at AX2). Full-width pills put the whole column under the thumb, which is the point of having the auction in the thumb zone. The scroll fallback from D34 stays in the code so nothing clips on other phones, but it is no longer verified per release.
+

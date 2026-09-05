@@ -28,7 +28,7 @@ public struct TableView: View {
     }
 
     public var body: some View {
-        withSheets
+        withSheets.transformEnvironment(\.dynamicTypeSize) { $0 = $0.boosted(by: Theme.textBoostSteps) }
     }
 
     /// Score bar, table and hand in one non-scrolling column.
@@ -57,7 +57,7 @@ public struct TableView: View {
         .frame(maxWidth: 640)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .foregroundStyle(.ivory)
-        .background(LinearGradient(colors: [.felt, .black], startPoint: .topLeading, endPoint: .bottomTrailing).ignoresSafeArea())
+        .background(WoodGrainView())
         .preferredColorScheme(.dark)
     }
 

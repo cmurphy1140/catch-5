@@ -33,6 +33,24 @@ public enum Theme {
 
     /// Text on the gameplay screen scales with Dynamic Type up to this size. Sheets scroll and stay uncapped.
     public static let maximumTableTypeSize = DynamicTypeSize.accessibility2
+    /// Every text style in the app renders this many Dynamic Type steps above the system setting
+    /// (the default Large becomes XXL), so the whole app reads larger while the user's setting still applies.
+    public static let textBoostSteps = 2
+
+    /// The walnut table top drawn by `WoodGrainView`.
+    public enum Wood {
+        public static let light = Color(red: 0.46, green: 0.29, blue: 0.16)
+        public static let base = Color(red: 0.31, green: 0.185, blue: 0.10)
+        public static let dark = Color(red: 0.19, green: 0.105, blue: 0.055)
+        public static let streakLight = Color(red: 0.72, green: 0.50, blue: 0.29)
+        public static let streakDark = Color(red: 0.08, green: 0.04, blue: 0.02)
+        /// Dark inlay used for seat tiles, panels and the hand-end card so they sit on the wood.
+        public static let inlay = Color(red: 0.09, green: 0.055, blue: 0.03)
+        public static let seed: UInt64 = 11
+        public static let bandCount = 28
+        /// Points between grain lines, drawn at random within this range.
+        public static let grainSpacing = 1.4...5.5
+    }
 
     public enum Table {
         /// How far a played card is nudged from the pile's centre toward its seat.
@@ -43,6 +61,9 @@ public enum Theme {
         public static let pileMarginX = 64.0
         public static let pileMarginY = 48.0
         public static let seatBackWidth = 22.0
+        /// Bid, pass and suit buttons: full column width, a little taller than the 44 pt minimum.
+        public static let auctionButtonHeight = 52.0
+        public static let auctionButtonSpacing = 6.0
     }
 
     public enum Motion {
@@ -56,5 +77,14 @@ public enum Theme {
         public static let trickHold: Duration = .milliseconds(900)
         public static let shakeAmplitude = 6.0
         public static let toastSeconds = 4.0
+    }
+}
+
+public extension DynamicTypeSize {
+    /// The size `steps` above this one, stopping at the largest accessibility size.
+    func boosted(by steps: Int) -> DynamicTypeSize {
+        let all = DynamicTypeSize.allCases
+        guard let index = all.firstIndex(of: self) else { return self }
+        return all[min(max(index + steps, 0), all.count - 1)]
     }
 }
