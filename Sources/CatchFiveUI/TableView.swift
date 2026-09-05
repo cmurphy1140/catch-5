@@ -36,8 +36,7 @@ public struct TableView: View {
         VStack(spacing: 6) {
             ScoreBarView(us: model.match.scores[0], them: model.match.scores[1],
                          usLabel: teamLabel(0), themLabel: teamLabel(1),
-                         trump: model.match.hand.trump, contract: model.contract,
-                         handNumber: model.match.handNumber, youDeal: model.match.hand.auction.dealer == 0,
+                         handNumber: model.match.handNumber,
                          canUndo: model.canUndo, onUndo: { model.undo() },
                          onScores: { showScoreboard = true }, onSettings: { showSettings = true },
                          onStatistics: { showStatistics = true }, onTutorial: { showTutorial = true },

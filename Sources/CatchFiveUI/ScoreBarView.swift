@@ -1,16 +1,14 @@
 import CatchFive
 import SwiftUI
 
-/// The compact bar pinned above the table: title and menu, both scores, trump and contract, hand number.
+/// The compact bar pinned above the table: title with the hand number, the menu, and both scores.
+/// Trump, contract and the dealer live on the table itself (`TableSurface.contractPill`, `HandFanView`).
 struct ScoreBarView: View {
     let us: Int
     let them: Int
     let usLabel: String
     let themLabel: String
-    let trump: Suit?
-    let contract: String?
     let handNumber: Int
-    let youDeal: Bool
     let canUndo: Bool
     let onUndo: () -> Void
     let onScores: () -> Void
@@ -23,6 +21,9 @@ struct ScoreBarView: View {
         VStack(spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
                 Text("CATCH 5").font(.system(.title3, design: .serif).weight(.bold))
+                Text("HAND \(handNumber)").font(.system(.subheadline, design: .monospaced)).opacity(0.7)
+                    .padding(.leading, 12)
+                    .accessibilityLabel("Hand \(handNumber)")
                 Spacer()
                 Menu {
                     Button("Undo last action", systemImage: "arrow.uturn.backward", action: onUndo).disabled(!canUndo)
@@ -45,32 +46,12 @@ struct ScoreBarView: View {
                         Spacer(minLength: 12)
                         team(themLabel, them, .trailing)
                     }
-                    // One line normally; two at accessibility text sizes.
-                    ViewThatFits(in: .horizontal) {
-                        HStack { trumpText; Spacer(minLength: 12); handText }
-                        VStack(alignment: .leading, spacing: 0) { trumpText.lineLimit(2); handText }.frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .font(.system(.caption, design: .monospaced)).lineLimit(1)
                 }
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityHint("Shows every hand of this match")
         }
-    }
-
-    private var trumpText: some View { Text(trumpLine).foregroundStyle(.gold) }
-
-    private var handText: some View {
-        HStack(spacing: 0) {
-            if youDeal { Text("YOU DEAL · ").foregroundStyle(.gold) }
-            Text("HAND \(handNumber)").opacity(0.7)
-        }
-    }
-
-    private var trumpLine: String {
-        let base = trump.map { "\($0.glyph) TRUMP" } ?? "— TRUMP"
-        return contract.map { "\(base) · \($0.uppercased())" } ?? base
     }
 
     private func team(_ label: String, _ value: Int, _ alignment: HorizontalAlignment) -> some View {

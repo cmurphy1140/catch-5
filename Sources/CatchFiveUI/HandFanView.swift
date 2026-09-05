@@ -49,7 +49,15 @@ struct HandFanView: View {
             }
             .frame(height: max(scaledStandard, scaledWide) * Theme.Card.ratio + 16 + Theme.Card.fanDrop)
             if !cards.isEmpty {
-                Text("YOUR HAND").font(.caption2.monospaced()).tracking(1).opacity(0.55)
+                HStack(spacing: 8) {
+                    Text("YOUR HAND").opacity(0.55)
+                    if model.match.hand.auction.dealer == 0 {
+                        Text("·").opacity(0.4)
+                        Text("DEALER").foregroundStyle(.gold)
+                    }
+                }
+                .font(.caption2.monospaced()).tracking(1)
+                .accessibilityElement(children: .combine)
             }
         }
         .frame(maxWidth: .infinity)

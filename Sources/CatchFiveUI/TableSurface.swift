@@ -33,6 +33,7 @@ struct TableSurface: View {
             // Scrolls only when the content cannot fit, which happens at accessibility text sizes.
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 8) {
+                    contractPill.accessibilitySortPriority(25)
                     Spacer(minLength: 0)
                     SeatView(model: model, seat: 2).accessibilitySortPriority(20)
                     HStack(alignment: .center) {
@@ -120,6 +121,30 @@ struct TableSurface: View {
         let removal: AnyTransition = .offset(x: to.width * reach.width, y: to.height * reach.height)
             .combined(with: .scale(scale: 0.5)).combined(with: .opacity)
         return .asymmetric(insertion: insertion, removal: removal)
+    }
+
+    // MARK: Contract
+
+    /// Trump and the contract, in gold (rule 2), on a pill under the header once trump is named.
+    @ViewBuilder private var contractPill: some View {
+        if let trump = hand.trump {
+            HStack(spacing: 10) {
+                Text(trump.glyph).font(.title2)
+                Text("Trump")
+                if let contract = model.contract {
+                    Text("·").opacity(0.5)
+                    Text(contract)
+                }
+            }
+            .font(.system(.body, design: .serif).weight(.semibold))
+            .foregroundStyle(.gold)
+            .lineLimit(1).minimumScaleFactor(0.8)
+            .padding(.horizontal, 18).padding(.vertical, 8)
+            .background(Theme.Wood.inlay.opacity(0.7), in: Capsule())
+            .overlay(Capsule().stroke(.gold.opacity(0.35)))
+            .padding(.top, 4)
+            .accessibilityElement(children: .combine)
+        }
     }
 
     // MARK: Status, hints, explanations
