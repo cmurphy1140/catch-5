@@ -280,26 +280,29 @@ struct SeatView: View {
     private var active: Bool { hand.nextSeat == seat && model.match.winner == nil }
 
     var body: some View {
-        VStack(spacing: 4) {
-            Text(model.seatNames[seat]).font(.subheadline.weight(.semibold)).lineLimit(1)
-            if hand.phase == .bidding {
-                Text(model.latestCall(for: seat) ?? "Waiting").font(.caption).opacity(0.75)
-            } else {
-                ZStack {
-                    ForEach(0..<min(3, max(1, hand.hands[seat].count)), id: \.self) { index in
-                        CardBackView(width: Theme.Table.seatBackWidth)
-                            .offset(x: Double(index) * 4 - 4)
-                    }
-                    if hand.hands[seat].isEmpty { Color.clear.frame(width: Theme.Table.seatBackWidth, height: Theme.Table.seatBackWidth * Theme.Card.ratio) }
-                    Text(hand.hands[seat].count, format: .number).font(.caption2.weight(.bold).monospacedDigit())
-                        .padding(.horizontal, 5).padding(.vertical, 1)
-                        .background(.black.opacity(0.55), in: Capsule())
-                        .offset(x: 14, y: 12)
-                }.frame(height: 40).dynamicTypeSize(...Theme.Card.maximumTypeSize)
-            }
-            VStack(spacing: 0) {
-                if hand.auction.dealer == seat { Text("DEALER").font(.system(.caption2, design: .monospaced)).foregroundStyle(.gold) }
-                if hand.auction.winner == seat, hand.phase != .bidding { Text("BIDDER").font(.system(.caption2, design: .monospaced)).opacity(0.7) }
+        HStack(spacing: 8) {
+            PortraitView(portrait: portrait, size: Theme.Table.portraitSize)
+            VStack(spacing: 4) {
+                Text(model.seatNames[seat]).font(.subheadline.weight(.semibold)).lineLimit(1)
+                if hand.phase == .bidding {
+                    Text(model.latestCall(for: seat) ?? "Waiting").font(.caption).opacity(0.75)
+                } else {
+                    ZStack {
+                        ForEach(0..<min(3, max(1, hand.hands[seat].count)), id: \.self) { index in
+                            CardBackView(width: Theme.Table.seatBackWidth)
+                                .offset(x: Double(index) * 4 - 4)
+                        }
+                        if hand.hands[seat].isEmpty { Color.clear.frame(width: Theme.Table.seatBackWidth, height: Theme.Table.seatBackWidth * Theme.Card.ratio) }
+                        Text(hand.hands[seat].count, format: .number).font(.caption2.weight(.bold).monospacedDigit())
+                            .padding(.horizontal, 5).padding(.vertical, 1)
+                            .background(.black.opacity(0.55), in: Capsule())
+                            .offset(x: 14, y: 12)
+                    }.frame(height: 40).dynamicTypeSize(...Theme.Card.maximumTypeSize)
+                }
+                VStack(spacing: 0) {
+                    if hand.auction.dealer == seat { Text("DEALER").font(.system(.caption2, design: .monospaced)).foregroundStyle(.gold) }
+                    if hand.auction.winner == seat, hand.phase != .bidding { Text("BIDDER").font(.system(.caption2, design: .monospaced)).opacity(0.7) }
+                }
             }
         }
         .padding(.horizontal, 10).padding(.vertical, 6)
@@ -307,18 +310,10 @@ struct SeatView: View {
         .background(.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(.gold, lineWidth: active ? 2 : 0))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(summary)
+        .accessibilityLabel(model.seatSummary(for: seat))
     }
 
-    private var summary: String {
-        var parts = [model.seatNames[seat]]
-        if hand.phase == .bidding { parts.append(model.latestCall(for: seat) ?? "waiting") }
-        else if hand.auction.winner == seat { parts.append("bidder, \(hand.hands[seat].count) cards") }
-        else { parts.append("\(hand.hands[seat].count) cards") }
-        if hand.auction.dealer == seat { parts.append("dealer") }
-        if active { parts.append("to act") }
-        return parts.joined(separator: ", ")
-    }
+    private var portrait: Portrait { Cast.opponent(at: seat)?.portrait ?? model.settings.playerPortrait }
 }
 
 extension Suit {

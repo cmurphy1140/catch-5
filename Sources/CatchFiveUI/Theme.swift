@@ -43,6 +43,7 @@ public enum Theme {
         public static let pileMarginX = 64.0
         public static let pileMarginY = 48.0
         public static let seatBackWidth = 22.0
+        public static let portraitSize = 28.0
     }
 
     public enum Motion {

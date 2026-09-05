@@ -124,13 +124,17 @@ struct SeatTile: View {
     let detail: String
     var badge: String? = nil
     var ring: Color? = nil
+    var portrait: Portrait? = nil
     let action: () -> Void
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 6) {
-                Text(name).font(.subheadline.weight(.semibold))
-                Text(detail).font(.caption2).opacity(0.65)
-                if let badge { Text(badge).font(.system(.caption2, design: .monospaced)).foregroundStyle(.gold) }
+            HStack(spacing: 8) {
+                if let portrait { PortraitView(portrait: portrait, size: Theme.Table.portraitSize) }
+                VStack(spacing: 6) {
+                    Text(name).font(.subheadline.weight(.semibold))
+                    Text(detail).font(.caption2).opacity(0.65)
+                    if let badge { Text(badge).font(.system(.caption2, design: .monospaced)).foregroundStyle(.gold) }
+                }
             }
             .padding(12).frame(minWidth: 80, minHeight: 44)
             .background(.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 12))

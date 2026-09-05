@@ -24,7 +24,9 @@ struct DealLesson: View {
 
     private func tile(_ seat: Int) -> some View {
         let ring: Color? = model.dealPick == seat ? (seat == TutorialFixtures.firstDealt ? .correctRing : .incorrectRing) : nil
-        return SeatTile(name: names[seat], detail: seat == 0 ? "that's you" : "6 cards",
-                        badge: seat == TutorialFixtures.dealer ? "DEALER" : nil, ring: ring) { model.pickSeat(seat) }
+        let detail = seat == 0 ? "that's you" : "\(Cast.seatWords[seat]) · 6 cards"
+        return SeatTile(name: names[seat], detail: detail,
+                        badge: seat == TutorialFixtures.dealer ? "DEALER" : nil, ring: ring,
+                        portrait: Cast.opponent(at: seat)?.portrait) { model.pickSeat(seat) }
     }
 }
