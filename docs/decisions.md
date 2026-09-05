@@ -243,3 +243,11 @@ Each entry: what was decided, what it was chosen over, and why. Dates are when t
 **Why:** Wording in the view model means the same test that checks legality checks what VoiceOver says. Rendering the icon from code keeps it reproducible and alpha-free (App Review rejects icons with transparency). Preparing the catalog, manifest and project settings now means `xcodegen && xcodebuild archive` is the only remaining step once Xcode's iOS platform is installed; `build-simulator.py` still cannot sign for devices.
 
 Portrait iPhone first, with iPad allowed in the same 640-point column, stays the shipping layout (roadmap M6, "out": landscape and split iPad layouts).
+
+## D31. The tutorial is built from Connor's design, with fixtures checked against the engine (PR #14, 2026-09-04)
+
+**Chosen:** The five-lesson "How to play" flow follows [tutorial-spec.md](tutorial-spec.md) and the Claude Design reference build: fixed hand-authored positions, one exercise per lesson, completion shown on chapter pills. Every answer key is asserted against the rules engine in tests. Two deviations from the spec: completion is stored in `Settings.completedLessons` rather than `UserDefaults`, so the privacy manifest can keep declaring no required-reason APIs (D30), and the scoring fixture was corrected after the engine test showed the reference piles gave Game to the wrong side.
+
+**Over:** Hand-written explanations without engine checks, or a scripted live hand.
+
+**Why:** A tutorial that can drift from the rules is worse than none; checking the fixtures against `legalCards`, `trickWinner`, `scoreHand` and `settle` means a rules change fails a test before it teaches something false, and it already caught one mistake. The tutorial replaces the rules sheet on first launch; the rules stay one tap away inside it.

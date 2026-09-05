@@ -15,8 +15,8 @@ The pure Swift engine runs complete matches, and a SwiftUI table lets one human 
 - Versioned save/resume with validated action replay and atomic file writes.
 - Computer bidding from an expected-points estimate; card play scores every legal card from trick memory (unseen cards, unbeatable trumps, certain High/Low, control kept) using only a restricted PlayerView.
 - Auction call history per seat, shown on the table during bidding and summarised as the contract afterwards.
-- SwiftUI table with bidding, trump choice, legal-card play, last-trick recap, hand summary, a Hint button that explains what the computer strategy would do from your seat, tap-to-explain on every played card, a settings sheet (difficulty, play speed, seat names, haptics), an in-app rules sheet shown once on first launch, undo of your last action, a hand review against the strategy, a scoreboard, match history with statistics, Dynamic Type and VoiceOver support, a trump-first sorted hand, plain-word rule errors, and save on every accepted action.
-- 91 Swift Testing tests, including 208 deterministic hands, 24 shuffled computer matches and a 600-match strength benchmark against a frozen earlier player.
+- SwiftUI table with bidding, trump choice, legal-card play, last-trick recap, hand summary, a Hint button that explains what the computer strategy would do from your seat, tap-to-explain on every played card, a settings sheet (difficulty, play speed, seat names, haptics), a five-lesson tutorial with engine-checked exercises shown on first launch (rules sheet inside it), undo of your last action, a hand review against the strategy, a scoreboard, match history with statistics, Dynamic Type and VoiceOver support, a trump-first sorted hand, plain-word rule errors, and save on every accepted action.
+- 96 Swift Testing tests, including 208 deterministic hands, 24 shuffled computer matches and a 600-match strength benchmark against a frozen earlier player.
 
 `Auction` accepts normal bids and 9-and-out, treating 9-and-out as outranking a normal 9 with dealer matching allowed. Both are confirmed house rules.
 

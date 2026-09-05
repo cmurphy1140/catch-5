@@ -17,7 +17,7 @@ def run(args):
     subprocess.run(args, env=env, cwd=root, check=True)
 
 for module in ['CatchFive', 'CatchFiveUI']:
-    sources = sorted(str(p) for p in (root / 'Sources' / module).glob('*.swift'))
+    sources = sorted(str(p) for p in (root / 'Sources' / module).rglob('*.swift'))
     run(base + ['-emit-library', '-static', '-emit-module', '-module-name', module,
                 '-emit-module-path', str(out / (module + '.swiftmodule')),
                 '-o', str(out / ('lib' + module + '.a'))] + sources)
