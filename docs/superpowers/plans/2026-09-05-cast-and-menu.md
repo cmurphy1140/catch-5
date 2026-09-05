@@ -1274,7 +1274,7 @@ gh pr create --title "Cast of characters, login screen and main menu" --body "$(
 - One-time login: name, face, Easy/Standard
 - Main menu with Continue, New match, Tutorial, Rules, Match history, Settings; back chevron on the table
 - Settings: You section with face picker; seat-name migration for older files
-- Docs: architecture screen flow, types, testing, D35
+- Docs: architecture screen flow, types, testing, D36
 
 Spec: docs/superpowers/specs/2026-09-05-cast-and-menu-design.md
 
