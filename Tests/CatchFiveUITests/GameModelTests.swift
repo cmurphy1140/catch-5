@@ -1,5 +1,5 @@
 import CatchFive
-import CatchFiveUI
+@testable import CatchFiveUI
 import Foundation
 import Testing
 
@@ -371,4 +371,24 @@ import Testing
         #expect(width + 5 * Theme.Card.touchStrip(width: width) <= 375 - 32)
     }
     #expect(abs(Theme.Card.radius(width: 60) - 3.6) < 0.0001)
+}
+
+@MainActor @Test func lastHumanActionDescribesThePlayAndClearsOnUndo() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    let model = GameModel(match: try Match(deck: deck, dealer: 3))
+    #expect(model.lastHumanAction == nil)
+    model.send(.bid(9))
+    #expect(model.lastHumanAction == .bid(9))
+    #expect(model.describe(.bid(9)) == "Bid 9" && model.describe(.bid(nil)) == "Passed")
+    for _ in 0..<3 { model.stepComputer() }
+    #expect(model.lastHumanAction == .bid(9))   // computer replies do not overwrite it
+    model.send(.chooseTrump(.hearts))
+    #expect(model.describe(try #require(model.lastHumanAction)) == "♥ named trump")
+    let card = model.humanCards[0]
+    model.send(.play(card))
+    #expect(model.describe(.play(card)) == "\(card.label)\(card.suit.glyph) played")
+    model.undo()
+    #expect(model.lastHumanAction == nil)
+    model.send(.play(Card(.clubs, .two)))   // rejected unless held: a failed send leaves it nil
+    #expect(model.errorMessage != nil && model.lastHumanAction == nil)
 }

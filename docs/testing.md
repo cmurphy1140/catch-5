@@ -101,6 +101,11 @@ The same harness is how strategy ideas are judged during development: freeze the
 - Visual layout and animation. Checked by building with `scripts/build-simulator.py`, launching on the "Catch 5 iPhone" simulator and taking screenshots of each screen and sheet.
 - Save/restore across app relaunch. Verified manually by killing and relaunching the app mid-trick; the engine side of the same path is covered by `SaveTests`.
 - VoiceOver and Dynamic Type at the largest sizes, and haptics: the wording is unit-tested, the experience is checked by hand.
+- Card motion (flights, the trick hold and collapse, press-lift, shake) and Reduce Motion fallbacks: checked on the simulator and on the phone.
+
+## Continuous integration
+
+`.github/workflows/tests.yml` runs `swift test` on a macOS runner for every pull request and push to `main`, so a red suite blocks a merge even when nobody runs it locally.
 
 ## Reading a failure
 

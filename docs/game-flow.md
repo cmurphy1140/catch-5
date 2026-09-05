@@ -73,7 +73,7 @@ sequenceDiagram
     Note over H: on the 6th trick: scoreHand, phase = finished
 ```
 
-The screen keeps the last completed trick visible, ringed in gold on the winning card, until the winner leads the next card. Then the old trick fades and the new lead slides in from that seat's edge of the table.
+On screen, each card arrives on the pile from its seat's side of the table (your own flies up from the hand). A finished trick stays for 900 ms with the winning card ringed in gold, then the four cards collapse toward the winner's seat; a small stack button beside the status line brings the last trick back for tap-to-explain.
 
 ## Scoring at the end of a hand
 
@@ -102,7 +102,8 @@ flowchart TD
     R["model.revision changed"] --> T[".task(id: revision) starts"]
     T --> Q{"human's turn,<br/>or hand/match over?"}
     Q -- yes --> STOP["do nothing; wait for a tap"]
-    Q -- no --> S["sleep Settings.delay:<br/>longer before a lead,<br/>relaxed / normal / quick"]
+    Q -- no --> H["hold a finished trick 900 ms,<br/>collapse it toward the winner"]
+    H --> S["sleep Settings.delay:<br/>longer before a lead,<br/>relaxed / normal / quick"]
     S --> C{"task cancelled?<br/>(revision changed again)"}
     C -- yes --> STOP
     C -- no --> D["stepComputer():<br/>PlayerView → ComputerPlayer.decide → match.apply"]

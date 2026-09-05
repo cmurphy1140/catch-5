@@ -259,3 +259,11 @@ Portrait iPhone first, with iPad allowed in the same 640-point column, stays the
 **Over:** Rendering the Markdown in-app, or linking out to GitHub.
 
 **Why:** The exported pages are self-contained (blob: assets only, verified in a browser with the network log open) and already carry the diagrams and the interactive decisions table, so bundling them is the shortest path to reading the documentation on the phone. The cost is that they are a snapshot: re-export from Claude Design after the docs change, then copy the files into `App/Explainer`. The hand-built simulator bundle copies the folder too.
+
+## D33. A table-first screen with a five-rule use of gold (PR #20, 2026-09-05)
+
+**Chosen:** `TableView` is a fixed column: `ScoreBarView`, a `TableSurface` with partner across the top, West and East at the sides and the pile in the middle, then a fanned `HandFanView` that is the largest thing on screen. Cards move: a computer's card arrives from its seat, yours flies from the hand by `matchedGeometryEffect`, a finished trick holds 900 ms and collapses toward the winner. Hint is a tertiary control on the status line; Undo is a toast after your play. Gold is used only for the dealer, trump and contract, the seat to act, the winning card, key results and the one prominent button. Numbers and sources are in [redesign-plan.md](redesign-plan.md).
+
+**Over:** The previous dashboard order (scores, tiles, text, buttons, an often-empty trick panel, small cards in a horizontal scroll view) and gold on every accent.
+
+**Why:** Research on one-handed use puts primary actions at the bottom; the hand and the auction controls now live there. Fanned cards at 60 pt keep a 44 pt strip each, so six fit without scrolling on a 375 pt screen. Reserving gold makes the seat to act and the winning card readable at a glance. Collapsing tricks conflicts with tap-to-explain (D24), so a reopen control keeps that feature. One animation per accepted action, keyed on `revision` (D8), is what lets a card fly from the hand to the pile in a single transaction.

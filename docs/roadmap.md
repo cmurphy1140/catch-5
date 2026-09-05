@@ -99,3 +99,7 @@ flowchart LR
 M1 first because it is cheap, immediately felt, and creates the settings surface M2 and M3 hang from. M2 and M3 together make the game approachable. M4 precedes M5 because both need `Match.rewound`, and undo is the simpler proof of it. M6 is last so it audits finished screens, but its non-code prep runs in parallel.
 
 **Parked:** interactive tutorial, sound assets, landscape, further strategy work.
+
+## M8. Table-first redesign (M) — done in PR #20
+
+The screen reads like a card table instead of a dashboard: compact score bar, seats around the pile, cards that travel, a fanned dominant hand, Hint demoted, Undo as a toast, gold reserved for five meanings, press-lift, shake, and a haptic vocabulary. Plan and research: [redesign-plan.md](redesign-plan.md); decision D33. A GitHub Actions workflow now runs the package tests on every pull request.

@@ -23,13 +23,13 @@ struct TrumpLesson: View {
             HStack {
                 ForEach(Suit.allCases, id: \.self) { suit in
                     Button(suit.glyph) { model.showRefill = false; model.chooseTrump(suit) }
-                        .buttonStyle(.bordered).tint(.gold).frame(minHeight: 44)
+                        .buttonStyle(.bordered).tint(.ivory.opacity(0.8)).frame(minHeight: 44)
                         .overlay(RoundedRectangle(cornerRadius: 8).stroke(model.trumpPick == suit ? (suit == TutorialFixtures.trumpAnswer ? Color.correctRing : .incorrectRing) : .clear, lineWidth: 3))
                         .accessibilityLabel(suit.rawValue)
                 }
             }
             if correct {
-                Toggle("Discard and refill", isOn: $model.showRefill).tint(.gold).font(.footnote)
+                Toggle("Discard and refill", isOn: $model.showRefill).tint(.ivory.opacity(0.6)).font(.footnote)
             }
             Feedback(text: model.showRefill && correct ? "Three new cards, ringed in gold. One more spade came in; the two side cards stay because everything not spades was already thrown away." : model.trumpFeedback)
         }
