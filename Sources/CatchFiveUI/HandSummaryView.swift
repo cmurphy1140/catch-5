@@ -4,11 +4,10 @@ import SwiftUI
 struct HandSummaryView: View {
     let match: Match
     let names: [String]
+    /// Built once by the model from the same history; nil only before any hand has finished.
+    let outcome: HandOutcome?
     var body: some View {
-        if let summary = match.history.last {
-            let history = match.history
-            let before = history.count > 1 ? history[history.count - 2].scores : [0, 0]
-            let outcome = HandOutcome(summary: summary, before: before, names: names)
+        if let summary = match.history.last, let outcome {
             VStack(spacing: 8) {
                 // The verdict first, in gold as a key result, then what it did to the score.
                 Text(outcome.headline).font(.system(.title3, design: .serif).weight(.semibold)).foregroundStyle(.gold)

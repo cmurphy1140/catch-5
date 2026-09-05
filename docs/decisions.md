@@ -374,3 +374,11 @@ D36 is taken by the cast, login and menu work on the parallel branch.
 
 **Why:** The roadmap's trump section asked for labelled suits and an optional factual preview. The preview costs a count over six cards and turns the least explained decision in the auction into an informed one.
 
+## D48. The roadmap stack after review: nothing is thrown away without a choice (PR #32, 2026-09-05)
+
+**Chosen:** A code review of Tasks 1 to 6 found ten defects; all are fixed here. Sign-in no longer discards an older install's match in progress: `destinationAfterSignIn` keeps it behind the welcome card, and a signed-in player who never finished the intro is routed back to it (`initialScreen`). Settings decoding tolerates values this build does not recognise, migrates the old direction names only for files written before sign-in existed, and an unreadable settings file is set aside as `settings-corrupt.json` with a notice shown on whichever screen opens; the corrupt-game notice now says only what actually happened. One writer, `Settings.setPlayerName`, serves sign-in and the Settings sheet, whose name field is a draft so spaces and clearing work. `TableFeedback.Snapshot` is seeded from the restored match, so resuming fires no phantom hand-end cue or announcement. A refused tap's reason comes first on the message line and yields to a hint or explanation. The save alert's dismissal no longer clears the error, so a failed Retry stays visible. The hand keeps its natural fan until its width is measured. Dialog dismissal restores VoiceOver focus. The root's tutorial model is shared with the table, and the felt is `Equatable` so the table's updates never redraw its stipple.
+
+**Over:** Merging the stack and fixing forward; leaving the review's cleanup items (duplicate gold-button and portrait-picker code, the docs export swept into main) for later, which they are.
+
+**Why:** Two of the ten would have cost real players their saved match on the first launch after updating. The rest are the difference between a feature that works in the fixture and one that works on a phone.
+

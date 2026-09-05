@@ -92,12 +92,12 @@ public final class GameModel: ObservableObject {
 
     /// The login screen's one write: the trimmed name becomes seat 0's name as well.
     public func signIn(name: String, portrait: Portrait, difficulty: Difficulty) {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        settings.playerName = trimmed
-        settings.seatNames[0] = trimmed
-        settings.playerPortrait = portrait
-        settings.difficulty = difficulty
+        var updated = settings
+        updated.setPlayerName(name)
+        guard updated.hasSignedIn else { return }
+        updated.playerPortrait = portrait
+        updated.difficulty = difficulty
+        settings = updated   // one write, one save
     }
 
     /// One VoiceOver sentence for a seat tile: name, direction, call or card count, dealer, to act.
@@ -222,6 +222,7 @@ public final class GameModel: ObservableObject {
     /// Ask the computer strategy what it would do from seat 0 and why.
     public func showHint() {
         guard isHumanTurn, let view = try? PlayerView(match: match, seat: 0) else { return }
+        refusal = nil   // the player asked for something newer than the last refusal
         hint = ComputerPlayer.advise(view)
     }
 
@@ -256,6 +257,7 @@ public final class GameModel: ObservableObject {
     /// Show the explanation for a played card, or hide it if it is already showing.
     public func explain(_ play: Play, inLastTrick: Bool) {
         let text = explanation(for: play, inLastTrick: inLastTrick)
+        refusal = nil
         explanation = explanation == text ? nil : text
     }
 
@@ -394,25 +396,45 @@ public final class GameModel: ObservableObject {
     public static func loadDefault(in directory: URL) -> GameModel {
         let url = directory.appendingPathComponent("game.json")
         let settingsURL = directory.appendingPathComponent("settings.json")
-        let settings = (try? SettingsStore.read(from: settingsURL)) ?? Settings()
         let historyURL = directory.appendingPathComponent("history.json")
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        var notices: [String] = []
+        // Settings that cannot be read are set aside, not silently replaced: replacing them would sign the
+        // player out and, through the login gate, discard their match.
+        var settings = Settings()
+        if FileManager.default.fileExists(atPath: settingsURL.path) {
+            do { settings = try SettingsStore.read(from: settingsURL) } catch {
+                notices.append(setAside(settingsURL, as: "settings-corrupt.json", what: "Your settings", error: error))
+            }
+        }
         let records = MatchHistoryStore.readSettingAsideCorruption(at: historyURL)
         // The generated deck is always a valid, unique 52-card deck.
         let fresh = GameModel(match: try! Match(deck: deck(), dealer: 3), saveURL: url, settings: settings, settingsURL: settingsURL,
                               records: records, historyURL: historyURL)
-        do {
-            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            if FileManager.default.fileExists(atPath: url.path) {
-                return GameModel(match: try MatchSave.read(from: url), saveURL: url, settings: settings, settingsURL: settingsURL,
-                                 records: records, historyURL: historyURL)
+        if FileManager.default.fileExists(atPath: url.path) {
+            do {
+                let restored = GameModel(match: try MatchSave.read(from: url), saveURL: url, settings: settings, settingsURL: settingsURL,
+                                         records: records, historyURL: historyURL)
+                restored.errorMessage = notices.first
+                return restored
+            } catch {
+                notices.append(setAside(url, as: "game-corrupt.json", what: "Your previous game", error: error))
             }
-        } catch {
-            // Keep the unreadable file where it can be recovered; the fresh game must not overwrite it.
-            let aside = directory.appendingPathComponent("game-corrupt.json")
-            try? FileManager.default.removeItem(at: aside)
-            try? FileManager.default.moveItem(at: url, to: aside)
-            fresh.errorMessage = "Your previous game could not be restored, so it was kept as game-corrupt.json and a new game is ready. \(error.localizedDescription)"
         }
+        fresh.errorMessage = notices.isEmpty ? nil : notices.joined(separator: " ")
         return fresh
+    }
+
+    /// Moves an unreadable file out of the way and says exactly what happened, so the message never claims a
+    /// rescue that failed; if it cannot be moved, the file will be replaced and the message says so.
+    private static func setAside(_ url: URL, as name: String, what: String, error: Error) -> String {
+        let aside = url.deletingLastPathComponent().appendingPathComponent(name)
+        try? FileManager.default.removeItem(at: aside)
+        do {
+            try FileManager.default.moveItem(at: url, to: aside)
+            return "\(what) could not be read, so it was kept as \(name) and fresh defaults are in use. \(error.localizedDescription)"
+        } catch {
+            return "\(what) could not be read and could not be set aside, so it will be replaced. \(error.localizedDescription)"
+        }
     }
 }

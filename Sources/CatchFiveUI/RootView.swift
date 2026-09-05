@@ -21,9 +21,20 @@ public struct RootView: View {
         _showWelcome = State(initialValue: first == .table)
     }
 
-    /// Login until a name is saved; after that the table, with the welcome card over it.
+    /// Login until a name is saved; the intro until it has been seen or skipped; then the table, with the
+    /// welcome card over it.
     static func initialScreen(for settings: Settings) -> Screen {
-        settings.hasSignedIn ? .table : .login
+        if !settings.hasSignedIn { return .login }
+        return settings.hasSeenRules ? .table : .intro
+    }
+
+    enum Destination: Equatable { case welcome, intro, table }
+
+    /// Where New match on the sign-in screen leads. An older install that already has a match in progress
+    /// keeps it and gets the welcome card, so nothing is thrown away without a choice.
+    static func destinationAfterSignIn(matchInProgress: Bool, hasSeenRules: Bool) -> Destination {
+        if matchInProgress { return .welcome }
+        return hasSeenRules ? .table : .intro
     }
 
     public var body: some View {
@@ -35,7 +46,7 @@ public struct RootView: View {
             case .intro:
                 IntroView(model: model, tutorial: tutorial) { model.markRulesSeen(); show(.table) }.transition(.opacity)
             case .table:
-                TableView(model: model, covered: showWelcome) { withAnimation(motion) { showWelcome = true } }
+                TableView(model: model, tutorial: tutorial, covered: showWelcome) { withAnimation(motion) { showWelcome = true } }
                     .transition(.opacity)
                     // Under the card the table is neither tappable nor reachable by VoiceOver.
                     .accessibilityHidden(showWelcome)
@@ -52,16 +63,24 @@ public struct RootView: View {
             }
         }
         .preferredColorScheme(.dark)
+        // The table has its own notice alert; the sign-in and intro screens need one for restore notices.
+        .alert("Game notice", isPresented: Binding(get: { screen != .table && model.errorMessage != nil },
+                                                  set: { if !$0 { model.errorMessage = nil } })) {
+            Button("OK") { model.errorMessage = nil }
+        } message: { Text(model.errorMessage ?? "") }
     }
 
     private var motion: Animation { reduceMotion ? Theme.Motion.reduced : Theme.Motion.overlay }
 
-    /// A new player's only option is New match: any game left over from an earlier install is replaced,
-    /// then the intro opens.
+    /// After sign-in: a finished leftover match is replaced; one in progress is kept behind the welcome
+    /// card; otherwise the intro, or the table if the rules were already seen.
     private func startFirstMatch() {
-        if model.match.actionCount > 0 || model.match.winner != nil { model.newGame() }
-        showWelcome = false
-        show(.intro)
+        if model.match.winner != nil { model.newGame() }
+        switch Self.destinationAfterSignIn(matchInProgress: model.matchInProgress, hasSeenRules: model.settings.hasSeenRules) {
+        case .welcome: showWelcome = true; show(.table)
+        case .intro: showWelcome = false; show(.intro)
+        case .table: showWelcome = false; show(.table)
+        }
     }
 
     private func show(_ next: Screen) {

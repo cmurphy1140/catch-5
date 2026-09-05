@@ -525,7 +525,7 @@ import Testing
 
 @MainActor @Test func rootOpensOnLoginUntilSignedInThenOnTheTable() {
     #expect(RootView.initialScreen(for: Settings()) == .login)
-    #expect(RootView.initialScreen(for: Settings(playerName: "Connor")) == .table)
+    #expect(RootView.initialScreen(for: Settings(hasSeenRules: true, playerName: "Connor")) == .table)
 }
 
 
@@ -785,4 +785,77 @@ import Testing
     let kept = model.humanCards.filter { $0.suit == suit }.count
     model.send(.chooseTrump(suit))
     #expect(model.notice == (kept == 6 ? "You kept all six cards." : "You discarded \(6 - kept) and drew \(6 - kept)."))
+}
+
+@Test func rootRoutesSignedInPlayersWhoSkippedTheIntroBackToIt() {
+    var settings = Settings(playerName: "Connor")
+    #expect(RootView.initialScreen(for: settings) == .intro)   // signed in, never saw the intro or rules
+    settings.hasSeenRules = true
+    #expect(RootView.initialScreen(for: settings) == .table)
+    #expect(RootView.initialScreen(for: Settings()) == .login)
+}
+
+@Test func signingInKeepsAMatchAnExistingInstallLeftInProgress() {
+    // An older install with a saved match reaches the welcome card, not a silent new deal.
+    #expect(RootView.destinationAfterSignIn(matchInProgress: true, hasSeenRules: true) == .welcome)
+    #expect(RootView.destinationAfterSignIn(matchInProgress: true, hasSeenRules: false) == .welcome)
+    #expect(RootView.destinationAfterSignIn(matchInProgress: false, hasSeenRules: false) == .intro)
+    #expect(RootView.destinationAfterSignIn(matchInProgress: false, hasSeenRules: true) == .table)
+}
+
+@Test func settingsToleratesValuesItDoesNotRecogniseAndMigratesOnlyPreCastFiles() throws {
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: url) }
+    // A portrait case from a newer build must not sign the player out.
+    try Data(#"{"playerName":"Connor","playerPortrait":{"skin":"violet","hair":"bob","hairColor":"silver","feature":"none","hat":"none","shirt":"plum"},"playSpeed":"warp","difficulty":"brutal"}"#.utf8).write(to: url)
+    let tolerant = try SettingsStore.read(from: url)
+    #expect(tolerant.playerName == "Connor" && tolerant.hasSignedIn)
+    #expect(tolerant.playerPortrait == Cast.defaultPlayerPortrait && tolerant.playSpeed == .normal && tolerant.difficulty == .standard)
+    // A file written after sign-in keeps a deliberately typed "West"; only pre-cast files migrate.
+    try Data(#"{"playerName":"Connor","seatNames":["Connor","West","Otto","Rue"]}"#.utf8).write(to: url)
+    #expect(try SettingsStore.read(from: url).seatNames == ["Connor", "West", "Otto", "Rue"])
+    try Data(#"{"seatNames":["You","West","Partner","East"]}"#.utf8).write(to: url)
+    #expect(try SettingsStore.read(from: url).seatNames == ["You", "Hazel", "Otto", "Rue"])
+    // One place writes the player's name, with one trim rule.
+    var settings = Settings()
+    settings.setPlayerName("  Mum ")
+    #expect(settings.playerName == "Mum" && settings.seatNames[0] == "Mum")
+    settings.setPlayerName("   ")
+    #expect(settings.playerName == "Mum" && settings.seatNames[0] == "Mum")
+}
+
+@MainActor @Test func corruptSettingsAreSetAsideAndReported() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    try Data("{not json".utf8).write(to: directory.appendingPathComponent("settings.json"))
+    let model = GameModel.loadDefault(in: directory)
+    #expect(!model.settings.hasSignedIn)
+    #expect(model.errorMessage?.contains("settings-corrupt.json") == true)
+    #expect(FileManager.default.fileExists(atPath: directory.appendingPathComponent("settings-corrupt.json").path))
+}
+
+@MainActor @Test func feedbackSnapshotOfARestoredMatchProducesNoCue() throws {
+    let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3))
+    try finishMatch(model)
+    model.newGame()
+    // Play into the second hand so history and tricks are non-zero, as a restored match would be.
+    for _ in 0..<60 where model.match.hand.completedTricks.count < 2 {
+        if model.isHumanTurn {
+            switch model.match.hand.phase {
+            case .bidding: model.send(.bid(model.allows(.bid(3)) ? 3 : nil))
+            case .choosingTrump: model.send(.chooseTrump(model.humanCards[0].suit))
+            case .playing: model.send(.play(try #require(model.match.hand.legalMoves(seat: 0).first)))
+            default: break
+            }
+        } else { model.stepComputer() }
+    }
+    let restored = TableFeedback.Snapshot(model)
+    #expect(TableFeedback.cue(from: restored, to: TableFeedback.Snapshot(model)) == nil)
+    // The next human play is a play, not a phantom hand end.
+    while !model.isHumanTurn || model.match.hand.phase != .playing { model.stepComputer() }
+    let before = TableFeedback.Snapshot(model)
+    model.send(.play(try #require(model.match.hand.legalMoves(seat: 0).first)))
+    let cue = TableFeedback.cue(from: before, to: TableFeedback.Snapshot(model))
+    #expect(cue == .play || cue == .trickWon || cue == .trickLost)
 }

@@ -1,3 +1,4 @@
+import CatchFive
 import SwiftUI
 
 /// One haptic per accepted action. A single tap can play a card, take the trick, end the hand and win
@@ -19,6 +20,37 @@ enum TableFeedback {
             case .matchWon: .success
             }
         }
+    }
+
+    /// The counters a revision leaves behind. Seeded from the restored match, so resuming never fires a
+    /// cue for something that happened last session.
+    struct Snapshot: Equatable {
+        var tricks: Int
+        var hands: Int
+        var winner: Int?
+        var action: PlayerAction?
+        var lastTrickWinner: Int?
+
+        @MainActor init(_ model: GameModel) {
+            tricks = model.match.hand.completedTricks.count
+            hands = model.match.history.count
+            winner = model.match.winner
+            action = model.lastHumanAction
+            lastTrickWinner = model.match.hand.completedTricks.last?.winner
+        }
+    }
+
+    /// What changed between two snapshots, reduced to the one cue that matters.
+    static func cue(from before: Snapshot, to after: Snapshot) -> Cue? {
+        let trickWinner = after.tricks > before.tricks ? after.lastTrickWinner : nil
+        let handEnded = after.hands > before.hands
+        let matchWinner = after.winner != before.winner ? after.winner : nil
+        let action: HumanAction? = {
+            guard let last = after.action, last != before.action else { return nil }
+            if case .play = last { return .play }
+            return .call
+        }()
+        return cue(action: action, trickWinner: trickWinner, handEnded: handEnded, matchWinner: matchWinner)
     }
 
     /// `trickWinner` is the seat that just took a trick, if one completed; `matchWinner` the team that
