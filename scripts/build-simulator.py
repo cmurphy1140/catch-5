@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 import plistlib
+import shutil
 import subprocess
 
 root = Path(__file__).resolve().parents[1]
@@ -39,9 +40,12 @@ if icon.exists():
 explainer = root / 'App' / 'Explainer'
 if explainer.exists():
     target = app / 'Explainer'
-    target.mkdir(exist_ok=True)
-    for page in explainer.glob('*.dc.html'):
-        (target / page.name).write_bytes(page.read_bytes())
+    shutil.rmtree(target, ignore_errors=True)   # never ship stale pages from an earlier build
+    target.mkdir()
+    for sub in ('docs', 'diagrams'):
+        (target / sub).mkdir(exist_ok=True)
+        for item in (explainer / sub).glob('*'):
+            (target / sub / item.name).write_bytes(item.read_bytes())
 privacy = root / 'App' / 'PrivacyInfo.xcprivacy'
 if privacy.exists():
     (app / 'PrivacyInfo.xcprivacy').write_bytes(privacy.read_bytes())
