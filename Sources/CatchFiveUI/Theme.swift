@@ -77,6 +77,9 @@ public enum Theme {
         public static let pileMarginY = 48.0
         public static let seatBackWidth = 30.0
         public static let portraitSize = 36.0
+        /// A played card lands with its own small turn and drift, like a card tossed in by hand.
+        public static let tossRotationDegrees = 11.0
+        public static let tossDrift = 9.0
         /// Seat tiles share one width; their height follows the phase (call text in the auction, backs in play).
         public static let seatTileWidth = 116.0
         /// The round status-line buttons (last trick, hint): visible disc and hit area.
