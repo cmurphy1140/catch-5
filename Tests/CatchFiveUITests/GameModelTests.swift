@@ -603,3 +603,22 @@ import Testing
     #expect(nine.attempt(.nineAndOut) == .refused(GameModel.message(for: RuleError.forbiddenNineAndOut)))
     if case .accepted = nine.attempt(.bid(2)) {} else { Issue.record("a normal bid is still allowed") }
 }
+
+@MainActor @Test func ruleTrialsLeaveTheOngoingMatchAndItsSaveAlone() throws {
+    // A practice position is its own Match: entering, playing, resetting and leaving it must not touch
+    // the live game, its replay log on disk, its scores or its history.
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: url) }
+    let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3), saveURL: url)
+    model.send(.bid(nil))
+    let before = (model.match.actionCount, model.match.scores, model.match.history.count, model.revision, try Data(contentsOf: url))
+    for kind in RuleTrial.Kind.allCases {
+        var trial = RuleTrial.make(kind)
+        for card in trial.offeredCards { trial.attempt(.play(card)) }
+        for action in trial.offeredActions { trial.attempt(action) }
+        trial.reset()
+    }
+    #expect(model.match.actionCount == before.0 && model.match.scores == before.1 && model.match.history.count == before.2)
+    #expect(model.revision == before.3)
+    #expect(try Data(contentsOf: url) == before.4)
+}
