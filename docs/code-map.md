@@ -42,7 +42,7 @@ A fixed deck makes a failure repeatable. Small rule tests explain exactly which 
 
 ## What Is Not Built Yet
 
-Stronger computer strategy. Baseline heuristic players work and the SwiftUI table in `Sources/CatchFiveUI` (view model tested in `Tests/CatchFiveUITests`) plays full matches with automatic saving. 9-and-out is wired through Match with a provisional precedence rule that still needs house-rule confirmation.
+Stronger computer strategy. Baseline heuristic players work and the SwiftUI table in `Sources/CatchFiveUI` (view model tested in `Tests/CatchFiveUITests`) plays full matches with automatic saving. 9-and-out is wired through Match: it outranks a normal 9 and the dealer may match it to take the bid.
 
 
 ## Following Functions Without Xcode

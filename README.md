@@ -18,7 +18,7 @@ The pure Swift engine runs complete matches, and a SwiftUI table lets one human 
 - SwiftUI table with bidding, trump choice, legal-card play, last-trick recap, hand summary and save on every accepted action.
 - 55 Swift Testing tests, including 208 deterministic hands and 24 shuffled computer matches.
 
-`Auction` accepts normal bids and 9-and-out, treating 9-and-out as outranking a normal 9 with dealer matching allowed. Whether that precedence matches the house rule is still unconfirmed.
+`Auction` accepts normal bids and 9-and-out, treating 9-and-out as outranking a normal 9 with dealer matching allowed. Both are confirmed house rules.
 
 ## Run Tests
 
@@ -56,6 +56,6 @@ Team-indexed inputs use `[team0, team1]`. Team 0 seats are 0/2, team 1 seats are
 
 ## Next
 
-Refine computer strategy through playtesting and confirm special-bid auction precedence. Build the simulator app with `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer python3 scripts/build-simulator.py` when Xcode's iOS platform is unavailable.
+Refine computer strategy through playtesting. Build the simulator app with `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer python3 scripts/build-simulator.py` when Xcode's iOS platform is unavailable.
 
 Use tested milestone commits on short-lived branches off `main` to track progress.
