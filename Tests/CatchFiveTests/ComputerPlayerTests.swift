@@ -10,7 +10,8 @@ private func view(cards: [Card], phase: HandPhase = .playing, seat: Int = 0,
 }
 
 @Test func computerPassesWeakHandButDealerTakesForcedTwo() {
-    let cards = [Card(.clubs, .two), Card(.spades, .three)]
+    // Middle cards promise no High, Low, Jack or Five, so nothing justifies even a two.
+    let cards = [Card(.clubs, .nine), Card(.spades, .eight)]
     #expect(ComputerPlayer.decide(view(cards: cards, phase: .bidding)) == .bid(nil))
     #expect(ComputerPlayer.decide(view(cards: cards, phase: .bidding, dealer: 0)) == .bid(2))
 }
@@ -30,10 +31,30 @@ private func view(cards: [Card], phase: HandPhase = .playing, seat: Int = 0,
     #expect(ComputerPlayer.decide(view(cards: cards, trick: trick)) == .play(Card(.clubs, .two)))
 }
 
-@Test func computerUsesLowestWinningCardAgainstOpponent() {
+@Test func computerUsesLowestWinningCardAgainstOpponentWhenNothingIsAtStake() {
     let cards = [Card(.hearts, .ace), Card(.hearts, .queen), Card(.hearts, .two)]
-    let trick = [Play(seat: 3, card: Card(.hearts, .jack))]
+    let trick = [Play(seat: 3, card: Card(.hearts, .nine))]
     #expect(ComputerPlayer.decide(view(cards: cards, trick: trick)) == .play(Card(.hearts, .queen)))
+}
+
+@Test func computerSpendsTheAceToCaptureTheFive() {
+    // Partner was forced to drop the five under an opponent's king; the ace is worth spending.
+    let cards = [Card(.hearts, .ace), Card(.hearts, .queen), Card(.hearts, .two)]
+    let trick = [Play(seat: 1, card: Card(.hearts, .king)), Play(seat: 2, card: Card(.hearts, .five)),
+                 Play(seat: 3, card: Card(.hearts, .six))]
+    #expect(ComputerPlayer.decide(view(cards: cards, trick: trick)) == .play(Card(.hearts, .ace)))
+}
+
+@Test func computerDumpsTheTrickWhenItIsWorthlessAndNoTrumpIsFree() {
+    // Void in clubs, the trick holds no points: keep both trumps rather than trump a nothing trick.
+    let cards = [Card(.hearts, .eight), Card(.hearts, .seven), Card(.spades, .four)]
+    let trick = [Play(seat: 1, card: Card(.clubs, .nine)), Play(seat: 2, card: Card(.clubs, .three)),
+                 Play(seat: 3, card: Card(.clubs, .eight))]
+    #expect(ComputerPlayer.decide(view(cards: cards, trick: trick)) == .play(Card(.spades, .four)))
+    // The same position with a ten on the table is worth the cheaper trump.
+    let tenTrick = [Play(seat: 1, card: Card(.clubs, .ten)), Play(seat: 2, card: Card(.clubs, .three)),
+                    Play(seat: 3, card: Card(.clubs, .eight))]
+    #expect(ComputerPlayer.decide(view(cards: cards, trick: tenTrick)) == .play(Card(.hearts, .seven)))
 }
 
 @Test func computerFeedsFiveToPartnerWhenLastToPlay() {
@@ -69,7 +90,7 @@ private func view(cards: [Card], phase: HandPhase = .playing, seat: Int = 0,
     #expect(ComputerPlayer.decide(a) == ComputerPlayer.decide(b))
 }
 
-private struct RepeatableRandom: RandomNumberGenerator {
+struct RepeatableRandom: RandomNumberGenerator {
     var state: UInt64
     mutating func next() -> UInt64 {
         state = state &* 6364136223846793005 &+ 1442695040888963407
@@ -138,14 +159,17 @@ private struct RepeatableRandom: RandomNumberGenerator {
         while match.winner == nil {
             if match.hand.phase == .finished { try match.startNextHand(deck: deck.shuffled(using: &random)); continue }
             let seat = try #require(match.hand.nextSeat)
+            // A dealer who must open because the other three passed is the forced two.
+            if match.hand.phase == .bidding, seat == match.hand.auction.dealer, match.hand.auction.highestBid == nil {
+                forcedDealerTwo += 1
+            }
             try match.apply(try #require(ComputerPlayer.decide(PlayerView(match: match, seat: seat))), seat: seat)
         }
         for summary in match.history {
             hands += 1
             if summary.result.points[summary.bidder % 2] >= summary.bid { made += 1 }
-            if summary.bid == 2 && summary.bidder == summary.dealer { forcedDealerTwo += 1 }
         }
     }
     #expect(Double(made) / Double(hands) >= 0.7)
-    #expect(Double(forcedDealerTwo) / Double(hands) <= 0.45)
+    #expect(Double(forcedDealerTwo) / Double(hands) <= 0.35)
 }

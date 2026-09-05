@@ -53,12 +53,22 @@ classDiagram
     class PlayerView {
         +Int seat
         +[Card] cards
+        +[Play] trick
+        +[AuctionCall] calls
+        +[CompletedTrick] completedTricks
         +public facts…
     }
     class ComputerPlayer {
         +decide(PlayerView) PlayerAction?
         +estimate(cards, suit) Double
     }
+    class Knowledge {
+        +Set~Card~ unseen
+        +unbeatable(card, led) Bool
+        +pointValue(card) Double
+        +controlValue(card) Double
+    }
+    ComputerPlayer *-- Knowledge
     class MatchSave {
         +encode(Match) Data
         +decode(Data) Match
@@ -153,12 +163,21 @@ classDiagram
 
 | Name | Purpose | Proven by |
 |---|---|---|
-| `PlayerView` | own cards plus public facts; `init(match:seat:)` copies only what the seat may know | `changingHiddenCardsDoesNotChangeComputerDecision`, `computerSeesPublicAuctionCalls` |
+| `PlayerView` | own cards plus public facts, including every auction call and every completed trick; `init(match:seat:)` copies only what the seat may know | `changingHiddenCardsDoesNotChangeComputerDecision`, `computerSeesPublicAuctionCalls`, `computerSeesCompletedTricksButNotHiddenHands` |
 | `PlayerAction` | nineAndOut, bid(Int?), chooseTrump(Suit), play(Card) | |
 | `ComputerPlayer.decide(_:)` | returns nil unless it is this seat's turn | `computerDoesNotActOutsideItsTurn` |
 | `ComputerPlayer.estimate(_:suit:)` | expected hand points if that suit were trump | `estimateRanksControlAndTheFiveAboveScatteredCards` |
-| bidding (private `bidAmount`) | bid the minimum needed if it is at most estimate − 0.5; never outbid partner; dealer takes forced 2 | `computerPassesWeakHandButDealerTakesForcedTwo`, `computerRaisesWithStrongSuitAndChoosesIt`, `computerBiddingIsCompetitiveAndUsuallyMakesContract` |
-| card play (private `chooseCard`) | lead highest trump but not the five; cheapest winner against opponents; feed points to a winning partner when last; otherwise dump the least valuable | `computerFollowsSuitInsteadOfTrumping`, `computerUsesLowestWinningCardAgainstOpponent`, `computerFeedsFiveToPartnerWhenLastToPlay`, `computerPreservesFiveWhenItCannotWin`, `computerLeadsHighestTrumpButKeepsTheFiveBack` |
+| bidding (private `bidAmount`) | bid the minimum needed if it is at most the whole-point estimate; never outbid partner; dealer takes forced 2 | `computerPassesWeakHandButDealerTakesForcedTwo`, `computerRaisesWithStrongSuitAndChoosesIt`, `computerBiddingIsCompetitiveAndUsuallyMakesContract` |
+| `ComputerPlayer.Knowledge` | built from a `PlayerView`: the set of unseen cards (other hands or stock), `unbeatable(_:led:)` (no unseen card can beat it), `pointValue(_:)` (five 5, jack 1, certain High 1, certain Low 1, plus 0.06 per Game point) and `controlValue(_:)` (what holding a trump is worth for later tricks; 0.8 extra when unbeatable, 0 on the last trick) | `computerSpendsTheAceToCaptureTheFive`, `computerDumpsTheTrickWhenItIsWorthlessAndNoTrumpIsFree` |
+| card play (private `chooseCard`) | scores every legal card: chance our side wins the trick × (points on the table + this card's stake) − chance we lose × this card's stake − control given up; picks the best, ties to least control then lowest rank | `computerFollowsSuitInsteadOfTrumping`, `computerUsesLowestWinningCardAgainstOpponentWhenNothingIsAtStake`, `computerFeedsFiveToPartnerWhenLastToPlay`, `computerPreservesFiveWhenItCannotWin` |
+| leads (private `chooseLead`) | an unbeatable trump if held; the best side card when no trumps can be against us; otherwise the cheapest exit, never the five | `computerLeadsHighestTrumpButKeepsTheFiveBack` |
+
+### Test-only strategy fixtures
+
+| Name | Purpose |
+|---|---|
+| `BaselinePlayer` (`Tests/CatchFiveTests/BaselinePlayer.swift`) | frozen copy of the PR #2 player, the fixed opponent for strength measurements; never improved |
+| `playSeededMatch`, `mirroredBenchmark`, `BenchmarkResult` (`Tests/CatchFiveTests/StrategyBenchmark.swift`) | play seeded matches between two strategies, each seed twice with teams swapped; `computerPlayerBeatsFrozenBaseline` guards the shipped player's strength |
 
 ## Sources/CatchFive/MatchSave.swift
 

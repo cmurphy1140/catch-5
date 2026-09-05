@@ -109,6 +109,23 @@ flowchart TD
 
 Because `stepComputer()` increments `revision`, the next task starts automatically. The human's tap also increments it, which cancels any pending computer sleep, so nothing acts out of turn.
 
+## How a computer chooses a card
+
+```mermaid
+flowchart TD
+    V["PlayerView: my cards, trick, completed tricks"] --> K["Knowledge<br/>unseen = deck − mine − played"]
+    K --> L{"Am I leading?"}
+    L -- yes --> B{"Hold an unbeatable trump?"}
+    B -- yes --> LB["lead it: pulls trumps,<br/>may force out the five"]
+    B -- no --> NT{"No trumps left<br/>against us?"}
+    NT -- yes --> LS["lead best side card"]
+    NT -- no --> LX["cheapest exit,<br/>never the five"]
+    L -- no --> S["for each legal card:<br/>p = chance our side wins the trick<br/>score = p·(table + stake) − (1−p)·stake − control"]
+    S --> P["play the best score;<br/>ties → least control, lowest rank"]
+```
+
+`stake` is the card's own point value if the other side captures it (a five is 5, a certain Low is 1, a ten is 0.6). `control` is what a trump is worth for later tricks, highest for an unbeatable one and zero on the last trick. `p` is 1 for an unbeatable card, otherwise 0.8 or 0.6 depending on how many seats still play, and when partner is winning it is the chance partner's card holds.
+
 ## Saving
 
 Every accepted action calls `persist()`, and `TableView` also calls it whenever the app leaves the foreground (`scenePhase` change). The write is atomic: the old file is replaced only when the new one is complete. `loadDefault()` reads it at launch; on failure the user sees an explanation and a fresh game.
