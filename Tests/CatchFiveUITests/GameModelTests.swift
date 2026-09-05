@@ -522,3 +522,9 @@ import Testing
     #expect(band.maxY == 100 && band.minY == 0)
     #expect(Theme.Motion.dealHold > Theme.Motion.trickHold)
 }
+
+@MainActor @Test func rootOpensOnLoginUntilSignedInThenOnTheTable() {
+    #expect(RootView.initialScreen(for: Settings()) == .login)
+    #expect(RootView.initialScreen(for: Settings(playerName: "Connor")) == .table)
+}
+

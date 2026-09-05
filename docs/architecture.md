@@ -5,7 +5,7 @@
 ```mermaid
 flowchart TB
     subgraph View["View layer — SwiftUI (Sources/CatchFiveUI)"]
-        RV["RootView: login → menu → table<br/>LoginView · MainMenuView · PortraitView (Cast)"]
+        RV["RootView: login → intro → table<br/>LoginView · IntroView · WelcomeCard · PortraitView (Cast)"]
         TV["TableView + TableScheduler<br/>ScoreBarView · TableSurface (SeatView, pile) · HandFanView"]
         CV["CardView · CardBackView · Theme"]
         HS[HandSummaryView]
@@ -37,20 +37,18 @@ flowchart TB
 
 ### Screens
 
-`RootView` owns the one `GameModel` and shows a screen by two facts: has a name been saved (`Settings.playerName`), and did the player tap into a match this session. The table is unchanged; the login and menu are thin views over the same model. The three opponents are the fixed `Cast` (Hazel, Otto, Rue), whose names are the defaults in `Settings.seatNames` and whose faces `PortraitView` draws from a `Portrait` recipe.
+`RootView` owns the one `GameModel`. A new player (no `Settings.playerName`) sees the login screen, whose only button is New match; that opens a one-page intro (`IntroView`: how a hand goes in five steps, with Learn the game for the full tutorial and Deal me in to skip) and then the table. A returning player lands on the table with a small `WelcomeCard` over it: Continue game until the match is won, New match, Settings. The table's chevron reopens that card. The three opponents are the fixed `Cast` (Hazel, Otto, Rue), whose names are the defaults in `Settings.seatNames` and whose faces `PortraitView` draws from a `Portrait` recipe.
 
 ```mermaid
 flowchart LR
     Launch --> Q{playerName saved?}
     Q -- no --> Login
-    Q -- yes --> Menu
-    Login -- "Sit down" --> Menu
-    Menu -- "Continue / New match" --> Table
-    Table -- back chevron --> Menu
-    Menu -- sheet --> Tutorial
-    Menu -- sheet --> Rules
-    Menu -- sheet --> History
-    Menu -- sheet --> Settings
+    Login -- "New match" --> Intro
+    Intro -- "Deal me in" --> Table
+    Intro -- "Learn the game" --> Tutorial -- "Skip / Deal me in" --> Table
+    Q -- yes --> Table
+    Table --- Card["Welcome card: Continue game · New match · Settings"]
+    Table -- chevron --> Card
 ```
 
 Dependencies only point downward. The engine module imports nothing but the Swift standard library and Foundation. That is not a style preference; it is what lets all 108 tests run on the Mac in a few seconds with no simulator.
@@ -63,7 +61,7 @@ MVVM stands for Model, View, ViewModel. It is the pattern SwiftUI is built aroun
 |---|---|---|---|
 | **Model** | Own the truth and enforce the rules | `Match`, `Hand`, `Auction`, scoring functions | Know about screens, timers, files, or players' intentions |
 | **ViewModel** | Translate between model and view. Hold UI-facing state. Trigger side effects (saving, computer turns). | `GameModel` | Contain game rules. It asks the model "is this legal?" rather than deciding |
-| **View** | Draw the current state. Send user intent to the view model. | `RootView`, `LoginView`, `MainMenuView`, `TableView`, `CardView`, `HandSummaryView` | Hold game state, mutate the model directly, or decide legality |
+| **View** | Draw the current state. Send user intent to the view model. | `RootView`, `LoginView`, `IntroView`, `WelcomeCard`, `TableView`, `CardView`, `HandSummaryView` | Hold game state, mutate the model directly, or decide legality |
 
 ### How a tap becomes a card on the table
 

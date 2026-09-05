@@ -1,7 +1,7 @@
 import CatchFive
 import SwiftUI
 
-/// The one-time name prompt. Nothing here talks to a network; "Sit down" writes Settings and moves on.
+/// The one-time name prompt. Nothing here talks to a network; "New match" writes Settings and opens the intro.
 struct LoginView: View {
     @ObservedObject var model: GameModel
     let onDone: () -> Void
@@ -56,7 +56,7 @@ struct LoginView: View {
                 }
 
                 Button(action: sitDown) {
-                    Text("Sit down").font(.headline).frame(maxWidth: .infinity).frame(minHeight: 50)
+                    Text("New match").font(.headline).frame(maxWidth: .infinity).frame(minHeight: 50)
                 }
                 .buttonStyle(.borderedProminent).tint(.gold).foregroundStyle(.black)
                 .disabled(trimmed.isEmpty)

@@ -310,3 +310,11 @@ D36 is taken by the cast, login and menu work on the parallel branch.
 
 **Why:** A vignette sized for a full screen has nowhere to fall away on a 180 pt band, so its centre becomes a bright disc; a linear shade keeps the grain and gives the band one light. With named, drawn opponents the seats carry more meaning than before, and a 62 pt pile card still shows rank and suit at a glance. The stipple costs one `Canvas` pass with the same seeded generator as the grain, so it is identical on every launch and needs no asset.
 
+## D39. No menu page: a one-page intro for new players, a welcome card for returning ones (PR #22, 2026-09-05)
+
+**Chosen:** Amends D36. The full-page main menu is gone. After login the only button is New match; it opens `IntroView`, one page that says how a hand goes in five steps with Learn the game (the tutorial, full screen, Skip in the toolbar and Deal me in at the end) and Deal me in. A returning player launches straight onto the table with a small `WelcomeCard` over it: Continue game until the match is won (a dealt hand counts, Connor asked for it from a screenshot), New match (confirming only when bids or plays would be lost), Settings. The table's chevron reopens the card. Match history and the tutorial stay in the table's gear menu.
+
+**Over:** A menu with Continue, New match, Tutorial, Rules, Match history and Settings for everyone (Connor: Continue makes no sense for someone who just signed in, and a returning player should not pass a menu to reach their game); forcing the five-lesson tutorial on new players.
+
+**Why:** Standard game onboarding is a short, skippable intro with a clear door to the full lessons, and returning players expect to be at the table one launch away. A card over the table keeps the two things a returning player actually wants in reach without a page between them.
+

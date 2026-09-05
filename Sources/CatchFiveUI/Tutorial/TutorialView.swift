@@ -4,6 +4,8 @@ import SwiftUI
 /// The five-lesson "How to play" sheet. Layout, copy and exercises follow docs/tutorial-spec.md.
 struct TutorialView: View {
     @ObservedObject var model: TutorialModel
+    /// Opened from the new player's intro: the toolbar says Skip and the last lesson ends with Deal me in.
+    var isIntro = false
     let onDismiss: () -> Void
     @State private var showRules = false
     @State private var showExplainer = false
@@ -30,7 +32,7 @@ struct TutorialView: View {
                         Button("How Catch 5 is built") { showExplainer = true }
                     }
                 }
-                ToolbarItem(placement: .confirmationAction) { Button("Done", action: onDismiss) }
+                ToolbarItem(placement: .confirmationAction) { Button(isIntro ? "Skip" : "Done", action: onDismiss) }
             }
             .sheet(isPresented: $showRules) { RulesView { showRules = false } }
             #if canImport(UIKit)
@@ -84,7 +86,7 @@ struct TutorialView: View {
         HStack {
             Button("Back") { model.back() }.buttonStyle(.bordered).tint(.ivory.opacity(0.8)).disabled(model.lesson == 0)
             Spacer()
-            Button(model.isLastLesson ? "Finish" : "Next lesson") { if model.isLastLesson { onDismiss() } else { model.next() } }
+            Button(model.isLastLesson ? (isIntro ? "Deal me in" : "Finish") : "Next lesson") { if model.isLastLesson { onDismiss() } else { model.next() } }
                 .buttonStyle(.borderedProminent).tint(.gold).foregroundStyle(.black)
         }
     }
@@ -128,13 +130,11 @@ struct SeatTile: View {
     let action: () -> Void
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 8) {
+            VStack(spacing: 6) {
                 if let portrait { PortraitView(portrait: portrait, size: Theme.Table.portraitSize) }
-                VStack(spacing: 6) {
-                    Text(name).font(.subheadline.weight(.semibold))
-                    Text(detail).font(.caption2).opacity(0.65)
-                    if let badge { Text(badge).font(.system(.caption2, design: .monospaced)).foregroundStyle(.gold) }
-                }
+                Text(name).font(.subheadline.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.7)
+                Text(detail).font(.caption2).opacity(0.65).multilineTextAlignment(.center)
+                if let badge { Text(badge).font(.system(.caption2, design: .monospaced)).foregroundStyle(.gold).lineLimit(1).minimumScaleFactor(0.7) }
             }
             .padding(12).frame(minWidth: 80, minHeight: 44)
             .background(Theme.Wood.inlay.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
