@@ -913,3 +913,25 @@ import Testing
     let rotations = Rank.allCases.map { CardToss.pose(for: Card(.clubs, $0), hand: 1, trick: 0).rotation }
     #expect(rotations.contains { $0 > 2 } && rotations.contains { $0 < -2 })
 }
+
+@MainActor @Test func statusSaysWhichSuitYouMustFollow() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    let model = GameModel(match: try Match(deck: deck, dealer: 3))
+    #expect(model.suitToFollow == nil)   // nothing led yet
+    model.send(.bid(nil))
+    for _ in 0..<40 where model.suitToFollow == nil {
+        if model.isHumanTurn {
+            switch model.match.hand.phase {
+            case .choosingTrump: model.send(.chooseTrump(model.humanCards[0].suit))
+            case .playing: model.send(.play(try #require(model.match.hand.legalMoves(seat: 0).first)))
+            default: model.send(.bid(nil))
+            }
+        } else { model.stepComputer() }
+    }
+    let led = try #require(model.suitToFollow)
+    #expect(model.match.hand.currentTrick.first?.card.suit == led)
+    #expect(model.humanCards.contains { $0.suit == led })
+    // Only your own turn, and only while you hold the led suit.
+    #expect(model.isHumanTurn)
+    #expect(model.match.hand.legalMoves(seat: 0).allSatisfy { $0.suit == led })
+}

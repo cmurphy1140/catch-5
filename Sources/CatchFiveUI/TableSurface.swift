@@ -180,6 +180,7 @@ struct TableSurface: View {
                 Spacer().frame(width: Theme.Table.statusButtonHitSize, height: Theme.Table.statusButtonHitSize)
             }
             statusText.font(.title3.weight(.medium)).multilineTextAlignment(.center).frame(maxWidth: .infinity)
+                .lineLimit(1).minimumScaleFactor(0.7)
                 .accessibilityFocused(statusFocus)
             if model.isHumanTurn, hand.phase != .finished {
                 smallButton("lightbulb", label: "Hint") { model.showHint() }
@@ -216,6 +217,10 @@ struct TableSurface: View {
         case .choosingTrump:
             return model.isHumanTurn ? Text("Choose trump").foregroundStyle(.gold) : Text("\(actor) is choosing trump")
         case .playing:
+            if model.isHumanTurn, let suit = model.suitToFollow {
+                // The shaded cards are the ones that cannot follow; say why in the same breath.
+                return Text("Your turn").foregroundStyle(.gold) + Text(" · follow \(suit.rawValue)")
+            }
             return model.isHumanTurn ? Text("Your turn").foregroundStyle(.gold) : Text("\(actor) is thinking")
         case .finished:
             return Text("Hand complete")

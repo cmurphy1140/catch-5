@@ -64,8 +64,11 @@ struct CardView: View {
         .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).stroke(.black.opacity(0.15)))
         .shadow(color: .black.opacity(style == .playable ? 0.35 : 0.25), radius: style == .playable ? 8 : 3, y: style == .playable ? 4 : 3)
         .offset(y: style == .playable ? -Theme.Card.liftPlayable : 0)
-        .opacity(style == .dimmed ? (contrast == .increased ? Theme.Card.dimmedOpacityHighContrast : Theme.Card.dimmedOpacity) : 1)
-        // With Increase Contrast, "not legal now" is also drawn as a dashed edge, not opacity alone.
+        // "Not legal now": the card stays opaque but sits in shadow, its colour drained; never see-through.
+        .saturation(style == .dimmed ? Theme.Card.dimmedSaturation : 1)
+        .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous)
+            .fill(.black.opacity(style == .dimmed ? (contrast == .increased ? Theme.Card.dimmedVeilHighContrast : Theme.Card.dimmedVeil) : 0)))
+        // With Increase Contrast the dashed edge carries the state as well.
         .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous)
             .strokeBorder(.black.opacity(0.6), style: StrokeStyle(lineWidth: 2, dash: [3, 3]))
             .opacity(style == .dimmed && contrast == .increased ? 1 : 0))

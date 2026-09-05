@@ -22,8 +22,12 @@ public enum Theme {
         public static let liftPressed = 6.0
         public static let pressedScale = 1.04
         public static let dimmedOpacity = 0.55
-        /// Under Increase Contrast an unavailable card stays readable; the dashed edge does the dimming.
-        public static let dimmedOpacityHighContrast = 0.8
+        /// An unavailable card stays solid: a dark veil over the face and most of its colour drained, so it
+        /// reads as a card in shadow rather than a ghost showing the felt through it.
+        public static let dimmedVeil = 0.38
+        public static let dimmedSaturation = 0.35
+        /// Under Increase Contrast the veil lightens and the dashed edge does the telling.
+        public static let dimmedVeilHighContrast = 0.22
         /// Screens at least this wide (points) get the wider hand cards.
         public static let wideScreenWidth = 402.0
         /// Card faces stop scaling with Dynamic Type past this size; the surrounding text keeps scaling.

@@ -398,3 +398,11 @@ D36 is taken by the cast, login and menu work on the parallel branch.
 
 **Why:** A hand-thrown pile reads as a table with people at it. Determinism is what keeps that from becoming noise.
 
+## D53. Unavailable cards sit in shadow, and the status line names the suit to follow (PR #36, 2026-09-05)
+
+**Chosen:** A card you cannot play right now stays solid ivory with a dark veil over its face and most of its colour drained, like a card in shadow; nothing shows through it. Under Increase Contrast the veil lightens and the dashed edge from D44 carries the state. While you must follow suit, the status line reads "Your turn · follow diamonds" (`GameModel.suitToFollow`), so the shaded cards come with their reason.
+
+**Over:** Lowering the card's opacity (Connor: the see-through cards over the felt looked wrong, and they did, a ghost of a card rather than a card); saying only "Your turn" and leaving the player to work out why four cards are shaded.
+
+**Why:** A card is an opaque object; showing felt through it breaks the table. Shade and desaturation say "not now" while keeping every index readable, and the status line turns the shading from a puzzle into a rule.
+
