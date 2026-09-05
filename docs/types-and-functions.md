@@ -1,0 +1,196 @@
+# Types and Functions
+
+One line per public thing, grouped by file, with the test that proves it. Names are exact so you can `grep` for them.
+
+## Class diagram
+
+```mermaid
+classDiagram
+    class Card {
+        +Suit suit
+        +Rank rank
+    }
+    class Auction {
+        +Int dealer
+        +Int? nextSeat
+        +Int? winner
+        +Int? highestBid
+        +Bool isNineAndOut
+        +[AuctionCall] calls
+        +act(seat, bid, nineAndOut)
+    }
+    class AuctionCall {
+        +Int seat
+        +Bid? bid
+    }
+    class Hand {
+        +HandPhase phase
+        +Auction auction
+        +[[Card]] hands
+        +[Card] stock
+        +[Card] discarded
+        +Suit? trump
+        +Int? nextSeat
+        +[Play] currentTrick
+        +[CompletedTrick] completedTricks
+        +[[Card]] captured
+        +HandScore? result
+        +bid(seat, amount, nineAndOut)
+        +chooseTrump(seat, suit)
+        +play(seat, card)
+        +legalMoves(seat)
+    }
+    class Match {
+        +Hand hand
+        +[Int] scores
+        +Int? winner
+        +[HandSummary] history
+        +Int handNumber
+        +bid() bidNineAndOut() chooseTrump() play()
+        +startNextHand(deck)
+        +apply(PlayerAction, seat)
+    }
+    class PlayerView {
+        +Int seat
+        +[Card] cards
+        +public facts…
+    }
+    class ComputerPlayer {
+        +decide(PlayerView) PlayerAction?
+        +estimate(cards, suit) Double
+    }
+    class MatchSave {
+        +encode(Match) Data
+        +decode(Data) Match
+        +write(Match, to URL)
+        +read(from URL) Match
+    }
+    class GameModel {
+        +Match match
+        +Int revision
+        +String? errorMessage
+        +send(PlayerAction)
+        +stepComputer()
+        +allows(PlayerAction) Bool
+        +latestCall(for seat) String?
+        +contract String?
+        +persist()
+    }
+    Hand *-- Auction
+    Auction *-- AuctionCall
+    Match *-- Hand
+    Match --> HandSummary
+    Hand --> Card
+    PlayerView ..> Match : built from
+    ComputerPlayer ..> PlayerView
+    MatchSave ..> Match
+    GameModel *-- Match
+    GameModel ..> ComputerPlayer
+    GameModel ..> MatchSave
+```
+
+## Sources/CatchFive/Cards.swift
+
+| Name | Kind | Purpose | Proven by |
+|---|---|---|---|
+| `Suit` | enum, `CaseIterable` | clubs, diamonds, hearts, spades | used everywhere |
+| `Rank` | enum, `Int` raw values 2…14 | two … ace; `rawValue` orders cards | `highestTrumpWins` |
+| `Rank.gameValue` | computed property | 10→10, J→1, Q→2, K→3, A→4, else 0 | `cardValuesForGame` |
+| `Card` | struct, `Hashable`, `Codable` | one suit and one rank | everywhere |
+| `RuleError` | enum | invalidTrick, invalidSeat, outOfTurn, invalidBid, auctionComplete, invalidScoring, forbiddenNineAndOut | error assertions across suites |
+
+## Sources/CatchFive/Tricks.swift
+
+| Name | Purpose | Proven by |
+|---|---|---|
+| `Play` | one seat's card in a trick | trick tests |
+| `legalCards(in:led:)` | if you hold the led suit you must play it; otherwise anything | `mustFollowSuitEvenWithTrump` |
+| `trickWinner(_:trump:)` | highest trump, else highest of led suit; rejects malformed tricks | `trumpBeatsLedAce`, `highestTrumpWins`, `malformedTricksAreRejected` |
+
+## Sources/CatchFive/Bidding.swift
+
+| Name | Purpose | Proven by |
+|---|---|---|
+| `Bid` | `.points(Int)` or `.nineAndOut` | settlement tests |
+| `AuctionCall` | one seat's accepted call; `bid == nil` is a pass | `auctionRecordsEverySeatCallInOrder` |
+| `Auction` | four-turn bidding round starting left of dealer | all `BiddingTests` |
+| `Auction.act(seat:bid:nineAndOut:)` | validates turn, minimum raise, dealer match, forced 2, 9-and-out precedence; records the call | `dealerCanMatchPartnerOrOpponent`, `nonDealerMustRaiseAndInvalidActionDoesNotConsumeTurn`, `dealerMustTakeTwoAfterPasses`, `bidRangeAndTurnOrder`, `nineAndOutOvercallsNineAndDealerCanMatch` |
+
+## Sources/CatchFive/Scoring.swift
+
+| Name | Purpose | Proven by |
+|---|---|---|
+| `HandScore` | points per team plus which team took High, Low, Jack, Five, Game and the Game values | scoring tests |
+| `scoreHand(captured:trump:bidder:)` | pure function from captured cards to `HandScore`; rejects duplicate cards | `relativeHighAndLowBelongToCapturingTeams`, `missingJackAndFiveDoNotScoreAndGameTieGoesToBidder`, `offSuitScoringCardsOnlyCountTowardGame`, `invalidCapturedCardsAreRejected` |
+| `Settlement` | new scores and optional winner | |
+| `settle(scores:points:bidder:bid:)` | bidder adds points or subtracts bid; defenders add; 25 wins; 9-and-out ends the match either way | `successfulBidScoresAllPointsAndSetLosesBidAmount`, `twentyFiveAndSimultaneousFinish`, `nineAndOutWinsOrLosesImmediately`, `invalidSettlementRejected` |
+
+## Sources/CatchFive/Hand.swift
+
+| Name | Purpose | Proven by |
+|---|---|---|
+| `HandPhase` | bidding, choosingTrump, playing, finished | phase guards in every test |
+| `CompletedTrick` | four plays and the winning seat | `playMustFollowSuitAndWinningPlayerLeadsNext` |
+| `HandError` | invalidDeck, wrongPhase, notBidWinner, cardNotHeld, mustFollowSuit | |
+| `Hand.init(deck:dealer:)` | requires 52 unique cards; deals two packets of three | `dealSixEachInTwoPacketsStartingLeftOfDealer`, `rejectInvalidDecks` |
+| `Hand.bid` | forwards to `Auction`; moves to `choosingTrump` when the dealer has acted | `trumpSelectionRequiresFinishedAuctionAndWinningSeat` |
+| `Hand.chooseTrump` | bid winner only; discards non-trumps, refills to six from stock | `refillKeepsTrumpsAndDiscardsOnlyInitialNonTrumps` |
+| `Hand.play` | full validation, copy-mutate-commit; fourth card resolves the trick, sixth trick scores | `illegalPlayLeavesStateUnchanged`, `completeHandsConserveCardsAndFinishAfterSixTricks` (208 hands) |
+| `Hand.legalMoves(seat:)` | empty unless it is that seat's turn in `playing` | UI greying relies on this through `allows` |
+
+## Sources/CatchFive/Match.swift
+
+| Name | Purpose | Proven by |
+|---|---|---|
+| `MatchError` | handInProgress, matchFinished | `matchRejectsPrematureRedeal` |
+| `HandSummary` | number, dealer, bidder, bid, isNineAndOut, result, running scores | `nextHandRotatesDealerAndRetainsScores` |
+| `Match.init(deck:dealer:)` | starts hand 1 and remembers the deck for saves | |
+| `Match.bid` / `bidNineAndOut` / `chooseTrump` / `play` | wrap `Hand`, refuse after a winner, append to the action log; `play` settles the hand exactly once | `matchScoresOnlyAfterLastCardAndOnlyOnce`, `failedBidMakesNegativeMatchScore`, `negativeTeamCannotDeclareNineAndOut` |
+| `Match.startNextHand(deck:)` | only after `finished`; dealer + 1 | `nextHandRotatesDealerAndRetainsScores` |
+| `Match.apply(_:seat:)` | one entry point for `PlayerAction` from humans and computers | `computersCompleteShuffledMatchesThroughRealRules` |
+
+## Sources/CatchFive/ComputerPlayer.swift
+
+| Name | Purpose | Proven by |
+|---|---|---|
+| `PlayerView` | own cards plus public facts; `init(match:seat:)` copies only what the seat may know | `changingHiddenCardsDoesNotChangeComputerDecision`, `computerSeesPublicAuctionCalls` |
+| `PlayerAction` | nineAndOut, bid(Int?), chooseTrump(Suit), play(Card) | |
+| `ComputerPlayer.decide(_:)` | returns nil unless it is this seat's turn | `computerDoesNotActOutsideItsTurn` |
+| `ComputerPlayer.estimate(_:suit:)` | expected hand points if that suit were trump | `estimateRanksControlAndTheFiveAboveScatteredCards` |
+| bidding (private `bidAmount`) | bid the minimum needed if it is at most estimate − 0.5; never outbid partner; dealer takes forced 2 | `computerPassesWeakHandButDealerTakesForcedTwo`, `computerRaisesWithStrongSuitAndChoosesIt`, `computerBiddingIsCompetitiveAndUsuallyMakesContract` |
+| card play (private `chooseCard`) | lead highest trump but not the five; cheapest winner against opponents; feed points to a winning partner when last; otherwise dump the least valuable | `computerFollowsSuitInsteadOfTrumping`, `computerUsesLowestWinningCardAgainstOpponent`, `computerFeedsFiveToPartnerWhenLastToPlay`, `computerPreservesFiveWhenItCannotWin`, `computerLeadsHighestTrumpButKeepsTheFiveBack` |
+
+## Sources/CatchFive/MatchSave.swift
+
+| Name | Purpose | Proven by |
+|---|---|---|
+| `SaveError` | invalidData, unsupportedVersion | `rejectsBrokenOrUnsupportedSave` |
+| `SavedAction` (internal) | Codable mirror of the five actions, each replays through the real `Match` method | `replayRejectsIllegalActionsAndInvalidInitialDeck` |
+| `MatchSave.encode` / `decode` | version 1 JSON: initial deck, dealer, actions | `saveRestoresEveryPhaseAndContinuesIdentically`, `saveRestoresHistoryAndNextDealer`, `rejectedActionsNeverEnterSaveAndResavingDoesNotDuplicateActions` |
+| `MatchSave.write` / `read` | atomic file replacement; errors surface | `saveRoundTripOnDiskReplacesPreviousSave`, `diskFailuresAreReported` |
+
+## Sources/CatchFiveUI/GameModel.swift
+
+| Name | Purpose | Proven by |
+|---|---|---|
+| `GameModel` | `@MainActor ObservableObject` owning one `Match`, a `revision` counter, an optional `errorMessage`, and an optional save URL | |
+| `isHumanTurn`, `humanCards` | convenience for seat 0 | `humanActionAdvancesComputersAndStopsForHuman` |
+| `send(_:)` | human action through `Match.apply`, then persist and bump revision | `acceptedHumanMoveSavesAndInvalidMoveShowsError` |
+| `stepComputer()` | one computer action for whichever non-human seat is due | `humanActionAdvancesComputersAndStopsForHuman` |
+| `allows(_:)` | dry run on a copy of the match | drives button enabling |
+| `latestCall(for:)`, `contract`, `seatNames` | wording for the auction display | `modelDescribesAuctionCallsAndContract` |
+| `nextHand()`, `newGame()` | fresh shuffled deck via `deck()` | |
+| `persist()`, `loadDefault()` | Application Support/CatchFive/game.json | manual simulator check |
+
+## Sources/CatchFiveUI views
+
+| Name | Purpose |
+|---|---|
+| `TableView` | the whole screen: header, scores and contract, three opponent tiles, status line, trick area, hand, phase-specific controls, new-game confirmation, error alert, computer scheduler task, background save |
+| `CardView` | a 48×72 card face with accessibility label; `Suit.glyph`, `Suit.ink`, `Card.label` helpers |
+| `HandSummaryView` | who took High, Low, Jack, Five, Game for the last hand and what was bid |
+| colour extensions | `.ivory`, `.felt`, `.gold` |
+
+## Sources/CatchFiveDemo
+
+`main.swift` plays a fixed, deterministic match (`swift run catch-five-demo`) and `ComputerDemo.swift` a shuffled computer match (`--computer`). Both call the real `Match`; they contain no rules of their own.

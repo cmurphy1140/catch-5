@@ -48,7 +48,8 @@ Initial dealing uses two packets of three starting left of dealer. Refill gives 
 
 - `Sources/CatchFive`: pure Swift rules; no UI dependencies.
 - `Tests/CatchFiveTests`: repeatable rule tests with explicit card fixtures.
-- `docs/catch-five-rules.md`: confirmed house rules and unresolved cases.
+- `docs/learning-path.md`: start here to read the code without an IDE; links the architecture, game-flow, types, testing, decision-log and build pages, all with diagrams.
+- `docs/catch-five-rules.md`: confirmed house rules.
 - `docs/engine-plan.md`: initial implementation milestone.
 - `docs/code-map.md`: plain-language architecture and source-to-test connections.
 
