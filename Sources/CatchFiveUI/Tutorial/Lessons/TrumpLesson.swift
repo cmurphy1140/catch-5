@@ -31,7 +31,7 @@ struct TrumpLesson: View {
             if correct {
                 Toggle("Discard and refill", isOn: $model.showRefill).tint(.gold).font(.footnote)
             }
-            Feedback(text: model.showRefill && correct ? "Three new cards, ringed in gold. One more spade came in; the two side cards stay because everything not spades was already thrown away." : model.trumpFeedback)
+            Feedback(text: model.showRefill && correct ? "Three new cards, ringed in gold: one more spade and two side cards drawn from the deck. Your three non-spades are gone." : model.trumpFeedback)
         }
     }
 }

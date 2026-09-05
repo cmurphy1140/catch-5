@@ -22,7 +22,7 @@ flowchart LR
 
 `Package.swift` declares five targets. Read it as a dependency list: `CatchFiveUI` depends on `CatchFive`, the app depends on `CatchFiveUI`, and nothing depends on the app. The arrows in the diagram only ever point right; the engine never knows a screen exists.
 
-## The five commands
+## The six commands
 
 | Command | What it does | When to use |
 |---|---|---|
@@ -30,6 +30,7 @@ flowchart LR
 | `... swift test --filter <name>` | Runs one test by function name | While working on one rule |
 | `... swift run catch-five-demo` | Plays a fixed five-hand match in the terminal and prints every trick | To watch the engine without the app. Add `--computer` for shuffled computer play, `--save-roundtrip` to see save/restore mid-trick |
 | `... python3 scripts/build-simulator.py` | Produces `work/simulator-build/CatchFive.app` for the iOS simulator | To run the real app |
+| `scripts/install-phone.sh` | Builds signed, installs and launches on the connected iPhone | Every time you want the latest build on the phone, and weekly to renew a free-team install ([device-install.md](device-install.md)) |
 | `python3 scripts/export-docs.py` | Renders every explainer page to PDF and every Mermaid diagram to PNG in `work/docs-export/` | To upload the pages to Claude Design or share them outside GitHub |
 
 `DEVELOPER_DIR` points the `swift` command at Xcode's toolchain rather than the command-line-tools copy, which lacks the iOS SDK.
