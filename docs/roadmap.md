@@ -66,7 +66,7 @@ flowchart LR
 **Tests first:** `rewoundMatchEqualsFreshReplay`, `undoDropsHumanActionAndComputerReplies`, `undoUnavailableAcrossHandBoundaryAndAfterScoring`, `undoneMatchSavesAndReloads`.
 **Risks:** Replay cost grows with match length; trivial for local play but measure once.
 
-## M5. Hand review, scoreboard and match history (L)
+## M5. Hand review, scoreboard and match history (L) — done in PR #12
 
 **Goal:** After each hand, show every play with what Standard would have done, and keep statistics across matches.
 

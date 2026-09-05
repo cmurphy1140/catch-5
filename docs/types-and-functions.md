@@ -184,6 +184,13 @@ classDiagram
 |---|---|
 | `playSeededMatch`, `mirroredBenchmark`, `BenchmarkResult` (`Tests/CatchFiveTests/StrategyBenchmark.swift`) | play seeded matches between two strategies, each seed twice with teams swapped; `computerPlayerBeatsFrozenBaseline` guards the shipped player's strength against `EasyPlayer` |
 
+## Sources/CatchFive/HandReview.swift
+
+| Name | Purpose | Proven by |
+|---|---|---|
+| `PlayReview`, `TrickReview`, `HandReview(match:)` | every play of the finished hand's tricks next to the standard strategy's advice from the same rebuilt view (D24); `agreement(forSeat:)` counts matches | `reviewReconstructsEveryPlayWithAdvice` |
+| `SeatPerformance`, `Match.performance(forSeat:)` | plays agreed and contracts made over the whole match, rebuilt by replaying to each hand boundary; nothing extra is saved | `performanceCountsHumanPlaysAndContractsAcrossHands` |
+
 ## Sources/CatchFive/MatchSave.swift
 
 | Name | Purpose | Proven by |
@@ -207,6 +214,7 @@ classDiagram
 | `humanCards` | the hand as shown: trumps first, highest to lowest, then the other suits in a fixed order | `humanCardsSortTrumpFirstThenBySuitAndRank` |
 | `notice` | one-line note about something that happened without a tap, such as "You discarded 2 and drew 2."; cleared by the next action | `trumpChoiceReportsDiscards` |
 | `message(for:)` | rule errors in a player's words ("You must follow suit…") | `illegalPlayExplainsFollowSuitInPlainWords` |
+| `records`, `statistics`, `handReview()`, `performance()` | finished matches from `history.json`, totals over them, the finished hand's review and the human's record so far; a match is recorded exactly once when its winner is decided | `finishedMatchIsRecordedExactlyOnce`, `corruptHistoryDoesNotBlockPlay` |
 | `canUndo`, `undo()` | take back the human's latest action this hand and every computer reply after it; saves and bumps `revision` | `undoneMatchSavesAndReloads` |
 | `hint`, `showHint()` | the strategy's advice for seat 0 on request; cleared by the next accepted action | `hintMatchesTheComputerStrategyAndClearsAfterActing` |
 | `explanation(for:inLastTrick:)`, `explain(_:inLastTrick:)`, `explanation` | why a card on the table or in the last trick was played; for the human's own card it compares with what the strategy preferred | `explanationsNameTheSeatAndCompareTheHumanToTheStrategy` |
@@ -221,8 +229,10 @@ classDiagram
 | `RulesText` | the house rules as sections of verbatim paragraphs from `docs/catch-five-rules.md`, plus "Reading the table" notes about the screen | `rulesSheetContainsEveryHouseRuleParagraph` (reads the doc and fails on any drift) |
 | `RulesView` | the rules sheet, from the book button and automatically on first launch | manual |
 | `needsRulesIntroduction`, `markRulesSeen()` (on `GameModel`) | first-run flag backed by `Settings.hasSeenRules` | `firstLaunchShowsRulesOnce` |
+| `MatchRecord`, `Statistics`, `MatchHistoryStore` | `MatchHistory.swift`: one finished match (date, scores, hands, difficulty, human contracts and agreement); totals; JSON store with ISO 8601 dates | `statisticsAggregateAcrossRecords` |
+| `ReviewView`, `ScoreboardView`, `StatisticsView` | `ReviewView.swift`: the finished hand play by play with disagreements in gold; every hand of the match (tap the score bar); totals and recent matches (chart button) | manual |
 | `SettingsView` | sheet from the gear button: difficulty, play speed, four seat names, haptics toggle | manual |
-| `TableView` | the whole screen: header, scores and contract, three opponent tiles, status line naming who is thinking, discard notice, Hint and Undo buttons and advice panel on your turn (the suggested card is ringed in gold), trick area where tapping any played card explains it, hand, phase-specific controls, new-game confirmation, error alert, computer scheduler task, background save |
+| `TableView` | the whole screen: header, scores and contract, three opponent tiles, status line naming who is thinking, discard notice, Hint and Undo buttons and advice panel on your turn (the suggested card is ringed in gold), trick area where tapping any played card explains it, a match-over card with the human's record, Review hand and Deal next hand buttons, hand, phase-specific controls, new-game confirmation, error alert, computer scheduler task, background save |
 | `CardView` | a 48×72 card face with accessibility label; `Suit.glyph`, `Suit.ink`, `Card.label` helpers |
 | `HandSummaryView` | who took High, Low, Jack, Five, Game for the last hand and what was bid, using the configured seat names |
 | colour extensions | `.ivory`, `.felt`, `.gold` |
