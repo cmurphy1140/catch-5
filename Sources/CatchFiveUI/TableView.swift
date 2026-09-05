@@ -42,18 +42,30 @@ public struct TableView: View {
                          onScores: { showScoreboard = true }, onSettings: { showSettings = true },
                          onStatistics: { showStatistics = true }, onTutorial: { showTutorial = true },
                          onNewGame: { confirmNewGame = true })
+                .padding(.horizontal, 16).padding(.top, 4).padding(.bottom, 12)
+                // A solid header band: runs up behind the status bar and curves off at the bottom, so the
+                // scores sit on one colour and the wood starts beneath it.
+                .background {
+                    UnevenRoundedRectangle(bottomLeadingRadius: Theme.Table.headerCornerRadius,
+                                           bottomTrailingRadius: Theme.Table.headerCornerRadius, style: .continuous)
+                        .fill(Theme.Wood.inlay)
+                        .shadow(color: .black.opacity(0.35), radius: 10, y: 4)
+                        .ignoresSafeArea(edges: .top)
+                }
             TableSurface(model: model, namespace: cards, collapsedTricks: collapsedTricks, reopenedTrick: reopenedTrick,
                          onReopenTrick: { withAnimation(motion(Theme.Motion.collapse)) { reopenedTrick = model.match.hand.completedTricks.count } },
                          onReview: { showReview = true })
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.horizontal, 16)
             toastSlot
             // Cards stop growing at XXXL so the fan keeps six cards on screen; the cap must sit above the
             // fan's own scaled metrics, which read it from the environment.
             HandFanView(model: model, namespace: cards, onIllegal: shake, shakes: $shakes)
                 .dynamicTypeSize(...Theme.Card.maximumTypeSize)
+                .padding(.horizontal, 16)
         }
         .dynamicTypeSize(...Theme.maximumTableTypeSize)
-        .padding(.horizontal, 16).padding(.top, 4).padding(.bottom, 6)
+        .padding(.bottom, 6)
         .frame(maxWidth: 640)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .foregroundStyle(.ivory)

@@ -67,6 +67,8 @@ public enum Theme {
         /// Bid, pass and suit buttons: full column width, a little taller than the 44 pt minimum.
         public static let auctionButtonHeight = 52.0
         public static let auctionButtonSpacing = 6.0
+        /// The solid header band behind the score bar curves off at the bottom with this radius.
+        public static let headerCornerRadius = 28.0
     }
 
     public enum Motion {

@@ -7,7 +7,7 @@ Single-player Catch 5 is feature complete: pure Swift rules engine, three comput
 Swift Testing and a dependency-free Swift package for rules (`Sources/CatchFive`); `GameModel` and SwiftUI views consume it (`Sources/CatchFiveUI`). Team 0 seats are 0/2, team 1 seats are 1/3; turns advance in ascending seat order modulo four. Computers and hints see only a `PlayerView`.
 
 ## Aesthetic North Star
-A readable, welcoming card table: golden oak wood grain running across the screen (drawn, not an image), dark inlay panels, ivory cards, green card backs, gold accents, understated controls, one solid gold button per screen. Text runs large.
+A readable, welcoming card table: golden oak wood grain running across the screen (drawn, not an image), dark inlay panels and a solid curved header band, ivory cards, green card backs, gold accents, understated controls, one solid gold button per screen. Text runs large.
 
 ## Living documentation
 `docs/learning-path.md` indexes the explainer pages (build-and-run, architecture, game-flow, types-and-functions, testing, decisions, code-map, roadmap, tutorial-spec, device-install) with Mermaid diagrams. Any commit that adds, renames or removes a type, function, phase or test must update the matching page in the same commit, and new design choices get a numbered entry in `docs/decisions.md`. `scripts/export-docs.py` renders the pages to PDF and PNG in `work/docs-export/` for Claude Design.
