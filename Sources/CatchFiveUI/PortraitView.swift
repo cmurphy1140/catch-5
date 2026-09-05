@@ -5,6 +5,9 @@ import SwiftUI
 struct PortraitView: View {
     let portrait: Portrait
     let size: Double
+    /// The mood on the face; the default keeps pickers and cards calm.
+    var expression: Portrait.Expression = .neutral
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack {
@@ -12,14 +15,70 @@ struct PortraitView: View {
             shoulders
             hairBack
             head
+            face
             feature
             hairFront
             hat
         }
+        .animation(reduceMotion ? nil : Theme.Motion.overlay, value: expression)
         .frame(width: size, height: size)
         .clipShape(Circle())
         .overlay(Circle().stroke(Color.ivory.opacity(0.7), lineWidth: max(1, size * 0.03)))
         .accessibilityHidden(true)
+    }
+
+    // MARK: Face
+
+    /// Two eyes, two brows and a mouth, each a fraction of the head, moved by the expression alone.
+    private var face: some View {
+        let ink = Theme.Portrait.accessory
+        let eyeY = -size * 0.06
+        let eyeDX = size * 0.08
+        let lookAside = expression == .thinking ? size * 0.02 : 0
+        let browTilt: Double = switch expression {
+        case .thinking: -12
+        case .rueful, .dismayed: 14
+        case .triumphant: -6
+        default: 0
+        }
+        let browLift: Double = switch expression {
+        case .triumphant, .pleased: -size * 0.02
+        case .dismayed: size * 0.005
+        default: 0
+        }
+        let mouthCurve: Double = switch expression {   // positive smiles, negative frowns
+        case .pleased: 0.5
+        case .triumphant: 1
+        case .rueful: -0.4
+        case .dismayed: -0.9
+        default: 0
+        }
+        return ZStack {
+            ForEach([-1.0, 1.0], id: \.self) { side in
+                Circle().fill(ink).frame(width: size * 0.035, height: size * 0.035)
+                    .offset(x: side * eyeDX + lookAside, y: eyeY)
+                Capsule().fill(ink).frame(width: size * 0.09, height: max(1, size * 0.014))
+                    .rotationEffect(.degrees(browTilt * side * -1))
+                    .offset(x: side * eyeDX, y: eyeY - size * 0.055 + browLift)
+            }
+            Mouth(curve: mouthCurve)
+                .stroke(ink, style: StrokeStyle(lineWidth: max(1, size * 0.018), lineCap: .round))
+                .frame(width: size * 0.14, height: size * 0.05)
+                .offset(y: size * 0.1)
+        }
+    }
+
+    /// A mouth whose bend animates: `curve` runs from −1 (frown) through 0 (flat) to 1 (grin).
+    private struct Mouth: Shape {
+        var curve: Double
+        var animatableData: Double { get { curve } set { curve = newValue } }
+        func path(in rect: CGRect) -> Path {
+            var path = Path()
+            path.move(to: CGPoint(x: rect.minX, y: rect.midY))
+            path.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.midY),
+                              control: CGPoint(x: rect.midX, y: rect.midY + curve * rect.height * 1.6))
+            return path
+        }
     }
 
     // MARK: Parts
@@ -73,7 +132,7 @@ struct PortraitView: View {
             }.offset(y: -size * 0.03)
         case .moustache:
             Capsule().fill(Theme.Portrait.color(portrait.hairColor))
-                .frame(width: size * 0.2, height: size * 0.06).offset(y: size * 0.1)
+                .frame(width: size * 0.2, height: size * 0.05).offset(y: size * 0.05)
         case .freckles:
             HStack(spacing: size * 0.04) {
                 ForEach(0..<3, id: \.self) { _ in

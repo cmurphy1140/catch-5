@@ -369,7 +369,7 @@ struct SeatView: View {
     /// badge line that is always reserved, so tiles never grow or shrink as the hand moves on.
     var body: some View {
         VStack(spacing: 4) {
-            PortraitView(portrait: portrait, size: Theme.Table.portraitSize)
+            PortraitView(portrait: portrait, size: Theme.Table.portraitSize, expression: SeatMood.expression(for: seat, in: model.match))
             Text(model.seatNames[seat]).font(.headline).lineLimit(1).minimumScaleFactor(0.7)
             ZStack {
                 if hand.phase == .bidding {

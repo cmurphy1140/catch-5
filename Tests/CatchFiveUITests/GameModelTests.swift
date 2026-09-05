@@ -859,3 +859,32 @@ import Testing
     let cue = TableFeedback.cue(from: before, to: TableFeedback.Snapshot(model))
     #expect(cue == .play || cue == .trickWon || cue == .trickLost)
 }
+
+@Test func seatMoodsFollowPublicEventsOnly() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    var match = try Match(deck: deck, dealer: 3)
+    // Fresh hand: seat 0 is to bid, so seat 0 thinks and the others are neutral.
+    #expect(SeatMood.expression(for: 0, in: match) == .thinking)
+    #expect(SeatMood.expression(for: 1, in: match) == .neutral)
+    try match.bid(seat: 0, amount: 9)
+    #expect(SeatMood.expression(for: 1, in: match) == .thinking)
+    for seat in 1...3 { try match.bid(seat: seat, amount: nil) }
+    try match.chooseTrump(seat: 0, suit: .clubs)
+    // Play one trick out; the winning team is pleased and the other rueful until the next lead.
+    for _ in 0..<4 {
+        let seat = try #require(match.hand.nextSeat)
+        try match.play(seat: seat, card: try #require(match.hand.legalMoves(seat: seat).first))
+    }
+    let winner = try #require(match.hand.completedTricks.last?.winner)
+    for seat in 0..<4 where seat != match.hand.nextSeat {
+        #expect(SeatMood.expression(for: seat, in: match) == (seat % 2 == winner % 2 ? .pleased : .rueful))
+    }
+    #expect(SeatMood.expression(for: try #require(match.hand.nextSeat), in: match) == .thinking)
+    // Once the next trick starts, the reaction is over.
+    let leader = try #require(match.hand.nextSeat)
+    try match.play(seat: leader, card: try #require(match.hand.legalMoves(seat: leader).first))
+    for seat in 0..<4 where seat != match.hand.nextSeat { #expect(SeatMood.expression(for: seat, in: match) == .neutral) }
+    // The verdict on a finished match is the loudest expression of all.
+    #expect(SeatMood.expression(for: 1, in: match, matchWinner: 1) == .triumphant)
+    #expect(SeatMood.expression(for: 2, in: match, matchWinner: 1) == .dismayed)
+}
