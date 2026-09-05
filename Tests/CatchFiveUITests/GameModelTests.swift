@@ -427,3 +427,14 @@ import Testing
     model.send(.play(try #require(model.humanCards.first)))
     #expect(model.notice == nil)
 }
+
+@Test func castHasThreeDistinctNamesAndPortraits() {
+    #expect(Cast.opponents.count == 3)
+    #expect(Set(Cast.opponents.map(\.name)).count == 3)
+    #expect(Set(Cast.opponents.map(\.portrait)).count == 3)
+    #expect(Cast.opponents.map(\.name) == ["Hazel", "Otto", "Rue"])
+    #expect(Cast.playerChoices.count == 4)
+    #expect(Set(Cast.playerChoices).count == 4)
+    #expect(Cast.defaultPlayerPortrait == Cast.playerChoices[0])
+    #expect(Cast.seatWords == ["You", "West", "Partner", "East"])
+}
