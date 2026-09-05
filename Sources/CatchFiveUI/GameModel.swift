@@ -29,6 +29,26 @@ public final class GameModel: ObservableObject {
         }
     }
 
+    /// Wording for a seat's most recent auction call, or nil if that seat has not called yet.
+    public func latestCall(for seat: Int) -> String? {
+        match.hand.auction.calls.last { $0.seat == seat }.map { call in
+            switch call.bid {
+            case nil: "Pass"
+            case .nineAndOut: "9 and out"
+            case let .points(amount): "Bid \(amount)"
+            }
+        }
+    }
+
+    /// Who won the auction and for how much, once bidding has ended.
+    public var contract: String? {
+        let auction = match.hand.auction
+        guard auction.nextSeat == nil, let bidder = auction.winner, let bid = auction.highestBid else { return nil }
+        return "\(Self.seatNames[bidder]) bid \(auction.isNineAndOut ? "9 and out" : String(bid))"
+    }
+
+    public static let seatNames = ["You", "West", "Partner", "East"]
+
     public func allows(_ action: PlayerAction) -> Bool {
         guard isHumanTurn else { return false }
         var copy = match

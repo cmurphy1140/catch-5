@@ -3,9 +3,22 @@ public enum Bid: Equatable, Sendable {
     case nineAndOut
 }
 
+/// One seat's turn in the auction; a nil bid is a pass.
+public struct AuctionCall: Equatable, Sendable {
+    public let seat: Int
+    public let bid: Bid?
+
+    public init(seat: Int, bid: Bid?) {
+        self.seat = seat
+        self.bid = bid
+    }
+}
+
 /// One bidding round; nine and out outranks normal nine and dealer may match.
 public struct Auction: Sendable {
     public private(set) var isNineAndOut = false
+    /// Every accepted call in seat order; rejected calls are not recorded.
+    public private(set) var calls: [AuctionCall] = []
     public let dealer: Int
     public private(set) var nextSeat: Int?
     public private(set) var winner: Int?
@@ -33,6 +46,7 @@ public struct Auction: Sendable {
         } else if seat == dealer && highestBid == nil {
             throw RuleError.invalidBid
         }
+        calls.append(AuctionCall(seat: seat, bid: nineAndOut ? .nineAndOut : bid.map(Bid.points)))
         self.nextSeat = seat == dealer ? nil : (seat + 1) % 4
     }
 }

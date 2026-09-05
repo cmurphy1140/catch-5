@@ -100,3 +100,19 @@ private struct RepeatableRandom: RandomNumberGenerator {
         #expect(restored.scores == match.scores)
     }
 }
+
+@Test func computerLeadsHighestTrumpButKeepsTheFiveBack() {
+    let cards = [Card(.hearts, .ace), Card(.hearts, .five), Card(.clubs, .ten)]
+    #expect(ComputerPlayer.decide(view(cards: cards)) == .play(Card(.hearts, .ace)))
+    let fiveOnlyTrump = [Card(.hearts, .five), Card(.clubs, .ten), Card(.spades, .king)]
+    #expect(ComputerPlayer.decide(view(cards: fiveOnlyTrump)) == .play(Card(.spades, .king)))
+    #expect(ComputerPlayer.decide(view(cards: [Card(.hearts, .five)])) == .play(Card(.hearts, .five)))
+}
+
+@Test func computerSeesPublicAuctionCalls() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    var match = try Match(deck: deck, dealer: 3)
+    try match.bid(seat: 0, amount: 4)
+    let view = try PlayerView(match: match, seat: 1)
+    #expect(view.calls == [AuctionCall(seat: 0, bid: .points(4))])
+}

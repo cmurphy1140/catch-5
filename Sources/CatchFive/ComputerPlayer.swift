@@ -9,6 +9,21 @@ public struct PlayerView: Sendable {
     public let bidder: Int?
     public let trump: Suit?
     public let trick: [Play]
+    public let calls: [AuctionCall]
+
+    public init(seat: Int, cards: [Card], phase: HandPhase, nextSeat: Int?, dealer: Int,
+                highestBid: Int?, bidder: Int?, trump: Suit?, trick: [Play], calls: [AuctionCall] = []) {
+        self.seat = seat
+        self.cards = cards
+        self.phase = phase
+        self.nextSeat = nextSeat
+        self.dealer = dealer
+        self.highestBid = highestBid
+        self.bidder = bidder
+        self.trump = trump
+        self.trick = trick
+        self.calls = calls
+    }
 }
 
 extension PlayerView {
@@ -18,7 +33,8 @@ extension PlayerView {
         self.init(seat: seat, cards: hand.hands[seat], phase: hand.phase,
                   nextSeat: match.winner == nil ? hand.nextSeat : nil,
                   dealer: hand.auction.dealer, highestBid: hand.auction.highestBid,
-                  bidder: hand.auction.winner, trump: hand.trump, trick: hand.currentTrick)
+                  bidder: hand.auction.winner, trump: hand.trump, trick: hand.currentTrick,
+                  calls: hand.auction.calls)
     }
 }
 
@@ -65,8 +81,10 @@ public enum ComputerPlayer {
         guard let trump = view.trump else { return nil }
         let legal = legalCards(in: view.cards, led: view.trick.first?.card.suit)
         guard let lead = view.trick.first else {
-            // Lead a high card to gain control; this is a baseline heuristic.
-            return legal.max { rank($0, led: trump, trump: trump) < rank($1, led: trump, trump: trump) }
+            // Lead a high card to gain control, but never expose the trump five when another lead exists.
+            let leads = legal.filter { $0 != Card(trump, .five) }
+            return (leads.isEmpty ? legal : leads)
+                .max { rank($0, led: trump, trump: trump) < rank($1, led: trump, trump: trump) }
         }
         let current = view.trick.max { rank($0.card, led: lead.card.suit, trump: trump)
             < rank($1.card, led: lead.card.suit, trump: trump) }!

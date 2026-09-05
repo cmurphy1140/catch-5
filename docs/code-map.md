@@ -19,7 +19,7 @@ The screen sends an action, such as “Seat 0 plays the queen of clubs.” Match
 | Source | Direct tests | Whole-game connection |
 |---|---|---|
 | `Sources/CatchFive/Cards.swift` | `Tests/CatchFiveTests/TrickTests.swift` — cardValuesForGame | Captured values contribute to Game |
-| `Sources/CatchFive/Bidding.swift` | `Tests/CatchFiveTests/BiddingTests.swift` | HandTests verifies winning dealer chooses trump |
+| `Sources/CatchFive/Bidding.swift` | `Tests/CatchFiveTests/BiddingTests.swift` | HandTests verifies winning dealer chooses trump; `calls` feeds the table's per-seat bid display |
 | `Sources/CatchFive/Tricks.swift` | `Tests/CatchFiveTests/TrickTests.swift` | HandTests enforces following suit and next leader |
 | `Sources/CatchFive/Scoring.swift` | `Tests/CatchFiveTests/ScoringTests.swift` | MatchTests checks actual hand and match totals |
 | `Sources/CatchFive/Hand.swift` | `Tests/CatchFiveTests/HandTests.swift` | 208 repeatable hands; no duplicate or missing cards |
@@ -42,7 +42,7 @@ A fixed deck makes a failure repeatable. Small rule tests explain exactly which 
 
 ## What Is Not Built Yet
 
-The SwiftUI screen and stronger computer strategy. Baseline heuristic players now work. Engine save/read APIs exist; automatic app lifecycle saving still needs the UI integration. Normal bidding works end to end. 9-and-out settlement is tested independently; its auction precedence still needs confirmation before connecting it to Match.
+Stronger computer strategy. Baseline heuristic players work and the SwiftUI table in `Sources/CatchFiveUI` (view model tested in `Tests/CatchFiveUITests`) plays full matches with automatic saving. 9-and-out is wired through Match with a provisional precedence rule that still needs house-rule confirmation.
 
 
 ## Following Functions Without Xcode

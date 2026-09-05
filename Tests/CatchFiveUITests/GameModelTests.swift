@@ -33,3 +33,18 @@ import Testing
     #expect(restored.hand.auction.highestBid == 2)
     #expect(restored.hand.nextSeat == 1)
 }
+
+@MainActor @Test func modelDescribesAuctionCallsAndContract() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    let model = GameModel(match: try Match(deck: deck, dealer: 3))
+    #expect(model.latestCall(for: 0) == nil)
+    #expect(model.contract == nil)
+    model.send(.bid(nil))
+    #expect(model.latestCall(for: 0) == "Pass")
+    for _ in 0..<3 { model.stepComputer() }
+    #expect(model.match.hand.phase == .choosingTrump)
+    let bidder = try #require(model.match.hand.auction.winner)
+    let bid = try #require(model.match.hand.auction.highestBid)
+    #expect(model.latestCall(for: bidder) == "Bid \(bid)")
+    #expect(model.contract == "\(GameModel.seatNames[bidder]) bid \(bid)")
+}
