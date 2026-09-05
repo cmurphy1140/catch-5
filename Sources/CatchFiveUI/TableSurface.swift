@@ -45,6 +45,8 @@ struct TableSurface: View {
                 Spacer(minLength: 0)
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
+            // The finished hand's card takes over the table; what is underneath fades back.
+            .opacity(hand.phase == .finished ? 0.12 : 1)
             .overlay { if hand.phase == .finished { finishedCard } }
         }
     }
@@ -201,15 +203,15 @@ struct TableSurface: View {
             if let winner = model.match.winner { matchOver(winner) }
             HandSummaryView(match: model.match, names: model.seatNames)
             HStack(spacing: 12) {
-                Button(action: onReview) { Label("Review hand", systemImage: "list.bullet.rectangle") }
-                    .buttonStyle(.bordered).tint(.ivory.opacity(0.8))
+                Button(action: onReview) { Label("Review", systemImage: "list.bullet.rectangle") }
+                    .buttonStyle(.bordered).tint(.ivory.opacity(0.8)).lineLimit(1).fixedSize()
                 Button(model.match.winner == nil ? "Deal next hand" : "Play again") {
                     if model.match.winner == nil { model.nextHand() } else { model.newGame() }
-                }.buttonStyle(.borderedProminent).tint(.gold).foregroundStyle(.black)
+                }.buttonStyle(.borderedProminent).tint(.gold).foregroundStyle(.black).lineLimit(1).fixedSize()
             }
         }
         .padding(16)
-        .background(Color.felt.opacity(0.94), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(Color(red: 0.05, green: 0.14, blue: 0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(.ivory.opacity(0.15)))
         .padding(12)
         .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
