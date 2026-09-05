@@ -7,6 +7,9 @@ public struct TableView: View {
     @State private var confirmNewGame = false
     @State private var showSettings = false
     @State private var showRules = false
+    @State private var showReview = false
+    @State private var showScoreboard = false
+    @State private var showStatistics = false
 
     public init(model: GameModel) { _model = StateObject(wrappedValue: model) }
 
@@ -49,6 +52,11 @@ public struct TableView: View {
         .sheet(isPresented: $showSettings) { SettingsView(settings: $model.settings) }
         .sheet(isPresented: $showRules, onDismiss: { model.markRulesSeen() }) { RulesView { showRules = false } }
         .onAppear { if model.needsRulesIntroduction { showRules = true } }
+        .sheet(isPresented: $showReview) {
+            if let review = model.handReview() { ReviewView(review: review, names: model.seatNames) { showReview = false } }
+        }
+        .sheet(isPresented: $showScoreboard) { ScoreboardView(history: model.match.history, names: model.seatNames) { showScoreboard = false } }
+        .sheet(isPresented: $showStatistics) { StatisticsView(records: model.records) { showStatistics = false } }
         .alert("Game notice", isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
             Button("OK") { model.errorMessage = nil }
         } message: { Text(model.errorMessage ?? "") }
@@ -67,6 +75,8 @@ public struct TableView: View {
             VStack(alignment: .trailing, spacing: 6) {
                 Text("HAND \(model.match.handNumber)").font(.caption.monospaced())
                 HStack(spacing: 14) {
+                    Button { showStatistics = true } label: { Image(systemName: "chart.bar") }
+                        .accessibilityLabel("Statistics")
                     Button { showRules = true } label: { Image(systemName: "book") }
                         .accessibilityLabel("How to play")
                     Button { showSettings = true } label: { Image(systemName: "gearshape") }
@@ -90,6 +100,9 @@ public struct TableView: View {
             Spacer()
             score(team(1), value: model.match.scores[1])
         }.padding(16).background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 16))
+        .contentShape(Rectangle())
+        .onTapGesture { showScoreboard = true }
+        .accessibilityAddTraits(.isButton).accessibilityHint("Shows every hand of this match")
     }
 
     private func team(_ index: Int) -> String {
@@ -209,10 +222,15 @@ public struct TableView: View {
 
     @ViewBuilder private var controls: some View {
         if model.match.hand.phase == .finished {
+            if let winner = model.match.winner { matchOver(winner) }
             HandSummaryView(match: model.match, names: model.seatNames)
-            Button(model.match.winner == nil ? "Deal next hand" : "Play again") {
-                if model.match.winner == nil { model.nextHand() } else { model.newGame() }
-            }.buttonStyle(.borderedProminent).tint(.gold).foregroundStyle(.black)
+            HStack(spacing: 12) {
+                Button { showReview = true } label: { Label("Review hand", systemImage: "list.bullet.rectangle") }
+                    .buttonStyle(.bordered).tint(.gold)
+                Button(model.match.winner == nil ? "Deal next hand" : "Play again") {
+                    if model.match.winner == nil { model.nextHand() } else { model.newGame() }
+                }.buttonStyle(.borderedProminent).tint(.gold).foregroundStyle(.black)
+            }
         } else if model.isHumanTurn && model.match.hand.phase == .bidding {
             VStack(spacing: 12) {
                 Text("How many points can your team take?").font(.footnote)
@@ -225,6 +243,21 @@ public struct TableView: View {
         } else if model.isHumanTurn && model.match.hand.phase == .choosingTrump {
             HStack { ForEach(Suit.allCases, id: \.self) { suit in actionButton(suit.glyph, action: .chooseTrump(suit)) } }
         }
+    }
+
+    /// The card shown once a team reaches 25 or a 9-and-out resolves.
+    private func matchOver(_ winner: Int) -> some View {
+        let performance = model.performance()
+        return VStack(spacing: 8) {
+            Text(winner == 0 ? "YOU WIN THE MATCH" : "\(model.seatNames[1]) + \(model.seatNames[3]) WIN").font(.system(size: 14, weight: .bold, design: .monospaced)).tracking(2)
+            Text("\(model.match.scores[0]) – \(model.match.scores[1]) after \(model.match.history.count) hands").font(.title3.weight(.semibold))
+            if let performance {
+                Text("You made \(performance.bidsMade) of \(performance.bids) contracts and played the strategy's card \(performance.playsAgreed) of \(performance.plays) times.")
+                    .font(.footnote).multilineTextAlignment(.center).opacity(0.8)
+            }
+        }.padding(16).frame(maxWidth: .infinity).foregroundStyle(.gold)
+            .background(.gold.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(.gold.opacity(0.4)))
     }
 
     private func actionButton(_ label: String, action: PlayerAction) -> some View {

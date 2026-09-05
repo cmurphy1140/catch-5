@@ -14,14 +14,46 @@ public final class GameModel: ObservableObject {
     /// A one-line note about something that happened without a tap, such as the discard after trump.
     @Published public private(set) var notice: String?
     @Published public var settings: Settings { didSet { persistSettings() } }
+    /// Every finished match, oldest first.
+    @Published public private(set) var records: [MatchRecord]
     private let saveURL: URL?
     private let settingsURL: URL?
+    private let historyURL: URL?
+    /// Set once the current match has been recorded, and when a match is restored already finished.
+    private var recordedCurrentMatch: Bool
+    /// Supplies the date of a record; injectable for tests.
+    public var now: () -> Date = Date.init
 
-    public init(match: Match, saveURL: URL? = nil, settings: Settings = Settings(), settingsURL: URL? = nil) {
+    public init(match: Match, saveURL: URL? = nil, settings: Settings = Settings(), settingsURL: URL? = nil,
+                records: [MatchRecord] = [], historyURL: URL? = nil) {
         self.match = match
         self.saveURL = saveURL
         self.settings = settings
         self.settingsURL = settingsURL
+        self.records = records
+        self.historyURL = historyURL
+        recordedCurrentMatch = match.winner != nil
+    }
+
+    public var statistics: Statistics { Statistics(records) }
+
+    /// Every play of the finished hand alongside the standard strategy's choice; nil before the hand is scored.
+    public func handReview() -> HandReview? {
+        guard match.hand.phase == .finished else { return nil }
+        return try? HandReview(match: match)
+    }
+
+    /// The human's record in the current match so far.
+    public func performance() -> SeatPerformance? { try? match.performance(forSeat: 0) }
+
+    private func recordMatchIfFinished() {
+        guard match.winner != nil, !recordedCurrentMatch else { return }
+        recordedCurrentMatch = true
+        let performance = (try? match.performance(forSeat: 0)) ?? SeatPerformance(plays: 0, playsAgreed: 0, bids: 0, bidsMade: 0)
+        records.append(MatchRecord(date: now(), scores: match.scores, winner: match.winner ?? 0, hands: match.history.count,
+                                   difficulty: settings.difficulty, humanBids: performance.bids, humanBidsMade: performance.bidsMade,
+                                   humanPlays: performance.plays, humanPlaysAgreed: performance.playsAgreed))
+        if let historyURL { try? MatchHistoryStore.write(records, to: historyURL) }
     }
 
     public var isHumanTurn: Bool { match.winner == nil && match.hand.nextSeat == 0 }
@@ -135,7 +167,10 @@ public final class GameModel: ObservableObject {
     }
 
     public func nextHand() { perform { try match.startNextHand(deck: Self.deck()) } }
-    public func newGame() { perform { match = try Match(deck: Self.deck(), dealer: 3) } }
+    public func newGame() {
+        perform { match = try Match(deck: Self.deck(), dealer: 3) }
+        recordedCurrentMatch = false
+    }
 
     private func perform(_ action: () throws -> Void) {
         do {
@@ -145,6 +180,7 @@ public final class GameModel: ObservableObject {
             explanation = nil
             notice = nil
             persist()
+            recordMatchIfFinished()
             revision += 1
         } catch {
             errorMessage = Self.message(for: error)
@@ -188,12 +224,17 @@ public final class GameModel: ObservableObject {
         let url = directory.appendingPathComponent("game.json")
         let settingsURL = directory.appendingPathComponent("settings.json")
         let settings = (try? SettingsStore.read(from: settingsURL)) ?? Settings()
+        let historyURL = directory.appendingPathComponent("history.json")
+        // A corrupt history must never block play: it is set aside and a fresh one starts.
+        let records = (try? MatchHistoryStore.read(from: historyURL)) ?? []
         // The generated deck is always a valid, unique 52-card deck.
-        let fresh = GameModel(match: try! Match(deck: deck(), dealer: 3), saveURL: url, settings: settings, settingsURL: settingsURL)
+        let fresh = GameModel(match: try! Match(deck: deck(), dealer: 3), saveURL: url, settings: settings, settingsURL: settingsURL,
+                              records: records, historyURL: historyURL)
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             if FileManager.default.fileExists(atPath: url.path) {
-                return GameModel(match: try MatchSave.read(from: url), saveURL: url, settings: settings, settingsURL: settingsURL)
+                return GameModel(match: try MatchSave.read(from: url), saveURL: url, settings: settings, settingsURL: settingsURL,
+                                 records: records, historyURL: historyURL)
             }
         } catch {
             fresh.errorMessage = "Your previous game could not be restored. A new game is ready. \(error.localizedDescription)"
