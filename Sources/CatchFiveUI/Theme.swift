@@ -73,7 +73,7 @@ public enum Theme {
             switch hair {
             case .black: Color(red: 0.12, green: 0.10, blue: 0.10)
             case .brown: Color(red: 0.40, green: 0.26, blue: 0.16)
-            case .blond: Color(red: 0.88, green: 0.76, blue: 0.50)
+            case .blond: Color(red: 0.80, green: 0.62, blue: 0.32)
             case .silver: Color(red: 0.80, green: 0.80, blue: 0.82)
             case .red: Color(red: 0.70, green: 0.30, blue: 0.16)
             }
@@ -91,5 +91,7 @@ public enum Theme {
         /// Hats and glasses frames.
         public static let accessory = Color(red: 0.20, green: 0.20, blue: 0.22)
         public static let disc = Color(red: 0.10, green: 0.24, blue: 0.20)
+        /// The flower hat.
+        public static let blossom = Color(red: 0.93, green: 0.55, blue: 0.62)
     }
 }

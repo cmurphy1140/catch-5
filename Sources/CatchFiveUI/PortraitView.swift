@@ -99,8 +99,8 @@ struct PortraitView: View {
         case .flower:
             Image(systemName: "leaf.fill")
                 .resizable().scaledToFit()
-                .foregroundStyle(Theme.Portrait.color(.rust))
-                .frame(width: size * 0.16, height: size * 0.16)
+                .foregroundStyle(Theme.Portrait.blossom)
+                .frame(width: size * 0.2, height: size * 0.2)
                 .rotationEffect(.degrees(-30))
                 .offset(x: size * 0.18, y: -size * 0.24)
         }
