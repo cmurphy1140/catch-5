@@ -243,7 +243,7 @@ struct TableSurface: View {
         VStack(spacing: Theme.Table.auctionButtonSpacing) {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Theme.Table.auctionButtonSpacing), count: 4),
                       spacing: Theme.Table.auctionButtonSpacing) {
-                ForEach(2...9, id: \.self) { bid in actionButton(String(bid), action: .bid(bid)) }
+                ForEach(HouseRules.bidRange, id: \.self) { bid in actionButton(String(bid), action: .bid(bid)) }
             }
             HStack(spacing: Theme.Table.auctionButtonSpacing) {
                 actionButton("Pass", action: .bid(nil), font: .body.weight(.semibold))

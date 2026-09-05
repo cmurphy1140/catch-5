@@ -539,6 +539,31 @@ import Testing
     #expect(try trickWinner(RulesFigures.followedTrick, trump: RulesFigures.trump) == RulesFigures.followedWinner)
     #expect(try trickWinner(RulesFigures.trumpedTrick, trump: RulesFigures.trump) == RulesFigures.trumpedWinner)
     #expect(RulesFigures.followedWinner != RulesFigures.trumpedWinner)
-    #expect(RulesFigures.bidLadder == Array(2...9))
-    #expect(RulesFigures.matchTarget == 25)
+    // The ladder and the target quote the engine's named house numbers, not literals of their own.
+    #expect(RulesFigures.bidLadder == Array(HouseRules.bidRange))
+    #expect(RulesFigures.matchTarget == HouseRules.matchTarget)
+    #expect(RulesFigures.nineAndOutPoints == HouseRules.handPoints)
+    // The captions are built from the drawn cards, so they can never disagree with the figure.
+    #expect(RulesFigures.caption(trumped: false).contains("king of hearts"))
+    #expect(RulesFigures.caption(trumped: false).contains("two of clubs"))
+    #expect(RulesFigures.caption(trumped: true).contains("four of spades"))
+}
+
+@Test func rulesChaptersMatchTheRuleSectionsByTitle() {
+    // Every rule section has a chapter of the same title, in order; the last chapter is the screen notes.
+    let chapters = RulesView.Chapter.allCases
+    #expect(chapters.dropLast().map(\.title) == RulesText.sections.map(\.title))
+    for chapter in chapters.dropLast() {
+        #expect(chapter.paragraphs == RulesText.sections.first { $0.title == chapter.title }?.paragraphs)
+    }
+    #expect(chapters.last?.paragraphs == RulesText.readingTheTable)
+    #expect(Set(chapters.map(\.numeral)).count == chapters.count)
+}
+
+@Test func houseRuleNumbersAreTheOnesTheEngineEnforces() throws {
+    // settle() and the auction use the named constants; a change there must show here.
+    #expect(HouseRules.matchTarget == 25 && HouseRules.bidRange == 2...9 && HouseRules.handPoints == 9)
+    let reached = try settle(scores: [HouseRules.matchTarget - 1, 0], points: [HouseRules.bidRange.lowerBound, 0], bidder: 0, bid: .points(HouseRules.bidRange.lowerBound))
+    #expect(reached.winner == 0)
+    #expect(throws: RuleError.invalidBid) { try settle(scores: [0, 0], points: [1, 0], bidder: 0, bid: .points(HouseRules.bidRange.upperBound + 1)) }
 }

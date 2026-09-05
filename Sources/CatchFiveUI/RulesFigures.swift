@@ -19,9 +19,10 @@ enum RulesFigures {
 
     static let gameValues: [(rank: Rank, value: Int)] = [(.ten, 10), (.ace, 4), (.king, 3), (.queen, 2), (.jack, 1)]
 
-    static let bidLadder = Array(2...9)
-    static let matchTarget = 25
-    static let nineAndOutPoints = 9
+    static let bidLadder = Array(HouseRules.bidRange)
+    static let matchTarget = HouseRules.matchTarget
+    /// All nine, as the sum of the tiles above; the test checks it against the engine's count.
+    static var nineAndOutPoints: Int { pointTiles.map(\.points).reduce(0, +) }
 
     /// Both example tricks: hearts led, spades trump. Seat 1 leads.
     static let trump = Suit.spades
@@ -39,4 +40,18 @@ enum RulesFigures {
         Play(seat: 0, card: Card(.clubs, .two)),
     ]
     static let trumpedWinner = 3
+
+    /// The trick caption, built from the drawn cards so it can never disagree with the figure.
+    static func caption(trumped: Bool) -> String {
+        let plays = trumped ? trumpedTrick : followedTrick
+        let winner = trumped ? trumpedWinner : followedWinner
+        guard let led = plays.first?.card.suit,
+              let taker = plays.first(where: { $0.seat == winner })?.card,
+              let offSuit = plays.first(where: { $0.card.suit != led && $0.card.suit != trump })?.card else { return "" }
+        let highestLed = plays.filter { $0.card.suit == led }.max { $0.card.rank.rawValue < $1.card.rank.rawValue }?.card
+        if trumped, let highestLed {
+            return "\(trump.rawValue.capitalized) are trump: the \(taker.name) takes it, even though the \(highestLed.name) is higher."
+        }
+        return "\(led.rawValue.capitalized) were led: the \(taker.name) takes it. The \(offSuit.name) could not follow and cannot win."
+    }
 }

@@ -13,16 +13,21 @@ extension Suit {
     var ink: Color { self == .hearts || self == .diamonds ? Color(red: 0.7, green: 0.12, blue: 0.18) : .black }
 }
 
-extension Card {
+extension Rank {
+    /// The corner-index letter or number: A, K, Q, J, else the pip count.
     var label: String {
-        switch rank {
+        switch self {
         case .ace: "A"
         case .king: "K"
         case .queen: "Q"
         case .jack: "J"
-        default: String(rank.rawValue)
+        default: String(rawValue)
         }
     }
+}
+
+extension Card {
+    var label: String { rank.label }
     var spoken: String { name }
 }
 
@@ -35,12 +40,15 @@ enum CardStyle: Equatable {
 struct CardView: View {
     let card: Card
     let style: CardStyle
+    /// A ring drawn at the card's own scaled radius, so it fits at every text size; nil for none.
+    let ring: Color?
     // Cards grow with the reader's text size so the faces stay legible under Dynamic Type.
     @ScaledMetric private var width: Double
 
-    init(card: Card, width: Double = Theme.Card.tutorialWidth, style: CardStyle = .rest) {
+    init(card: Card, width: Double = Theme.Card.tutorialWidth, style: CardStyle = .rest, ring: Color? = nil) {
         self.card = card
         self.style = style
+        self.ring = ring
         _width = ScaledMetric(wrappedValue: width, relativeTo: .title2)
     }
 
@@ -61,6 +69,7 @@ struct CardView: View {
         .frame(width: width, height: width * Theme.Card.ratio)
         .background(.ivory, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).stroke(.black.opacity(0.15)))
+        .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).stroke(ring ?? .clear, lineWidth: 3))
         .shadow(color: .black.opacity(style == .playable ? 0.35 : 0.25), radius: style == .playable ? 8 : 3, y: style == .playable ? 4 : 3)
         .offset(y: style == .playable ? -Theme.Card.liftPlayable : 0)
         .opacity(style == .dimmed ? Theme.Card.dimmedOpacity : 1)

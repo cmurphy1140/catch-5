@@ -34,13 +34,13 @@ public struct Auction: Sendable {
         guard let nextSeat else { throw RuleError.auctionComplete }
         guard seat == nextSeat else { throw RuleError.outOfTurn }
         if nineAndOut {
-            guard bid == 9, !isNineAndOut || seat == dealer else { throw RuleError.invalidBid }
+            guard bid == HouseRules.bidRange.upperBound, !isNineAndOut || seat == dealer else { throw RuleError.invalidBid }
             highestBid = 9
             winner = seat
             isNineAndOut = true
         } else if let bid {
             let minimum = highestBid.map { $0 + (seat == dealer ? 0 : 1) } ?? 2
-            guard !isNineAndOut, (2...9).contains(bid), bid >= minimum else { throw RuleError.invalidBid }
+            guard !isNineAndOut, HouseRules.bidRange.contains(bid), bid >= minimum else { throw RuleError.invalidBid }
             highestBid = bid
             winner = seat
         } else if seat == dealer && highestBid == nil {

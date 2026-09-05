@@ -26,7 +26,16 @@ struct RulesView: View {
     enum Chapter: Int, CaseIterable, Identifiable {
         case table, deal, play, scoring, nineAndOut, reading
         var id: Int { rawValue }
-        var numeral: String { ["I", "II", "III", "IV", "V", "VI"][rawValue] }
+        var numeral: String {
+            switch self {
+            case .table: "I"
+            case .deal: "II"
+            case .play: "III"
+            case .scoring: "IV"
+            case .nineAndOut: "V"
+            case .reading: "VI"
+            }
+        }
         var title: String {
             switch self {
             case .table: "The table"
@@ -37,19 +46,11 @@ struct RulesView: View {
             case .reading: "Reading the table"
             }
         }
-        var symbol: String {
-            switch self {
-            case .table: "person.3"
-            case .deal: "rectangle.stack"
-            case .play: "suit.heart.fill"
-            case .scoring: "star"
-            case .nineAndOut: "flag.checkered"
-            case .reading: "eye"
-            }
-        }
-        /// The verbatim paragraphs from `RulesText`, matched by title; the last chapter is the screen notes.
+        /// The verbatim paragraphs from `RulesText`, found by title so a new or moved section can never
+        /// land under the wrong heading; the last chapter is the screen notes.
         var paragraphs: [String] {
-            self == .reading ? RulesText.readingTheTable : RulesText.sections[rawValue].paragraphs
+            self == .reading ? RulesText.readingTheTable
+                : RulesText.sections.first { $0.title == title }?.paragraphs ?? []
         }
     }
 
@@ -73,11 +74,14 @@ struct RulesView: View {
                 // Margins rather than padding, so scroll targets are measured where they are drawn.
                 .contentMargins(.horizontal, 16, for: .scrollContent)
                 .contentMargins(.top, 12, for: .scrollContent)
-                .contentMargins(.bottom, 32, for: .scrollContent)
+                // Enough room below the last chapter for it to reach the top edge like the others.
+                .contentMargins(.bottom, 240, for: .scrollContent)
                 .scrollPosition(id: $current, anchor: .top)
                 .safeAreaInset(edge: .top, spacing: 0) { rail(proxy) }
                 .onAppear { if let initial { chosen = initial; proxy.scrollTo(initial, anchor: .top) } }
-                .onChange(of: current) { _, _ in chosen = nil }
+                // A tap's choice stays lit until the page arrives there; a drag hands control back to the scroll.
+                .onChange(of: current) { _, now in if now == chosen { chosen = nil } }
+                .simultaneousGesture(DragGesture(minimumDistance: 8).onChanged { _ in chosen = nil })
             }
             .foregroundStyle(.ivory)
             .background(LinearGradient(colors: [.felt, .black], startPoint: .topLeading, endPoint: .bottomTrailing).ignoresSafeArea())
@@ -111,7 +115,8 @@ struct RulesView: View {
                             Text(chapter.numeral).font(.system(.caption, design: .serif).weight(.bold))
                             Text(chapter.title).font(.footnote.weight(.semibold))
                         }
-                        .padding(.horizontal, 12).frame(height: 36)
+                        .lineLimit(1).minimumScaleFactor(0.7)
+                        .padding(.horizontal, 12).frame(minHeight: 44)
                         .background(active ? .gold.opacity(0.18) : Theme.Wood.inlay.opacity(0.6), in: Capsule())
                         .overlay(Capsule().stroke(active ? .gold : .ivory.opacity(0.12)))
                     }
@@ -186,11 +191,13 @@ struct RulesView: View {
                 seat(Cast.defaultPlayerPortrait, "You").offset(y: 58)
             }
             .frame(width: 200, height: 150)
+            .dynamicTypeSize(...Theme.Card.maximumTypeSize)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Four seats around the table. You and Otto are partners, facing each other; Hazel and Rue are the other team.")
+            .accessibilityLabel(Self.seatingLabel)
             VStack(spacing: 0) {
                 Text("FIRST TO").font(.system(.caption2, design: .monospaced)).tracking(1).opacity(0.6)
-                Text(RulesFigures.matchTarget, format: .number).font(.system(size: 44, design: .serif).weight(.bold)).foregroundStyle(.gold)
+                Text(RulesFigures.matchTarget, format: .number)
+                    .font(.system(.largeTitle, design: .serif).weight(.bold)).foregroundStyle(.gold)
                 Text("wins").font(.footnote).opacity(0.7)
             }
             .accessibilityElement(children: .combine)
@@ -198,10 +205,16 @@ struct RulesView: View {
         .frame(maxWidth: .infinity)
     }
 
+    /// Composed from the cast so a renamed or reordered cast reads the same to VoiceOver as to the eye.
+    static var seatingLabel: String {
+        let names = Cast.opponents.map(\.name)
+        return "Four seats around the table. You and \(names[1]) are partners, facing each other; \(names[0]) and \(names[2]) are the other team. First to \(RulesFigures.matchTarget) wins."
+    }
+
     private func seat(_ portrait: Portrait, _ name: String) -> some View {
         VStack(spacing: 2) {
             PortraitView(portrait: portrait, size: 30)
-            Text(name).font(.caption2.weight(.semibold))
+            Text(name).font(.caption2.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.7)
         }
     }
 
@@ -218,19 +231,21 @@ struct RulesView: View {
                     }
                 }
                 .frame(width: 110, height: 48)
+                .dynamicTypeSize(...Theme.Card.maximumTypeSize)
                 .accessibilityHidden(true)
                 Text("Six cards each, three at a time, starting left of the dealer.").font(.footnote).opacity(0.85)
             }
             // The bid ladder: 2 at the bottom, 9 at the top, and 9 and out above them all.
             VStack(spacing: 4) {
-                Text("9 and out").font(.caption.weight(.semibold))
-                    .padding(.horizontal, 10).frame(height: 28)
+                Text("9 and out · from a score of 0 or above").font(.caption.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.7)
+                    .padding(.horizontal, 10).frame(minHeight: 28)
                     .overlay(Capsule().stroke(.gold, lineWidth: 1.5))
                     .foregroundStyle(.gold)
                 HStack(spacing: 4) {
                     ForEach(RulesFigures.bidLadder, id: \.self) { bid in
                         Text(bid, format: .number).font(.subheadline.weight(.semibold)).monospacedDigit()
-                            .frame(maxWidth: .infinity).frame(height: 32)
+                            .lineLimit(1).minimumScaleFactor(0.7)
+                            .frame(maxWidth: .infinity).frame(minHeight: 32)
                             .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                     }
                 }
@@ -241,7 +256,7 @@ struct RulesView: View {
                 }
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Bids run from 2 to 9, each beating the last; the dealer may match instead. 9 and out sits above them all.")
+            .accessibilityLabel("Bids run from \(HouseRules.bidRange.lowerBound) to \(HouseRules.bidRange.upperBound), each beating the last; the dealer may match instead. 9 and out sits above them all and needs a score of 0 or above.")
         }
     }
 
@@ -257,18 +272,18 @@ struct RulesView: View {
             let plays = trumped ? RulesFigures.trumpedTrick : RulesFigures.followedTrick
             let winner = trumped ? RulesFigures.trumpedWinner : RulesFigures.followedWinner
             HStack(spacing: 10) {
-                ForEach(plays, id: \.card) { play in
+                // Keyed by seat, so the one card that changes between the two tricks animates in place.
+                ForEach(plays, id: \.seat) { play in
                     VStack(spacing: 4) {
-                        CardView(card: play.card, width: 44, style: .rest)
-                            .overlay(RoundedRectangle(cornerRadius: Theme.Card.radius(width: 44), style: .continuous)
-                                .stroke(.gold, lineWidth: play.seat == winner ? 3 : 0))
-                        Text(play.seat == 0 ? "You" : Cast.opponents[play.seat - 1].name).font(.caption2).opacity(0.75)
+                        CardView(card: play.card, width: 44, style: .rest, ring: play.seat == winner ? .gold : nil)
+                        Text(Cast.opponent(at: play.seat)?.name ?? "You").font(.caption2).opacity(0.75)
+                            .lineLimit(1).minimumScaleFactor(0.7)
                     }
                 }
             }
+            .dynamicTypeSize(...Theme.Card.maximumTypeSize)
             .animation(motion, value: trumped)
-            Text(trumped ? "Spades are trump: the four of spades takes it, even though the king of hearts is higher."
-                         : "Hearts were led: the king of hearts takes it. The two of clubs could not follow and cannot win.")
+            Text(RulesFigures.caption(trumped: trumped))
                 .font(.footnote).multilineTextAlignment(.center).opacity(0.85)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -289,7 +304,8 @@ struct RulesView: View {
                                 .foregroundStyle(tile.points == 5 ? .gold : .ivory)
                             Text(tile.name).font(.caption2.weight(.semibold))
                         }
-                        .frame(maxWidth: .infinity).frame(height: 64)
+                        .lineLimit(1).minimumScaleFactor(0.7)
+                        .frame(maxWidth: .infinity).frame(minHeight: 64)
                         .background(open ? .white.opacity(0.12) : .white.opacity(0.06), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                         .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(open ? .ivory.opacity(0.5) : .clear))
                     }
@@ -311,24 +327,14 @@ struct RulesView: View {
                 Spacer()
                 ForEach(RulesFigures.gameValues, id: \.rank) { entry in
                     HStack(spacing: 2) {
-                        Text(label(for: entry.rank)).font(.caption.weight(.semibold))
+                        Text(entry.rank.label).font(.caption.weight(.semibold))
                         Text("=\(entry.value)").font(.caption.monospacedDigit()).opacity(0.75)
                     }
                     .padding(.leading, 10)
                 }
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Game values: ten counts ten, ace four, king three, queen two, jack one; other cards nothing.")
-        }
-    }
-
-    private func label(for rank: Rank) -> String {
-        switch rank {
-        case .ace: "A"
-        case .king: "K"
-        case .queen: "Q"
-        case .jack: "J"
-        default: String(rank.rawValue)
+            .accessibilityLabel("Game values: " + RulesFigures.gameValues.map { "\($0.rank.label) counts \($0.value)" }.joined(separator: ", ") + "; other cards nothing.")
         }
     }
 
@@ -342,9 +348,10 @@ struct RulesView: View {
                 }
             }
             .accessibilityHidden(true)
-            HStack {
+            HStack(alignment: .top) {
                 Text("all nine").font(.footnote.weight(.semibold)).foregroundStyle(.gold)
-                Text("or nothing: fewer than nine loses the match, whatever the score.").font(.footnote).opacity(0.85)
+                Text("or nothing: fewer than nine loses the match, whatever the score. Only a team at 0 or above may bid it.")
+                    .font(.footnote).opacity(0.85)
             }
             .fixedSize(horizontal: false, vertical: true)
         }
