@@ -7,6 +7,9 @@ public final class GameModel: ObservableObject {
     @Published public private(set) var match: Match
     @Published public private(set) var revision = 0
     @Published public var errorMessage: String?
+    /// A failed write of the game, settings or history. The move it followed was accepted and stands;
+    /// `retrySave()` writes the same state again and never replays anything.
+    @Published public var saveError: String?
     /// The computer strategy's advice for the human seat, shown on request and cleared by the next action.
     @Published public private(set) var hint: Advice?
     /// Why a card on the table or in the last trick was played; toggled by tapping it.
@@ -56,7 +59,7 @@ public final class GameModel: ObservableObject {
         records.append(MatchRecord(date: now(), scores: match.scores, winner: match.winner ?? 0, hands: match.history.count,
                                    difficulty: settings.difficulty, humanBids: performance.bids, humanBidsMade: performance.bidsMade,
                                    humanPlays: performance.plays, humanPlaysAgreed: performance.playsAgreed))
-        if let historyURL { try? MatchHistoryStore.write(records, to: historyURL) }
+        persistHistory()
     }
 
     public var isHumanTurn: Bool { match.winner == nil && match.hand.nextSeat == 0 }
@@ -102,8 +105,7 @@ public final class GameModel: ObservableObject {
         guard isHumanTurn else { return }
         notice = nil
         let discards = discardCount(for: action)
-        perform { try match.apply(action, seat: 0) }
-        if errorMessage == nil {
+        if perform({ try match.apply(action, seat: 0) }) {
             notice = discards.map(discardNotice)
             lastHumanAction = action
         }
@@ -254,18 +256,23 @@ public final class GameModel: ObservableObject {
         notice = nil
     }
 
-    private func perform(_ action: () throws -> Void) {
+    /// Applies a rule action. Returns true when the engine accepted it; a save failure afterwards is
+    /// reported through `saveError` and does not make the action any less accepted.
+    @discardableResult
+    private func perform(_ action: () throws -> Void) -> Bool {
         do {
             try action()
-            errorMessage = nil
-            hint = nil
-            explanation = nil
-            persist()
-            recordMatchIfFinished()
-            revision += 1
         } catch {
             errorMessage = Self.message(for: error)
+            return false
         }
+        errorMessage = nil
+        hint = nil
+        explanation = nil
+        persist()
+        recordMatchIfFinished()
+        revision += 1
+        return true
     }
 
     /// Rule errors in the words a player would use.
@@ -286,13 +293,28 @@ public final class GameModel: ObservableObject {
 
     private func persistSettings() {
         guard let settingsURL else { return }
-        try? SettingsStore.write(settings, to: settingsURL)
+        do { try SettingsStore.write(settings, to: settingsURL) }
+        catch { saveError = "Could not save your settings. \(error.localizedDescription)" }
+    }
+
+    private func persistHistory() {
+        guard let historyURL else { return }
+        do { try MatchHistoryStore.write(records, to: historyURL) }
+        catch { saveError = "Could not save your match history. \(error.localizedDescription)" }
     }
 
     public func persist() {
         guard let saveURL else { return }
         do { try MatchSave.write(match, to: saveURL) }
-        catch { errorMessage = "Could not save this game. Your current game is still open. \(error.localizedDescription)" }
+        catch { saveError = "Could not save this game. Your current game is still open. \(error.localizedDescription)" }
+    }
+
+    /// Writes the game, settings and history again from the state already in memory.
+    public func retrySave() {
+        saveError = nil
+        persist()
+        persistSettings()
+        persistHistory()
     }
 
     public static func deck() -> [Card] {

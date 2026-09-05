@@ -23,11 +23,30 @@ public struct TableView: View {
     @State private var toast: PlayerAction?
 
     private let onLeave: () -> Void
+    /// Something outside this view covers the table (the welcome card); computers wait while it is up.
+    private let covered: Bool
 
-    public init(model: GameModel, onLeave: @escaping () -> Void = {}) {
+    public init(model: GameModel, covered: Bool = false, onLeave: @escaping () -> Void = {}) {
         _model = StateObject(wrappedValue: model)
         _tutorial = StateObject(wrappedValue: model.makeTutorial())
+        self.covered = covered
         self.onLeave = onLeave
+    }
+
+    /// Every reason the scheduler must wait, gathered in one place. Any sheet, dialog, cover or the
+    /// reopened trick pauses play; closing one of several keeps it paused.
+    private var pause: TablePause {
+        TablePause(sceneActive: scenePhase == .active,
+                   welcomeShown: covered,
+                   sheetShown: showSettings || showTutorial || showReview || showScoreboard || showStatistics,
+                   dialogShown: confirmNewGame || model.errorMessage != nil || model.saveError != nil,
+                   inspectingTrick: reopenedTrick != nil)
+    }
+
+    /// The scheduler restarts whenever an action lands or the pause lifts, and cancels when a pause begins.
+    private struct SchedulerKey: Hashable {
+        let revision: Int
+        let paused: Bool
     }
 
     public var body: some View {
@@ -55,6 +74,7 @@ public struct TableView: View {
                 }
             TableSurface(model: model, namespace: cards, collapsedTricks: collapsedTricks, reopenedTrick: reopenedTrick, toast: toast,
                          onReopenTrick: { withAnimation(motion(Theme.Motion.collapse)) { reopenedTrick = model.match.hand.completedTricks.count } },
+                         onCloseTrick: { withAnimation(motion(Theme.Motion.collapse)) { reopenedTrick = nil } },
                          onReview: { showReview = true })
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.horizontal, 16)
@@ -78,7 +98,7 @@ public struct TableView: View {
     private var withScheduling: some View {
         layout
             .animation(motion(Theme.Motion.flight), value: model.revision)
-            .task(id: model.revision) { await advance() }
+            .task(id: SchedulerKey(revision: model.revision, paused: pause.isPaused)) { await advance() }
             .onChange(of: model.match.handNumber) { _, _ in collapsedTricks = 0; reopenedTrick = nil }
             .onChange(of: model.revision) { _, _ in withAnimation(motion(Theme.Motion.collapse)) { reopenedTrick = nil } }
             .onChange(of: model.lastHumanAction) { _, action in toast = action }
@@ -118,6 +138,10 @@ public struct TableView: View {
             .alert("Game notice", isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
                 Button("OK") { model.errorMessage = nil }
             } message: { Text(model.errorMessage ?? "") }
+            .alert("Could not save", isPresented: Binding(get: { model.saveError != nil }, set: { if !$0 { model.saveError = nil } })) {
+                Button("Retry") { model.retrySave() }
+                Button("Not now", role: .cancel) { model.saveError = nil }
+            } message: { Text(model.saveError ?? "") }
             .confirmationDialog("Start over? This replaces your saved game.", isPresented: $confirmNewGame) {
                 Button("Start new game", role: .destructive) { model.newGame() }
             }
@@ -154,6 +178,7 @@ public struct TableView: View {
 
     /// After every accepted action: hold a finished trick, collapse it, then let the next computer act.
     private func advance() async {
+        guard !pause.isPaused else { return }
         let hand = model.match.hand
         if collapsedTricks > hand.completedTricks.count { collapsedTricks = hand.completedTricks.count }
         let step = TableScheduler.plan(hand: hand, collapsedTricks: collapsedTricks)

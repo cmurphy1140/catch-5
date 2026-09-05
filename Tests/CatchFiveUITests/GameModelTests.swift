@@ -528,3 +528,43 @@ import Testing
     #expect(RootView.initialScreen(for: Settings(playerName: "Connor")) == .table)
 }
 
+
+@Test func tablePauseHoldsWhileAnyCoverRemains() {
+    var pause = TablePause()
+    #expect(!pause.isPaused)
+    pause.welcomeShown = true
+    #expect(pause.isPaused)
+    // A sheet opened over the welcome card: closing the sheet alone must not resume play.
+    pause.sheetShown = true
+    pause.sheetShown = false
+    #expect(pause.isPaused)
+    pause.welcomeShown = false
+    #expect(!pause.isPaused)
+    pause.sceneActive = false
+    #expect(pause.isPaused)
+    pause.sceneActive = true
+    pause.dialogShown = true
+    #expect(pause.isPaused)
+    pause.dialogShown = false
+    pause.inspectingTrick = true
+    #expect(pause.isPaused)
+}
+
+@MainActor @Test func saveFailureKeepsTheAcceptedMoveAndRetryWritesTheSameState() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    // The directory does not exist yet, so the first save fails.
+    let url = directory.appendingPathComponent("game.json")
+    let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3), saveURL: url)
+    model.send(.bid(nil))
+    #expect(model.match.actionCount == 1)
+    #expect(model.lastHumanAction == .bid(nil))
+    #expect(model.errorMessage == nil)
+    #expect(model.saveError != nil)
+    #expect(model.revision == 1)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    model.retrySave()
+    #expect(model.saveError == nil)
+    #expect(model.match.actionCount == 1)
+    #expect(try MatchSave.read(from: url).actionCount == 1)
+}

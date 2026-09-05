@@ -34,7 +34,7 @@ public struct RootView: View {
             case .intro:
                 IntroView(model: model, tutorial: tutorial) { model.markRulesSeen(); show(.table) }.transition(.opacity)
             case .table:
-                TableView(model: model) { withAnimation(motion) { showWelcome = true } }
+                TableView(model: model, covered: showWelcome) { withAnimation(motion) { showWelcome = true } }
                     .transition(.opacity)
                     .overlay {
                         if showWelcome {
