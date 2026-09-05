@@ -187,7 +187,7 @@ struct TableSurface: View {
                 .accessibilityLabel(model.hint != nil ? "Hint: \(text)" : text)
         } else if !inAuction {
             Text(pile.plays.isEmpty ? " " : "Tap a card to see why it was played")
-                .font(.footnote).foregroundStyle(.ivory.opacity(0.35))
+                .font(.footnote).foregroundStyle(.ivory.opacity(0.5))
                 .frame(maxWidth: .infinity, minHeight: 36, alignment: .top)
                 .accessibilityHidden(true)
         }

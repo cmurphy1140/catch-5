@@ -37,15 +37,18 @@ public enum Theme {
     /// (the default Large becomes XXL), so the whole app reads larger while the user's setting still applies.
     public static let textBoostSteps = 2
 
-    /// The walnut table top drawn by `WoodGrainView`.
+    /// The oak table top drawn by `WoodGrainView`. Ivory text sits straight on it, so the base stays
+    /// mid-dark (about 6:1 against ivory); the grain and the vignette carry the lighter, golden look.
     public enum Wood {
-        public static let light = Color(red: 0.46, green: 0.29, blue: 0.16)
-        public static let base = Color(red: 0.31, green: 0.185, blue: 0.10)
-        public static let dark = Color(red: 0.19, green: 0.105, blue: 0.055)
-        public static let streakLight = Color(red: 0.72, green: 0.50, blue: 0.29)
-        public static let streakDark = Color(red: 0.08, green: 0.04, blue: 0.02)
+        public static let light = Color(red: 0.70, green: 0.51, blue: 0.29)
+        public static let base = Color(red: 0.54, green: 0.37, blue: 0.20)
+        public static let dark = Color(red: 0.38, green: 0.25, blue: 0.13)
+        public static let streakLight = Color(red: 0.88, green: 0.72, blue: 0.48)
+        public static let streakDark = Color(red: 0.24, green: 0.13, blue: 0.05)
         /// Dark inlay used for seat tiles, panels and the hand-end card so they sit on the wood.
-        public static let inlay = Color(red: 0.09, green: 0.055, blue: 0.03)
+        public static let inlay = Color(red: 0.12, green: 0.075, blue: 0.04)
+        /// Grain runs across the screen (a board laid the long way under the phone) when true, top to bottom when false.
+        public static let grainRunsHorizontally = true
         public static let seed: UInt64 = 11
         public static let bandCount = 28
         /// Points between grain lines, drawn at random within this range.

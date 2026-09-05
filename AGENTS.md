@@ -1,13 +1,13 @@
 # Catch 5
 
 ## Current Status
-Single-player Catch 5 is feature complete: pure Swift rules engine, three computer opponents (Easy and Standard), replay-log save/resume, and a SwiftUI table with hints, tap-to-explain, hand review, undo, scoreboard, match history, settings, a five-lesson tutorial, the documentation pages bundled for offline reading, Dynamic Type and VoiceOver. 102 tests pass. The gameplay screen is a table-first layout on a drawn walnut table (seats around the pile, fanned hand, cards that travel, gold reserved for five meanings), with every text style two Dynamic Type steps above the system setting. The layout is tuned and verified for the iPhone 16 family (393 pt wide); other sizes get a scroll fallback but are not verified. The app runs in the simulator via `scripts/build-simulator.py` and on Connor's iPhone via `xcodebuild` plus `devicectl` (`docs/device-install.md`).
+Single-player Catch 5 is feature complete: pure Swift rules engine, three computer opponents (Easy and Standard), replay-log save/resume, and a SwiftUI table with hints, tap-to-explain, hand review, undo, scoreboard, match history, settings, a five-lesson tutorial, the documentation pages bundled for offline reading, Dynamic Type and VoiceOver. 102 tests pass. The gameplay screen is a table-first layout on a drawn oak table (seats around the pile, fanned hand, cards that travel, gold reserved for five meanings), with every text style two Dynamic Type steps above the system setting. The layout is tuned and verified for the iPhone 16 family (393 pt wide); other sizes get a scroll fallback but are not verified. The app runs in the simulator via `scripts/build-simulator.py` and on Connor's iPhone via `xcodebuild` plus `devicectl` (`docs/device-install.md`).
 
 ## Architecture
 Swift Testing and a dependency-free Swift package for rules (`Sources/CatchFive`); `GameModel` and SwiftUI views consume it (`Sources/CatchFiveUI`). Team 0 seats are 0/2, team 1 seats are 1/3; turns advance in ascending seat order modulo four. Computers and hints see only a `PlayerView`.
 
 ## Aesthetic North Star
-A readable, welcoming card table: walnut wood grain (drawn, not an image), dark inlay panels, ivory cards, green card backs, gold accents, understated controls, one solid gold button per screen. Text runs large.
+A readable, welcoming card table: golden oak wood grain running across the screen (drawn, not an image), dark inlay panels, ivory cards, green card backs, gold accents, understated controls, one solid gold button per screen. Text runs large.
 
 ## Living documentation
 `docs/learning-path.md` indexes the explainer pages (build-and-run, architecture, game-flow, types-and-functions, testing, decisions, code-map, roadmap, tutorial-spec, device-install) with Mermaid diagrams. Any commit that adds, renames or removes a type, function, phase or test must update the matching page in the same commit, and new design choices get a numbered entry in `docs/decisions.md`. `scripts/export-docs.py` renders the pages to PDF and PNG in `work/docs-export/` for Claude Design.
