@@ -10,7 +10,7 @@ Use Swift Testing and a dependency-free Swift package for rules. SwiftUI and a t
 A readable, welcoming card table with large cards and understated controls. Final visual design awaits the playable engine.
 
 ## Living documentation
-`docs/learning-path.md` indexes explainer pages (architecture, game-flow, types-and-functions, testing, decisions, build-and-run) with Mermaid diagrams. Any commit that adds, renames or removes a type, function, phase or test must update the matching page in the same commit, and new design choices get a numbered entry in `docs/decisions.md`.
+`docs/learning-path.md` indexes explainer pages (architecture, game-flow, types-and-functions, testing, decisions, build-and-run) with Mermaid diagrams. Any commit that adds, renames or removes a type, function, phase or test must update the matching page in the same commit, and new design choices get a numbered entry in `docs/decisions.md`. `scripts/export-docs.py` renders those pages to PDF and PNG in `work/docs-export/` for Claude Design.
 
 ## Verification
 Run `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test`.

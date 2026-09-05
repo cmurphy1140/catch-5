@@ -52,11 +52,12 @@ Initial dealing uses two packets of three starting left of dealer. Refill gives 
 - `docs/catch-five-rules.md`: confirmed house rules.
 - `docs/engine-plan.md`: initial implementation milestone.
 - `docs/code-map.md`: plain-language architecture and source-to-test connections.
+- `scripts/export-docs.py`: renders the explainer pages to PDF and their diagrams to PNG in `work/docs-export/` for upload to Claude Design.
 
 Team-indexed inputs use `[team0, team1]`. Team 0 seats are 0/2, team 1 seats are 1/3. The Hand coordinator enforces turn order, card ownership and six-trick completion before scoring. Its read-only state includes all hands for diagnostics; PlayerView restricts computer strategy to its own cards and public auction/trick information; the future UI must similarly keep opponents’ cards hidden. Captured-card scoring can also be used independently on supplied card collections.
 
 ## Next
 
-Refine computer strategy through playtesting. Build the simulator app with `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer python3 scripts/build-simulator.py` when Xcode's iOS platform is unavailable.
+Refine computer strategy through playtesting. Build the simulator app with `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer python3 scripts/build-simulator.py` when Xcode's iOS platform is unavailable. Export the explainer pages for Claude Design with `python3 scripts/export-docs.py`, which writes PDFs and diagram PNGs to `work/docs-export/`.
 
 Use tested milestone commits on short-lived branches off `main` to track progress.

@@ -121,3 +121,11 @@ Each entry: what was decided, what it was chosen over, and why. Dates are when t
 **Over:** Relying on an IDE's navigation, or generated API docs.
 
 **Why:** Connor reads the code without an IDE. Diagrams render on GitHub, plain Markdown reads anywhere, and the "same commit" rule keeps pages from rotting.
+
+## D17. Export by rendering, never by hand-maintained copies (PR #4, 2026-09-04)
+
+**Chosen:** `scripts/export-docs.py` generates PDF and PNG into the gitignored `work/docs-export/` folder from the Markdown source: one PDF per page, a combined `catch-five-explainer.pdf`, and one PNG per Mermaid block.
+
+**Over:** Committing rendered images to the repo; pasting Markdown into Claude Design; adding a Node project with `package.json`.
+
+**Why:** Claude Design imports documents, images and repos but not Markdown with Mermaid. Rendering from the source keeps one source of truth, so a diagram edit needs no second update. The toolchain (Node, mermaid-cli, headless Chrome) is already on the Mac, so a stdlib Python script that shells out matches how the simulator build already works.
