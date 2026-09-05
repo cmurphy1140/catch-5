@@ -7,6 +7,8 @@ public final class GameModel: ObservableObject {
     @Published public private(set) var match: Match
     @Published public private(set) var revision = 0
     @Published public var errorMessage: String?
+    /// The computer strategy's advice for the human seat, shown on request and cleared by the next action.
+    @Published public private(set) var hint: Advice?
     private let saveURL: URL?
 
     public init(match: Match, saveURL: URL? = nil) {
@@ -49,6 +51,12 @@ public final class GameModel: ObservableObject {
 
     public static let seatNames = ["You", "West", "Partner", "East"]
 
+    /// Ask the computer strategy what it would do from seat 0 and why.
+    public func showHint() {
+        guard isHumanTurn, let view = try? PlayerView(match: match, seat: 0) else { return }
+        hint = ComputerPlayer.advise(view)
+    }
+
     public func allows(_ action: PlayerAction) -> Bool {
         guard isHumanTurn else { return false }
         var copy = match
@@ -62,6 +70,7 @@ public final class GameModel: ObservableObject {
         do {
             try action()
             errorMessage = nil
+            hint = nil
             persist()
             revision += 1
         } catch {

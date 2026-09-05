@@ -124,7 +124,7 @@ flowchart TD
     S --> P["play the best score;<br/>ties → least control, lowest rank"]
 ```
 
-`stake` is the card's own point value if the other side captures it (a five is 5, a certain Low is 1, a ten is 0.6). `control` is what a trump is worth for later tricks, highest for an unbeatable one and zero on the last trick. `p` is 1 for an unbeatable card, otherwise 0.8 or 0.6 depending on how many seats still play, and when partner is winning it is the chance partner's card holds.
+The Hint button runs exactly this from your seat and shows the branch it took in words, ringing the suggested card. `stake` is the card's own point value if the other side captures it (a five is 5, a certain Low is 1, a ten is 0.6). `control` is what a trump is worth for later tricks, highest for an unbeatable one and zero on the last trick. `p` is 1 for an unbeatable card, otherwise 0.8 or 0.6 depending on how many seats still play, and when partner is winning it is the chance partner's card holds.
 
 ## Saving
 

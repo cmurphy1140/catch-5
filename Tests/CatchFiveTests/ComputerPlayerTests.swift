@@ -173,3 +173,45 @@ struct RepeatableRandom: RandomNumberGenerator {
     #expect(Double(made) / Double(hands) >= 0.7)
     #expect(Double(forcedDealerTwo) / Double(hands) <= 0.35)
 }
+
+@Test func adviceNamesTheActionAndExplainsIt() throws {
+    let strong = [Card(.spades, .ace), Card(.spades, .king), Card(.spades, .five), Card(.hearts, .two)]
+    let bid = try #require(ComputerPlayer.advise(view(cards: strong, phase: .bidding, highestBid: 3, bidder: 1)))
+    #expect(bid.action == .bid(4))
+    #expect(bid.reason.contains("spades"))
+    let pass = try #require(ComputerPlayer.advise(view(cards: strong, phase: .bidding, highestBid: 3, bidder: 2)))
+    #expect(pass.action == .bid(nil))
+    #expect(pass.reason.lowercased().contains("partner"))
+    let trump = try #require(ComputerPlayer.advise(view(cards: strong, phase: .choosingTrump)))
+    #expect(trump.action == .chooseTrump(.spades))
+    #expect(trump.reason.contains("spades"))
+}
+
+@Test func adviceExplainsCardPlay() throws {
+    // Leading with the boss trump.
+    let lead = try #require(ComputerPlayer.advise(view(cards: [Card(.hearts, .ace), Card(.hearts, .five), Card(.clubs, .ten)])))
+    #expect(lead.action == .play(Card(.hearts, .ace)))
+    #expect(lead.reason.contains("ace of hearts") && lead.reason.lowercased().contains("beat"))
+    // Feeding the five to a partner who holds the trick.
+    let feedTrick = [Play(seat: 1, card: Card(.hearts, .king)), Play(seat: 2, card: Card(.hearts, .ace)), Play(seat: 3, card: Card(.hearts, .three))]
+    let feed = try #require(ComputerPlayer.advise(view(cards: [Card(.hearts, .five), Card(.hearts, .two)], trick: feedTrick)))
+    #expect(feed.action == .play(Card(.hearts, .five)))
+    #expect(feed.reason.lowercased().contains("partner"))
+    // Losing cheaply while keeping the five.
+    let lose = try #require(ComputerPlayer.advise(view(cards: [Card(.hearts, .five), Card(.hearts, .three)], trick: [Play(seat: 3, card: Card(.hearts, .ace))])))
+    #expect(lose.action == .play(Card(.hearts, .three)))
+    #expect(lose.reason.lowercased().contains("five"))
+    // Advice matches decide everywhere it is offered.
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    var random = RepeatableRandom(state: 7)
+    var match = try Match(deck: deck.shuffled(using: &random), dealer: 0)
+    while match.winner == nil {
+        if match.hand.phase == .finished { try match.startNextHand(deck: deck.shuffled(using: &random)); continue }
+        let seat = try #require(match.hand.nextSeat)
+        let playerView = try PlayerView(match: match, seat: seat)
+        let advice = try #require(ComputerPlayer.advise(playerView))
+        #expect(ComputerPlayer.decide(playerView) == advice.action)
+        #expect(!advice.reason.isEmpty)
+        try match.apply(advice.action, seat: seat)
+    }
+}

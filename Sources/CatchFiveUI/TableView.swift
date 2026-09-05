@@ -21,6 +21,7 @@ public struct TableView: View {
                     opponent(3, name: "East")
                 }
                 Text(status).font(.subheadline).multilineTextAlignment(.center).frame(minHeight: 40)
+                if model.isHumanTurn { hintRow }
                 if model.match.hand.phase == .playing || model.match.hand.phase == .finished { trick }
                 if !model.humanCards.isEmpty { hand }
                 controls
@@ -96,6 +97,21 @@ public struct TableView: View {
         if model.match.hand.phase == .bidding { return model.latestCall(for: seat) ?? "Waiting" }
         if model.match.hand.auction.winner == seat { return "Bidder" }
         return "\(model.match.hand.hands[seat].count) cards"
+    }
+
+    /// One tap shows what the computer strategy would do from your seat and why.
+    @ViewBuilder private var hintRow: some View {
+        if let hint = model.hint {
+            Text(hint.reason)
+                .font(.footnote).multilineTextAlignment(.center).foregroundStyle(.gold)
+                .padding(12).frame(maxWidth: .infinity)
+                .background(.gold.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(.gold.opacity(0.4)))
+                .accessibilityLabel("Hint: \(hint.reason)")
+        } else {
+            Button { model.showHint() } label: { Label("Hint", systemImage: "lightbulb") }
+                .font(.footnote).tint(.gold).buttonStyle(.bordered)
+        }
     }
 
     private var status: String {
@@ -195,6 +211,8 @@ public struct TableView: View {
                         let playable = model.allows(.play(card))
                         Button { model.send(.play(card)) } label: { CardView(card: card) }
                             .buttonStyle(.plain)
+                            .overlay(RoundedRectangle(cornerRadius: 8)
+                                .stroke(.gold, lineWidth: model.hint?.action == .play(card) ? 3 : 0))
                             .allowsHitTesting(playable)
                             .opacity(model.match.hand.phase == .playing && !playable ? 0.5 : 1)
                             .transition(.asymmetric(insertion: .opacity, removal: .move(edge: .top).combined(with: .opacity)))

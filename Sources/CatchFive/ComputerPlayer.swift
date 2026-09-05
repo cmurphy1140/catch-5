@@ -49,15 +49,33 @@ public enum PlayerAction: Equatable, Sendable {
     case play(Card)
 }
 
+/// A recommended action with the reasoning behind it in plain words.
+public struct Advice: Equatable, Sendable {
+    public let action: PlayerAction
+    public let reason: String
+}
+
 public enum ComputerPlayer {
-    public static func decide(_ view: PlayerView) -> PlayerAction? {
+    public static func decide(_ view: PlayerView) -> PlayerAction? { advise(view)?.action }
+
+    /// The action this strategy would take from `view`'s seat, with its reasoning. Nil when it is not that seat's turn.
+    public static func advise(_ view: PlayerView) -> Advice? {
         guard view.nextSeat == view.seat else { return nil }
         switch view.phase {
-        case .bidding: return .bid(bidAmount(view))
-        case .choosingTrump: return .chooseTrump(preferredSuit(view.cards))
-        case .playing: return chooseCard(view).map(PlayerAction.play)
+        case .bidding: return bidAdvice(view)
+        case .choosingTrump:
+            let ranked = Suit.allCases.map { ($0, estimate(view.cards, suit: $0)) }.sorted { $0.1 > $1.1 }
+            let runnerUp = ranked.dropFirst().first.map { ", ahead of \($0.0.rawValue) at \(tenths($0.1))" } ?? ""
+            return Advice(action: .chooseTrump(preferredSuit(view.cards)),
+                          reason: "Choose \(preferredSuit(view.cards).rawValue): your hand is worth about \(tenths(ranked[0].1)) points there\(runnerUp).")
+        case .playing: return chooseCard(view).map { Advice(action: .play($0.card), reason: $0.reason) }
         case .finished: return nil
         }
+    }
+
+    static func tenths(_ value: Double) -> String {
+        let scaled = Int((value * 10).rounded())
+        return "\(scaled / 10).\(scaled % 10)"
     }
 
     private static func preferredSuit(_ cards: [Card]) -> Suit {
@@ -85,14 +103,25 @@ public enum ComputerPlayer {
         return points
     }
 
-    private static func bidAmount(_ view: PlayerView) -> Int? {
-        if let bidder = view.bidder, bidder % 2 == view.seat % 2 { return nil }
-        let needed = view.highestBid.map { $0 + (view.seat == view.dealer ? 0 : 1) } ?? 2
+    private static func bidAdvice(_ view: PlayerView) -> Advice {
+        if let bidder = view.bidder, bidder % 2 == view.seat % 2 {
+            return Advice(action: .bid(nil), reason: "Pass: your partner already holds the bid at \(view.highestBid ?? 0), and bidding against a partner only raises the price.")
+        }
+        let isDealer = view.seat == view.dealer
+        let needed = view.highestBid.map { $0 + (isDealer ? 0 : 1) } ?? 2
+        let suit = preferredSuit(view.cards)
+        let worth = estimate(view.cards, suit: suit)
+        let hand = "your best suit is \(suit.rawValue), worth about \(tenths(worth)) points"
         // Bid up to the whole-point estimate; benchmarking showed a safety margin costs more than it saves.
-        let confidence = Int(estimate(view.cards, suit: preferredSuit(view.cards)).rounded(.down))
-        if needed <= min(confidence, 9) { return needed }
-        if view.seat == view.dealer && view.highestBid == nil { return 2 }
-        return nil
+        let confidence = Int(worth.rounded(.down))
+        if needed <= min(confidence, 9) {
+            let how = view.highestBid == nil ? "opens the bidding" : (isDealer ? "matches the high bid as dealer" : "is the smallest raise")
+            return Advice(action: .bid(needed), reason: "Bid \(needed): \(hand), and \(needed) \(how).")
+        }
+        if isDealer && view.highestBid == nil {
+            return Advice(action: .bid(2), reason: "Bid 2: everyone passed, so the dealer must open at two even though \(hand).")
+        }
+        return Advice(action: .bid(nil), reason: "Pass: \(hand), short of the \(needed) you would need to bid.")
     }
 
     // MARK: - Card play
@@ -149,7 +178,7 @@ public enum ComputerPlayer {
         }
     }
 
-    private static func chooseCard(_ view: PlayerView) -> Card? {
+    private static func chooseCard(_ view: PlayerView) -> (card: Card, reason: String)? {
         guard let trump = view.trump else { return nil }
         let knowledge = Knowledge(view: view, trump: trump)
         let legal = legalCards(in: view.cards, led: view.trick.first?.card.suit)
@@ -175,32 +204,56 @@ public enum ComputerPlayer {
             return result
         }
         // Ties fall to the card with the least control, then the lowest rank, for repeatable play.
-        return legal.max { a, b in
+        guard let card = legal.max(by: { a, b in
             (score(a), -knowledge.controlValue(a), -a.rank.rawValue)
                 < (score(b), -knowledge.controlValue(b), -b.rank.rawValue)
+        }) else { return nil }
+
+        let beats = rank(card, led: led, trump: trump) > rank(current.card, led: led, trump: trump)
+        let table = atStake >= 0.5 ? "about \(tenths(atStake)) points are on the table" : "there is little on the table"
+        let five = Card(trump, .five)
+        let keepsFive = legal.contains(five) && card != five ? " It keeps the five back." : ""
+        let reason: String
+        if beats {
+            if knowledge.unbeatable(card, led: led) {
+                reason = "Play the \(card.name): nothing still to come can beat it, and \(table)."
+            } else {
+                reason = "Play the \(card.name): it takes the trick for now, and \(table).\(keepsFive)"
+            }
+        } else if partnerWinning {
+            if knowledge.unbeatable(current.card, led: led) {
+                reason = "Play the \(card.name): your partner's \(current.card.name) holds the trick, so give it your most valuable card."
+            } else {
+                reason = "Play the \(card.name): your partner is winning for now, so play low and keep your strong cards.\(keepsFive)"
+            }
+        } else {
+            reason = "Play the \(card.name): you cannot win this trick, so give up the card worth least.\(keepsFive)"
         }
+        return (card, reason)
     }
 
-    private static func chooseLead(_ legal: [Card], _ knowledge: Knowledge) -> Card? {
+    private static func chooseLead(_ legal: [Card], _ knowledge: Knowledge) -> (card: Card, reason: String)? {
         let trump = knowledge.trump
         let trumps = legal.filter { $0.suit == trump }
         let others = legal.filter { $0.suit != trump }
         // A trump nobody can beat draws trumps from the other hands, which is how a five gets caught.
         if let boss = trumps.filter({ knowledge.unbeatable($0, led: trump) }).max(by: { $0.rank.rawValue < $1.rank.rawValue }) {
-            return boss
+            return (boss, "Lead the \(boss.name): no trump left can beat it, and leading trumps draws them out, which is how a five gets caught.")
         }
         // With no trumps left against us, the highest side card usually wins the trick.
         if !knowledge.unseen.contains(where: { $0.suit == trump }), let high = others.max(by: {
             (knowledge.unbeatable($0, led: $0.suit) ? 1 : 0, $0.rank.rawValue)
                 < (knowledge.unbeatable($1, led: $1.suit) ? 1 : 0, $1.rank.rawValue) }) {
-            return high
+            return (high, "Lead the \(high.name): no trumps are left against you, so your highest side card should win.")
         }
         // Otherwise exit cheaply: never the five, and prefer a side card over spending a trump.
         let exits = others.isEmpty ? trumps.filter { $0.rank != .five } : others
-        return (exits.isEmpty ? legal : exits).min {
+        guard let exit = (exits.isEmpty ? legal : exits).min(by: {
             (knowledge.pointValue($0) + knowledge.controlValue($0), $0.rank.rawValue)
                 < (knowledge.pointValue($1) + knowledge.controlValue($1), $1.rank.rawValue)
-        }
+        }) else { return nil }
+        let five = trumps.contains(Card(trump, .five)) && exit != Card(trump, .five) ? " and the five" : ""
+        return (exit, "Lead the \(exit.name): without a trump that commands, lead the card that risks least and keep your trumps\(five) back.")
     }
 
     private static func rank(_ card: Card, led: Suit, trump: Suit) -> Int {
