@@ -10,6 +10,7 @@ public struct TableView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var cards
     @State private var confirmNewGame = false
+    @State private var confirmNineAndOut = false
     @State private var showSettings = false
     @State private var showTutorial = false
     @State private var showReview = false
@@ -39,7 +40,7 @@ public struct TableView: View {
         TablePause(sceneActive: scenePhase == .active,
                    welcomeShown: covered,
                    sheetShown: showSettings || showTutorial || showReview || showScoreboard || showStatistics,
-                   dialogShown: confirmNewGame || model.errorMessage != nil || model.saveError != nil,
+                   dialogShown: confirmNewGame || confirmNineAndOut || model.errorMessage != nil || model.saveError != nil,
                    inspectingTrick: reopenedTrick != nil)
     }
 
@@ -75,7 +76,7 @@ public struct TableView: View {
             TableSurface(model: model, namespace: cards, collapsedTricks: collapsedTricks, reopenedTrick: reopenedTrick, toast: toast,
                          onReopenTrick: { withAnimation(motion(Theme.Motion.collapse)) { reopenedTrick = model.match.hand.completedTricks.count } },
                          onCloseTrick: { withAnimation(motion(Theme.Motion.collapse)) { reopenedTrick = nil } },
-                         onReview: { showReview = true })
+                         onReview: { showReview = true }, onNineAndOut: { confirmNineAndOut = true })
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.horizontal, 16)
             // Cards stop growing at XXXL so the fan keeps six cards on screen; the cap must sit above the
@@ -142,6 +143,11 @@ public struct TableView: View {
                 Button("Retry") { model.retrySave() }
                 Button("Not now", role: .cancel) { model.saveError = nil }
             } message: { Text(model.saveError ?? "") }
+            // The one bid that can end the match on its own: confirm it, then let the engine judge it at that moment.
+            .confirmationDialog("Bid 9 and out?", isPresented: $confirmNineAndOut, titleVisibility: .visible) {
+                Button("Bid 9 and out", role: .destructive) { model.send(.nineAndOut) }
+                Button("Cancel", role: .cancel) {}
+            } message: { Text("Take all nine points to win the match. Take fewer and you lose it, whatever the score.") }
             .confirmationDialog("Start over? This replaces your saved game.", isPresented: $confirmNewGame) {
                 Button("Start new game", role: .destructive) { model.newGame() }
             }
@@ -174,6 +180,7 @@ public struct TableView: View {
     private func shake(_ card: Card) {
         shakes[card, default: 0] += 1
         shakeCount += 1
+        model.refuse(.play(card))
     }
 
     /// After every accepted action: hold a finished trick, collapse it, then let the next computer act.

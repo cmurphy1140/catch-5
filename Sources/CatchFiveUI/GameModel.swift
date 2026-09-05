@@ -16,6 +16,8 @@ public final class GameModel: ObservableObject {
     @Published public private(set) var explanation: String?
     /// A one-line note about something that happened without a tap, such as the discard after trump.
     @Published public private(set) var notice: String?
+    /// Why the human's last refused tap was refused, in the player's words; cleared by the next accepted action.
+    @Published public private(set) var refusal: String?
     /// The human's most recent accepted action, for the undo toast and haptics; nil after undo or a new hand.
     @Published public private(set) var lastHumanAction: PlayerAction?
     @Published public var settings: Settings { didSet { persistSettings() } }
@@ -243,6 +245,39 @@ public final class GameModel: ObservableObject {
         return (try? copy.apply(action, seat: 0)) != nil
     }
 
+    /// Nil when the engine would accept `action` from the human right now; otherwise the reason it would
+    /// not, in the player's words. Validates on a copy, so the match and its action count never change.
+    public func validationMessage(for action: PlayerAction) -> String? {
+        guard match.winner == nil else { return Self.message(for: MatchError.matchFinished) }
+        guard isHumanTurn else {
+            return match.hand.nextSeat.map { "Wait for \(seatNames[$0])." } ?? "This hand is over."
+        }
+        var copy = match
+        do {
+            try copy.apply(action, seat: 0)
+            return nil
+        } catch HandError.mustFollowSuit {
+            guard let led = match.hand.currentTrick.first?.card.suit else { return Self.message(for: HandError.mustFollowSuit) }
+            return "Follow \(led.rawValue); you still have \(led.rawValue)."
+        } catch {
+            return Self.message(for: error)
+        }
+    }
+
+    /// Records why a tap was refused so the table can say so inline. Nothing about the match changes.
+    public func refuse(_ action: PlayerAction) {
+        refusal = validationMessage(for: action)
+    }
+
+    /// The dealer's special bidding rights, shown only when it is the human's turn to bid as dealer.
+    public var auctionContext: String? {
+        let auction = match.hand.auction
+        guard match.hand.phase == .bidding, isHumanTurn, auction.dealer == 0 else { return nil }
+        if auction.isNineAndOut { return "As dealer you may match 9 and out; matching makes you the bidder." }
+        if let high = auction.highestBid { return "As dealer you may match the high bid of \(high)." }
+        return "Everyone passed, so as dealer you must bid at least 2."
+    }
+
     public func nextHand() {
         perform { try match.startNextHand(deck: Self.deck()) }
         lastHumanAction = nil
@@ -267,6 +302,7 @@ public final class GameModel: ObservableObject {
             return false
         }
         errorMessage = nil
+        refusal = nil
         hint = nil
         explanation = nil
         persist()

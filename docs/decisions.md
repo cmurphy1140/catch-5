@@ -334,3 +334,11 @@ D36 is taken by the cast, login and menu work on the parallel branch.
 
 **Why:** Task 2 of the roadmap. A touch target the user cannot see is a mis-tap waiting to happen, and Apple's 44 pt minimum applies to every essential control. Deciding from a measurement makes the invariant true on every width and text size rather than on the ones somebody screenshotted, and a pure function is the only way to test that without a device matrix.
 
+## D42. Refusals say why, the dealer is told their rights, and 9 and out asks first (PR #26, 2026-09-05)
+
+**Chosen:** `GameModel.validationMessage(for:)` runs an action on a copy of the match and turns the engine's refusal into the player's words, with the two common cases spelled out: "Follow hearts; you still have hearts." and "Wait for Hazel." A refused card tap still shakes and buzzes, and now also records that sentence in `refusal`, which the message line shows until the next accepted action. Greyed auction pills carry the same sentence as their accessibility hint. When the human bids as dealer, a line above the grid says what the dealer may do: match the high bid, match 9 and out, or bid the forced 2. The 9-and-out pill opens a confirmation ("Take all nine points to win the match. Take fewer and you lose it, whatever the score."); confirming sends the bid through the engine at that moment, cancelling changes nothing, and the dialog counts as a cover for `TablePause`.
+
+**Over:** A second set of rules in the views to explain refusals (the engine is the referee, so the copy-and-try keeps one source of truth); a modal alert per refusal; confirming ordinary bids (their consequence does not justify a second tap).
+
+**Why:** Task 3 of the roadmap. A shake without a reason teaches nothing; the reason costs one dry run. The dealer's rights are the one part of the auction a newcomer cannot guess from the pills alone. Nine and out is the only bid that can end the match by itself, which is what earns it a confirmation.
+
