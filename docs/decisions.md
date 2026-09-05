@@ -366,3 +366,11 @@ D36 is taken by the cast, login and menu work on the parallel branch.
 
 **Why:** Task 6 of the roadmap, which asked for measurement before machinery. Keeping the corrupt file costs nothing and leaves a path to recovery. The card's context line answers "where was I" before the player commits to Continue.
 
+## D47. Suit pills are named and say what they keep (PR #31, 2026-09-05)
+
+**Chosen:** While the human chooses trump, each suit pill carries the suit's name beneath its glyph and a preview from `GameModel.trumpPreview(for:)`: "keep 4 · draw 2", counted from the human's own hand only. The VoiceOver label carries the same words. Nothing about the stock or other hands is revealed; the engine still does the discarding.
+
+**Over:** Glyphs alone (a beginner does not always know ♣ from ♠ at a glance, and the choice is the one that shapes the whole hand); a manual discard phase.
+
+**Why:** The roadmap's trump section asked for labelled suits and an optional factual preview. The preview costs a count over six cards and turns the least explained decision in the auction into an informed one.
+
