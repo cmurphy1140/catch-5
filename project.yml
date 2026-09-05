@@ -25,6 +25,8 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Catch 5
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        # The app is dark on every screen; a dark launch screen means no white flash before the felt.
+        INFOPLIST_KEY_UIUserInterfaceStyle: Dark
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_UIRequiresFullScreen: YES
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.card-games

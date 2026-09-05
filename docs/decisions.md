@@ -358,3 +358,11 @@ D36 is taken by the cast, login and menu work on the parallel branch.
 
 **Why:** Task 5 of the roadmap. A modal cover that leaves the table in the accessibility tree lets VoiceOver users play under the card. Focus and announcements are what turn a visual table into a narrated one. The motion and contrast settings are promises the system makes on the user's behalf; the table has to keep them in its own effects, not just its transitions. Haptics are a language: one word per event, and different words for winning and losing.
 
+## D45. Restore is measured, not staged; a corrupt save is kept; the welcome card says where you were (PR #29, 2026-09-05)
+
+**Chosen:** A test replays a whole match from its save and asserts it takes under 300 ms, the roadmap's threshold for showing a spinner; it does, by a wide margin, so there is no bootstrap state and no progress indicator. A game file that cannot be decoded is moved to `game-corrupt.json` (as history already was) and the fresh game's notice says so, so nothing is overwritten and the player chooses to continue the fresh deal or start a new match. The welcome card gains one line of `resumeContext`: hand number, both scores and the phase. The launch screen is declared dark (`UIUserInterfaceStyle`) in both build paths, so the first frame is dark like the felt rather than a white flash. The sign-in screen is headed "Set up your player" to say it is a local profile, not an account.
+
+**Over:** A "Restoring your game…" state on principle (the measurement says it would never be seen); replacing an unreadable save silently; a launch storyboard or image asset for the launch colour (the hand-built simulator bundle compiles no asset catalog, and a dark interface style needs none).
+
+**Why:** Task 6 of the roadmap, which asked for measurement before machinery. Keeping the corrupt file costs nothing and leaves a path to recovery. The card's context line answers "where was I" before the player commits to Continue.
+

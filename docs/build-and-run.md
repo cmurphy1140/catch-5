@@ -132,3 +132,5 @@ To get the pages into Claude Design:
 1. Run `python3 scripts/export-docs.py` from the repo root.
 2. Open Claude Design.
 3. Attach `work/docs-export/catch-five-explainer.pdf` and the PNGs from `diagrams/` you want redrawn, then paste the prompt from `work/docs-export/README.md`.
+
+The app declares `UIUserInterfaceStyle` = Dark (in `project.yml` for Xcode builds and in `scripts/build-simulator.py` for the hand-built bundle), so the system-generated launch screen is dark and there is no white flash before the felt appears.

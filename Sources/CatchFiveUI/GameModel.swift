@@ -78,6 +78,18 @@ public final class GameModel: ObservableObject {
     /// True once something has happened this match and nobody has won yet; drives the menu's Continue button.
     public var matchInProgress: Bool { match.actionCount > 0 && match.winner == nil }
 
+    /// One line for the welcome card: where the saved match stands, or nil when there is nothing to resume.
+    public var resumeContext: String? {
+        guard matchInProgress else { return nil }
+        let phase: String = switch match.hand.phase {
+        case .bidding: "bidding"
+        case .choosingTrump: "choosing trump"
+        case .playing: "trick \(match.hand.completedTricks.count + 1)"
+        case .finished: "hand scored"
+        }
+        return "Hand \(match.handNumber) · Your team \(match.scores[0]), their team \(match.scores[1]) · \(phase)"
+    }
+
     /// The login screen's one write: the trimmed name becomes seat 0's name as well.
     public func signIn(name: String, portrait: Portrait, difficulty: Difficulty) {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -387,7 +399,11 @@ public final class GameModel: ObservableObject {
                                  records: records, historyURL: historyURL)
             }
         } catch {
-            fresh.errorMessage = "Your previous game could not be restored. A new game is ready. \(error.localizedDescription)"
+            // Keep the unreadable file where it can be recovered; the fresh game must not overwrite it.
+            let aside = directory.appendingPathComponent("game-corrupt.json")
+            try? FileManager.default.removeItem(at: aside)
+            try? FileManager.default.moveItem(at: url, to: aside)
+            fresh.errorMessage = "Your previous game could not be restored, so it was kept as game-corrupt.json and a new game is ready. \(error.localizedDescription)"
         }
         return fresh
     }
