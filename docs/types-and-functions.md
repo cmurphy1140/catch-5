@@ -164,6 +164,7 @@ classDiagram
 | Name | Purpose | Proven by |
 |---|---|---|
 | `PlayerView` | own cards plus public facts, including every auction call and every completed trick; `init(match:seat:)` copies only what the seat may know | `changingHiddenCardsDoesNotChangeComputerDecision`, `computerSeesPublicAuctionCalls`, `computerSeesCompletedTricksButNotHiddenHands` |
+| `PlayerView.init(match:replaying:inCompletedTrick:)` | rebuilds the view a seat had just before an earlier play, from public information and that seat's remaining cards | `replayedViewExplainsEveryComputerPlayExactly` |
 | `PlayerAction` | nineAndOut, bid(Int?), chooseTrump(Suit), play(Card) | |
 | `Advice` | an action plus its reasoning in plain words | `adviceNamesTheActionAndExplainsIt` |
 | `ComputerPlayer.advise(_:)` | the single source of truth: the action this strategy takes from a seat and why; nil unless it is that seat's turn | `adviceExplainsCardPlay` (also checks it agrees with `decide` through a whole match) |
@@ -201,6 +202,7 @@ classDiagram
 | `allows(_:)` | dry run on a copy of the match | drives button enabling |
 | `latestCall(for:)`, `contract`, `seatNames` | wording for the auction display | `modelDescribesAuctionCallsAndContract` |
 | `hint`, `showHint()` | the strategy's advice for seat 0 on request; cleared by the next accepted action | `hintMatchesTheComputerStrategyAndClearsAfterActing` |
+| `explanation(for:inLastTrick:)`, `explain(_:inLastTrick:)`, `explanation` | why a card on the table or in the last trick was played; for the human's own card it compares with what the strategy preferred | `explanationsNameTheSeatAndCompareTheHumanToTheStrategy` |
 | `nextHand()`, `newGame()` | fresh shuffled deck via `deck()` | |
 | `persist()`, `loadDefault()` | Application Support/CatchFive/game.json | manual simulator check |
 
@@ -208,7 +210,7 @@ classDiagram
 
 | Name | Purpose |
 |---|---|
-| `TableView` | the whole screen: header, scores and contract, three opponent tiles, status line, Hint button and advice panel on your turn (the suggested card is ringed in gold), trick area, hand, phase-specific controls, new-game confirmation, error alert, computer scheduler task, background save |
+| `TableView` | the whole screen: header, scores and contract, three opponent tiles, status line, Hint button and advice panel on your turn (the suggested card is ringed in gold), trick area where tapping any played card explains it, hand, phase-specific controls, new-game confirmation, error alert, computer scheduler task, background save |
 | `CardView` | a 48×72 card face with accessibility label; `Suit.glyph`, `Suit.ink`, `Card.label` helpers |
 | `HandSummaryView` | who took High, Low, Jack, Five, Game for the last hand and what was bid |
 | colour extensions | `.ivory`, `.felt`, `.gold` |

@@ -185,3 +185,11 @@ Each entry: what was decided, what it was chosen over, and why. Dates are when t
 **Over:** A separate explanation generator, or hints written as rules of thumb.
 
 **Why:** One path cannot drift from the other: a test plays a whole match and checks that advice and decision agree at every turn. The reasons are derived from the same facts the score uses (what is on the table, whether a card can be beaten, whether the five is being kept back), so they explain the computers' own play as much as they advise the human. Hints use only the human's `PlayerView`, so they never reveal hidden cards.
+
+## D24. Past plays are explained by rebuilding the view, not by logging reasons (2026-09-04)
+
+**Chosen:** `PlayerView.init(match:replaying:inCompletedTrick:)` reconstructs what a seat could see before an earlier play (its cards then, the tricks before, the cards already on the table) and `advise` runs on that. Card choice was made order-independent so the rebuilt hand decides identically; a test replays a whole match and checks every explanation matches the play that happened.
+
+**Over:** Storing each computer's reason alongside the action log.
+
+**Why:** Nothing new needs saving, old saves gain the feature for free, and the explanation can never disagree with the code that played. For the human's own card the same view says what the strategy would have done instead, which is the "why did the computer do that" question turned into a coaching moment.
