@@ -244,7 +244,7 @@ public enum ComputerPlayer {
         let beats = rank(card, led: led, trump: trump) > rank(current.card, led: led, trump: trump)
         let table = atStake >= 0.5 ? "about \(tenths(atStake)) points are on the table" : "there is little on the table"
         let five = Card(trump, .five)
-        let keepsFive = legal.contains(five) && card != five ? " It keeps the five back." : ""
+        let keepsFive = legal.contains(five) && card != five ? " The five stays back." : ""
         let reason: String
         if beats {
             if knowledge.unbeatable(card, led: led) {
@@ -254,12 +254,12 @@ public enum ComputerPlayer {
             }
         } else if partnerWinning {
             if knowledge.unbeatable(current.card, led: led) {
-                reason = "Play the \(card.name): your partner's \(current.card.name) holds the trick, so give it your most valuable card."
+                reason = "Play the \(card.name): partner's \(current.card.name) holds the trick, so the most valuable card goes to it."
             } else {
-                reason = "Play the \(card.name): your partner is winning for now, so play low and keep your strong cards.\(keepsFive)"
+                reason = "Play the \(card.name): partner is winning for now, so a low card keeps the strong ones back.\(keepsFive)"
             }
         } else {
-            reason = "Play the \(card.name): you cannot win this trick, so give up the card worth least.\(keepsFive)"
+            reason = "Play the \(card.name): this trick cannot be won, so the card worth least goes.\(keepsFive)"
         }
         return (card, reason)
     }
@@ -276,7 +276,7 @@ public enum ComputerPlayer {
         if !knowledge.unseen.contains(where: { $0.suit == trump }), let high = others.max(by: {
             (knowledge.unbeatable($0, led: $0.suit) ? 1 : 0, $0.rank.rawValue)
                 < (knowledge.unbeatable($1, led: $1.suit) ? 1 : 0, $1.rank.rawValue) }) {
-            return (high, "Lead the \(high.name): no trumps are left against you, so your highest side card should win.")
+            return (high, "Lead the \(high.name): no trumps are left against this side, so the highest side card should win.")
         }
         // Otherwise exit cheaply: never the five, and prefer a side card over spending a trump.
         let exits = others.isEmpty ? trumps.filter { $0.rank != .five } : others
@@ -285,7 +285,7 @@ public enum ComputerPlayer {
                 < (knowledge.pointValue($1) + knowledge.controlValue($1), $1.rank.rawValue)
         }) else { return nil }
         let five = trumps.contains(Card(trump, .five)) && exit != Card(trump, .five) ? " and the five" : ""
-        return (exit, "Lead the \(exit.name): without a trump that commands, lead the card that risks least and keep your trumps\(five) back.")
+        return (exit, "Lead the \(exit.name): without a commanding trump, the card that risks least goes, keeping the trumps\(five) back.")
     }
 
     private static func rank(_ card: Card, led: Suit, trump: Suit) -> Int {
