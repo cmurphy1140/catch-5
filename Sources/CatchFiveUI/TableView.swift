@@ -6,6 +6,7 @@ public struct TableView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var confirmNewGame = false
     @State private var showSettings = false
+    @State private var showRules = false
 
     public init(model: GameModel) { _model = StateObject(wrappedValue: model) }
 
@@ -46,6 +47,8 @@ public struct TableView: View {
         .sensoryFeedback(.impact(weight: .light), trigger: model.match.hand.completedTricks.count) { _, _ in model.settings.haptics }
         .sensoryFeedback(.success, trigger: model.match.history.count) { _, _ in model.settings.haptics }
         .sheet(isPresented: $showSettings) { SettingsView(settings: $model.settings) }
+        .sheet(isPresented: $showRules, onDismiss: { model.markRulesSeen() }) { RulesView { showRules = false } }
+        .onAppear { if model.needsRulesIntroduction { showRules = true } }
         .alert("Game notice", isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
             Button("OK") { model.errorMessage = nil }
         } message: { Text(model.errorMessage ?? "") }
@@ -63,8 +66,12 @@ public struct TableView: View {
             Spacer()
             VStack(alignment: .trailing, spacing: 6) {
                 Text("HAND \(model.match.handNumber)").font(.caption.monospaced())
-                Button { showSettings = true } label: { Image(systemName: "gearshape") }
-                    .tint(.ivory.opacity(0.7)).accessibilityLabel("Settings")
+                HStack(spacing: 14) {
+                    Button { showRules = true } label: { Image(systemName: "book") }
+                        .accessibilityLabel("How to play")
+                    Button { showSettings = true } label: { Image(systemName: "gearshape") }
+                        .accessibilityLabel("Settings")
+                }.tint(.ivory.opacity(0.7))
             }
         }
     }
