@@ -1,4 +1,4 @@
-# CardGame.io
+# Catch 5
 
 ## Current Status
 Greenfield SwiftUI iOS app with a Hint button that explains the computer strategy from the human seat. Rules and complete hand lifecycle implemented: deal/refill, normal auction, legal moves, trick capture, scoring and match settlement. 96 tests pass, including 208 deterministic hands, a five-hand match and a mirrored strength benchmark against a frozen player. Match owns automatic scoring, summaries, dealer rotation and victory enforcement; terminal demo uses it. Versioned replay-based save/resume and atomic disk APIs are implemented; baseline computer players use restricted PlayerView, with 24 shuffled match simulations. SwiftUI table (`Sources/CatchFiveUI`) plays one human against three computers, shows each seat's auction call and the contract, and saves after every accepted action and on backgrounding. Build the simulator bundle with `scripts/build-simulator.py`.
