@@ -153,3 +153,20 @@ Each entry: what was decided, what it was chosen over, and why. Dates are when t
 **Over:** Partial credit for a queen-or-better or a four-or-lower when higher or lower trumps were still unseen.
 
 **Why:** The partial credit measured worse in every variant tried, because it made the player cling to cards it should have spent and dump cards it should have kept.
+
+## D21. Six strategy ideas measured and not adopted (2026-09-04)
+
+**Method:** the current player was frozen as a reference opponent in the test target, each idea was implemented behind temporary knobs, and every variant played 1200 mirrored matches against the reference (noise floor about two percentage points). A control run with the knobs off scored exactly 50% each time, confirming the harness.
+
+| Idea | Best variant | Win rate vs current | Margin per match |
+|---|---|---|---|
+| Void tracking (seats that failed to follow a suit) | hold chance still indexed by seats to play | 50.0% | 0.0 |
+| Game point valued by the state of the race | flat weight, zero once decided (never triggered) | 50.0% | 0.0 |
+| Monte Carlo sampling of hidden hands, 12 deals, heuristic rollouts | as inherited from the cancelled experiment | 45.9% | −1.5, and ten times slower |
+| Hypergeometric hold chance from the unseen cards | quarter blend with the fixed table | 51.7% | +0.4 |
+| Bidding context: dealer bonus, save bid, closing bid, respecting high bids | dealer +1 | 51.1% | +0.1 |
+| Lead policy: low trump when holding the five, short-suit exits, opening top trump, low trump when long | short-suit exits | 50.5% | +0.1 |
+
+**Decision:** keep the D18 player unchanged. Nothing cleared the two-point noise floor, and the two ideas with real complexity (voids, Monte Carlo) measured neutral or worse. The fixed hold-chance table appears to encode useful pessimism that the "more accurate" hypergeometric estimate loses, probably because opponents choose when to trump rather than trumping at random.
+
+**What might still work:** a proper search would need a better rollout model than the heuristic and an honest model of the stock, and a much larger time budget than the test suite can afford. Any future attempt should start by reproducing the 50% control run described above.
