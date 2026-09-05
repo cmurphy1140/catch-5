@@ -571,7 +571,7 @@ import Testing
 
 @Test func handLayoutFansOnlyWhenEveryStripIsThumbSized() {
     // Six 64 pt cards on the iPhone 16 (393 − 32 padding − 16 inset): a fan with the full overlap.
-    #expect(HandLayout.arrange(count: 6, cardWidth: 64, available: 345) == .fan(strip: 48))
+    #expect(HandLayout.arrange(count: 6, cardWidth: 64, available: 345) == .fan(strip: Theme.Card.touchStrip(width: 64)))
     // Cards grown by Dynamic Type still fan while every strip stays at 44 or more.
     #expect(HandLayout.arrange(count: 6, cardWidth: 120, available: 345) == .fan(strip: 45))
     // Any wider and the fan would hide part of a thumb target: two rows of three instead.
@@ -580,10 +580,10 @@ import Testing
     // Rows keep the invariant too, and never overlap more than the fan would.
     if case let .rows(perRow, strip) = rows { #expect(strip >= Theme.Card.minimumTouchStrip && perRow == 3) }
     // Fewer cards fan at any size; a single card needs no strip at all.
-    #expect(HandLayout.arrange(count: 3, cardWidth: 100, available: 345) == .fan(strip: 84))
-    #expect(HandLayout.arrange(count: 1, cardWidth: 100, available: 200) == .fan(strip: 84))
+    #expect(HandLayout.arrange(count: 3, cardWidth: 100, available: 345) == .fan(strip: Theme.Card.touchStrip(width: 100)))
+    #expect(HandLayout.arrange(count: 1, cardWidth: 100, available: 200) == .fan(strip: Theme.Card.touchStrip(width: 100)))
     // Height follows the arrangement so the hand never clips.
-    #expect(HandLayout.height(of: .fan(strip: 48), cardWidth: 64) == 64 * Theme.Card.ratio + 16 + Theme.Card.fanDrop)
+    #expect(HandLayout.height(of: .fan(strip: 56), cardWidth: 64) == 64 * Theme.Card.ratio + 16 + Theme.Card.fanDrop)
     #expect(HandLayout.height(of: .rows(perRow: 3, strip: 84), cardWidth: 100) == 2 * 100 * Theme.Card.ratio + 8 + 16)
 }
 
