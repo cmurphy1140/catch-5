@@ -469,3 +469,34 @@ import Testing
     let settings = try SettingsStore.read(from: url)
     #expect(settings.seatNames == ["You", "Hazel", "Mum", "Rue"])
 }
+
+@MainActor @Test func matchInProgressIsFalseForFreshAndFinishedMatches() throws {
+    let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3))
+    #expect(!model.matchInProgress)
+    model.send(.bid(nil))
+    #expect(model.matchInProgress)
+    try finishMatch(model)
+    #expect(model.match.winner != nil)
+    #expect(!model.matchInProgress)
+    model.newGame()
+    #expect(!model.matchInProgress)
+}
+
+@MainActor @Test func signInTrimsNameAndSetsSeatZero() throws {
+    let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3))
+    #expect(!model.settings.hasSignedIn)
+    model.signIn(name: "  Connor ", portrait: Cast.playerChoices[3], difficulty: .easy)
+    #expect(model.settings.playerName == "Connor")
+    #expect(model.seatNames[0] == "Connor")
+    #expect(model.settings.playerPortrait == Cast.playerChoices[3])
+    #expect(model.settings.difficulty == .easy)
+    #expect(model.settings.hasSignedIn)
+}
+
+@MainActor @Test func seatSummaryIncludesSeatWord() throws {
+    let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3))
+    #expect(model.seatSummary(for: 1).hasPrefix("Hazel, West, "))
+    #expect(model.seatSummary(for: 3).hasSuffix("dealer"))
+    #expect(model.seatSummary(for: 0).hasPrefix("You, "))
+    #expect(model.seatSummary(for: 0).hasSuffix("to act"))
+}
