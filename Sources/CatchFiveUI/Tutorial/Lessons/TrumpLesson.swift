@@ -8,9 +8,9 @@ struct TrumpLesson: View {
         let correct = model.trumpPick == TutorialFixtures.trumpAnswer
         VStack(spacing: 16) {
             LessonText(paragraphs: [
-                "Whoever wins the bid names a suit as trump. Any trump beats any card of another suit.",
-                "Once trump is named, everyone throws away their non-trump cards and draws back up to six from the leftover deck. The cards you draw can be anything, trumps included.",
-            ], tactic: "Name the suit where you hold the most cards and the highest ones. Three trumps headed by the ace is a strong start; a lone king is not.")
+                "The bid winner names a suit as trump. Any trump beats any card of another suit.",
+                "Everyone then throws away their non-trump cards and draws back to six from the deck. The new cards can be anything, trumps included.",
+            ], tactic: "Name the suit where you hold the most cards and the highest. Three trumps to the ace is strong; a lone king is not.")
             Text("You won the bid at 4. Tap the suit to name as trump.").font(.subheadline)
             HStack(spacing: 8) {
                 ForEach(model.showRefill && correct ? TutorialFixtures.refilledHand : TutorialFixtures.biddingHand, id: \.self) { card in

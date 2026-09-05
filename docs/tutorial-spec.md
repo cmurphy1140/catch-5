@@ -37,7 +37,7 @@ Note on lesson 2: the reference build uses a fixed answer key for the auction ex
 
 ### Lesson copy
 
-Rules text and tactic boxes are in the reference build, one lesson per screen. Tactics, in order:
+Rules text and tactic boxes are in the reference build, one lesson per screen. On 2026-09-05 Connor found the copy too wordy, so every paragraph and tactic was shortened in the lesson files (the facts are unchanged; the text below is the original). Tactics, in order:
 
 1. Deal: partners sit across from each other; the leftover deck is out of play, scoring cards included.
 2. Bidding: count what you can see (the ace of a long suit is High, the five in that suit is five if you can protect it). Bid what you can take; a failed 4 costs more than being outbid.

@@ -8,9 +8,9 @@ struct TricksLesson: View {
     var body: some View {
         VStack(spacing: 16) {
             LessonText(paragraphs: [
-                "The bid winner plays the first card. Going around the table, each player adds one card. Those four cards are a trick, and the winner of the trick collects them for their team and leads the next one.",
-                "You must follow the suit that was led if you have one. If you have none, play anything, including a trump. If any trump was played, the highest trump wins; otherwise the highest card of the led suit wins.",
-            ], tactic: "Never lead the five of trump; any higher trump takes it. Lead your highest trump to pull the others out; keep the five for a trick your side is already winning.")
+                "The bid winner leads. Each player adds one card; those four cards are a trick. The winner takes them and leads next.",
+                "Follow the led suit if you can. If you cannot, play anything, trump included. The highest trump wins; with no trump, the highest card of the led suit.",
+            ], tactic: "Never lead the five of trump. Lead your highest trump to pull the others out, and save the five for a trick your side is already winning.")
             Text(model.trickPrompt).font(.subheadline).multilineTextAlignment(.center)
             table
             if model.trickPart == 0 { hand }

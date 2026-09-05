@@ -100,7 +100,7 @@ struct LessonText: View {
     let tactic: String
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            ForEach(paragraphs, id: \.self) { Text($0).font(.body) }
+            ForEach(paragraphs, id: \.self) { Text($0).font(.body).lineSpacing(2).fixedSize(horizontal: false, vertical: true) }
             Text("Tactic. \(tactic)")
                 .font(.footnote).foregroundStyle(.ivory.opacity(0.9))
                 .padding(12).frame(maxWidth: .infinity, alignment: .leading)
@@ -128,15 +128,19 @@ struct SeatTile: View {
     var ring: Color? = nil
     var portrait: Portrait? = nil
     let action: () -> Void
+    /// Every label stays on one line and shrinks a little rather than wrapping, so three tiles fit a row
+    /// at the boosted text size.
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 6) {
+            VStack(spacing: 4) {
                 if let portrait { PortraitView(portrait: portrait, size: Theme.Table.portraitSize) }
-                Text(name).font(.subheadline.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.7)
-                Text(detail).font(.caption2).opacity(0.65).multilineTextAlignment(.center)
-                if let badge { Text(badge).font(.system(.caption2, design: .monospaced)).foregroundStyle(.gold).lineLimit(1).minimumScaleFactor(0.7) }
+                Text(name).font(.subheadline.weight(.semibold))
+                Text(detail).font(.caption).opacity(0.7)
+                if let badge { Text(badge).font(.system(.caption2, design: .monospaced)).foregroundStyle(.gold) }
             }
-            .padding(12).frame(minWidth: 80, minHeight: 44)
+            .lineLimit(1).minimumScaleFactor(0.7)
+            .padding(.horizontal, 8).padding(.vertical, 10)
+            .frame(maxWidth: .infinity, minHeight: 44)
             .background(Theme.Wood.inlay.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(ring ?? .clear, lineWidth: 3))
         }.buttonStyle(.plain).foregroundStyle(.ivory)

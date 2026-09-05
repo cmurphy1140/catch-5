@@ -131,10 +131,11 @@ struct TableSurface: View {
 
     // MARK: Contract
 
-    /// Trump and the contract, in gold (rule 2), on a pill under the header once trump is named.
+    /// Trump and the contract, in gold (rule 2), as plain text at the table's top-left once trump is
+    /// named: no pill, so it sits in the felt like a scorer's note.
     @ViewBuilder private var contractPill: some View {
         if let trump = hand.trump {
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 Text(trump.glyph).font(.title2).foregroundStyle(trump.isRed ? Color.suitRed : .ivory)
                 Text("Trump")
                 if let contract = model.contract {
@@ -145,10 +146,7 @@ struct TableSurface: View {
             .font(.system(.body, design: .serif).weight(.semibold))
             .foregroundStyle(.gold)
             .lineLimit(1).minimumScaleFactor(0.8)
-            .padding(.horizontal, 18).padding(.vertical, 8)
-            .background(Theme.Wood.inlay.opacity(0.7), in: Capsule())
-            .overlay(Capsule().stroke(.gold.opacity(0.35)))
-            .padding(.top, 4)
+            .padding(.leading, 4).padding(.top, 10)
             .accessibilityElement(children: .combine)
         }
     }
