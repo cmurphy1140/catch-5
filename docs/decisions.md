@@ -318,3 +318,11 @@ D36 is taken by the cast, login and menu work on the parallel branch.
 
 **Why:** Standard game onboarding is a short, skippable intro with a clear door to the full lessons, and returning players expect to be at the table one launch away. A card over the table keeps the two things a returning player actually wants in reach without a page between them.
 
+## D46. The rules sheet shows each rule before it states it (PR #30, 2026-09-05)
+
+**Chosen:** `RulesView` is six chapters on the felt, each an inlay panel with a gold numeral: a figure first, built from the table's own pieces (portraits, card backs, `CardView`, the cast's names), then the rule as written from `RulesText`, always visible under a thin gold rule. A chapter rail of chips under the title scrolls to a chapter (`scrollPosition`) and lights the chapter at the top. Interaction is spent only where it adds understanding: a Following suit / Trumped toggle on the example trick, tappable point tiles that explain how each point is won. `RulesFigures` holds every number a figure draws and a test checks them against the engine, including the two example tricks through `trickWinner`. Reduce Motion drops the springs.
+
+**Over:** The previous list of headings and paragraphs on wood; hiding the verbatim text behind disclosures (the standard for a rules screen is summary first, exact text visible beneath, so a dispute mid-game is settled in one glance and VoiceOver reads it in one pass); numbers typed into the figures by hand.
+
+**Why:** Connor asked for a much better layout with an interactive flow and its own colour scheme, distinct from the tutorial. The tutorial is wood, pills and exercises; the rules are felt, panels and figures, so the two read as different rooms. Building figures from the real components keeps them in the app's language, and checking their numbers against the engine keeps them true.
+

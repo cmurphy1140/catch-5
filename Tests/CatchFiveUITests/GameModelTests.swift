@@ -528,3 +528,17 @@ import Testing
     #expect(RootView.initialScreen(for: Settings(playerName: "Connor")) == .table)
 }
 
+
+@Test func rulesFiguresMatchTheEngine() throws {
+    // The scoring tiles add up to the nine points a hand can hold, and the Game ledger quotes the engine's values.
+    #expect(RulesFigures.pointTiles.map(\.points).reduce(0, +) == 9)
+    #expect(RulesFigures.pointTiles.map(\.name) == ["High", "Low", "Jack", "Five", "Game"])
+    for entry in RulesFigures.gameValues { #expect(entry.value == entry.rank.gameValue) }
+    #expect(RulesFigures.gameValues.map(\.rank) == [.ten, .ace, .king, .queen, .jack])
+    // The two example tricks are judged by the real rule, not drawn by hand.
+    #expect(try trickWinner(RulesFigures.followedTrick, trump: RulesFigures.trump) == RulesFigures.followedWinner)
+    #expect(try trickWinner(RulesFigures.trumpedTrick, trump: RulesFigures.trump) == RulesFigures.trumpedWinner)
+    #expect(RulesFigures.followedWinner != RulesFigures.trumpedWinner)
+    #expect(RulesFigures.bidLadder == Array(2...9))
+    #expect(RulesFigures.matchTarget == 25)
+}
