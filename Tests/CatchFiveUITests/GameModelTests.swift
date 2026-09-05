@@ -1,6 +1,7 @@
 import CatchFive
 @testable import CatchFiveUI
 import Foundation
+import SwiftUI
 import Testing
 
 @MainActor @Test func humanActionAdvancesComputersAndStopsForHuman() throws {
@@ -398,20 +399,20 @@ import Testing
     let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
     var match = try Match(deck: deck, dealer: 3)
     // During the auction there is nothing to hold and nothing to lead.
-    #expect(TableScheduler.plan(hand: match.hand, collapsedTricks: 0) == (false, true))
+    #expect(TableScheduler.plan(hand: match.hand, collapsedTricks: 0) == (false, true, false))
     try match.bid(seat: 0, amount: 9)
     for seat in 1...3 { try match.bid(seat: seat, amount: nil) }
     try match.chooseTrump(seat: 0, suit: .clubs)
-    #expect(TableScheduler.plan(hand: match.hand, collapsedTricks: 0) == (false, true))   // first lead
+    #expect(TableScheduler.plan(hand: match.hand, collapsedTricks: 0) == (false, true, true))   // first lead waits for the deal
     try match.play(seat: 0, card: try #require(match.hand.legalMoves(seat: 0).first))
-    #expect(TableScheduler.plan(hand: match.hand, collapsedTricks: 0) == (false, false))  // a follow
+    #expect(TableScheduler.plan(hand: match.hand, collapsedTricks: 0) == (false, false, false))  // a follow
     for _ in 0..<3 {
         let seat = try #require(match.hand.nextSeat)
         try match.play(seat: seat, card: try #require(match.hand.legalMoves(seat: seat).first))
     }
     #expect(match.hand.completedTricks.count == 1)
-    #expect(TableScheduler.plan(hand: match.hand, collapsedTricks: 0) == (true, false))   // hold, then a lead follows the hold
-    #expect(TableScheduler.plan(hand: match.hand, collapsedTricks: 1) == (false, true))   // already collapsed: plain lead
+    #expect(TableScheduler.plan(hand: match.hand, collapsedTricks: 0) == (true, false, false))   // hold, then a lead follows the hold
+    #expect(TableScheduler.plan(hand: match.hand, collapsedTricks: 1) == (false, true, false))   // already collapsed: plain lead
 }
 
 @MainActor @Test func noticeSurvivesComputerRepliesUntilTheHumanActs() throws {
@@ -499,4 +500,25 @@ import Testing
     #expect(model.seatSummary(for: 3).hasSuffix("dealer"))
     #expect(model.seatSummary(for: 0).hasPrefix("You, "))
     #expect(model.seatSummary(for: 0).hasSuffix("to act"))
+}
+
+@Test func textBoostRaisesTheDefaultTwoStepsAndStopsAtTheLargest() {
+    #expect(Theme.textBoostSteps == 2)
+    #expect(DynamicTypeSize.large.boosted(by: Theme.textBoostSteps) == .xxLarge)
+    #expect(DynamicTypeSize.accessibility5.boosted(by: Theme.textBoostSteps) == .accessibility5)
+    #expect(DynamicTypeSize.xSmall.boosted(by: -3) == .xSmall)
+    // Cards still stop at XXXL, so a user two steps below it is the last to see them grow.
+    #expect(DynamicTypeSize.xLarge.boosted(by: Theme.textBoostSteps) == Theme.Card.maximumTypeSize)
+}
+
+@Test func dealtCardsComeFromTheDeckInTheCornerAndTheBandFrowns() {
+    // The leftmost card has the longest flight from the top-right deck; the rightmost the shortest, still upward.
+    let left = HandFanView.dealOrigin(index: 0, count: 6, width: 360)
+    let right = HandFanView.dealOrigin(index: 5, count: 6, width: 360)
+    #expect(left.width > right.width && right.width > 0)
+    #expect(left.height < 0 && left.height == right.height)
+    // The frown's middle sits `dip` above its corners.
+    let band = HeaderBandShape(dip: 20).path(in: CGRect(x: 0, y: 0, width: 300, height: 100)).boundingRect
+    #expect(band.maxY == 100 && band.minY == 0)
+    #expect(Theme.Motion.dealHold > Theme.Motion.trickHold)
 }

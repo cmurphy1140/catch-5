@@ -41,18 +41,54 @@ struct HandFanView: View {
                     .allowsHitTesting(playing)
                     .accessibilityValue(model.accessibilityValue(for: card))
                     .modifier(MatchedCard(card: card, namespace: namespace, enabled: !reduceMotion))
-                    .transition(reduceMotion ? .opacity : .identity)
+                    .transition(handTransition(index: index, width: geometry.size.width))
                     .zIndex(Double(index))
                 }
                 }
                 .frame(width: geometry.size.width, height: geometry.size.height, alignment: .bottom)
             }
-            .frame(height: max(scaledStandard, scaledWide) * Theme.Card.ratio + 16 + Theme.Card.fanDrop)
+            // Sized for the standard card; on the rare wider phone the wide card overhangs by a few points.
+            .frame(height: scaledStandard * Theme.Card.ratio + 16 + Theme.Card.fanDrop)
             if !cards.isEmpty {
-                Text("YOUR HAND").font(.caption2.monospaced()).tracking(1).opacity(0.55)
+                HStack(spacing: 8) {
+                    Text("YOUR HAND").opacity(0.55)
+                    if model.match.hand.auction.dealer == 0 {
+                        Text("·").opacity(0.4)
+                        Text("DEALER").foregroundStyle(.gold)
+                    }
+                }
+                .font(.caption2.monospaced()).tracking(1)
+                .accessibilityElement(children: .combine)
             }
         }
         .frame(maxWidth: .infinity)
+    }
+
+    /// How a card enters or leaves the fan. A played card leaves by `matchedGeometryEffect` (identity
+    /// here). While trump is being chosen, a leaving card is a discard: it rises toward the table and
+    /// fades, one after another. At the start of play, an arriving card is part of the refill: it
+    /// deals in from the dealer's seat, small and faint, after the discards have gone.
+    private func handTransition(index: Int, width: Double) -> AnyTransition {
+        if reduceMotion { return .opacity }
+        let hand = model.match.hand
+        let dealing = hand.phase == .playing && hand.currentTrick.isEmpty && hand.completedTricks.isEmpty
+        let insertion: AnyTransition = dealing
+            ? .offset(Self.dealOrigin(index: index, count: model.humanCards.count, width: width))
+                .combined(with: .scale(scale: 0.6)).combined(with: .opacity)
+                .animation(Theme.Motion.flight.delay(Theme.Motion.dealDelay + Double(index) * Theme.Motion.dealStagger))
+            : .identity
+        let removal: AnyTransition = hand.phase == .choosingTrump
+            ? .offset(y: -Theme.Motion.discardRise).combined(with: .scale(scale: 0.5)).combined(with: .opacity)
+                .animation(Theme.Motion.collapse.delay(Double(index) * Theme.Motion.discardStagger))
+            : .identity
+        return .asymmetric(insertion: insertion, removal: removal)
+    }
+
+    /// Where a dealt card starts, relative to its place in the fan: the deck in the table's top-right
+    /// corner. Cards sit evenly across the fan, so each one's flight starts a different distance away.
+    nonisolated static func dealOrigin(index: Int, count: Int, width: Double) -> CGSize {
+        let cardCentre = (Double(index) + 0.5) * width / Double(max(count, 1))
+        return CGSize(width: width - Theme.Table.deckWidth / 2 - cardCentre, height: -Theme.Table.deckRise)
     }
 
     /// Cards rotate from −8° on the left to +8° on the right about their bottom edge.

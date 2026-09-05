@@ -16,13 +16,13 @@ struct TutorialView: View {
                     pills
                     lesson
                         .padding(16)
-                        .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 16))
+                        .background(Theme.Wood.inlay.opacity(0.6), in: RoundedRectangle(cornerRadius: 16))
                     footer
                 }
                 .padding(20).frame(maxWidth: 640).frame(maxWidth: .infinity)
             }
             .foregroundStyle(.ivory)
-            .background(LinearGradient(colors: [.felt, .black], startPoint: .topLeading, endPoint: .bottomTrailing).ignoresSafeArea())
+            .background(WoodGrainView().ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Menu("More") {
@@ -59,7 +59,7 @@ struct TutorialView: View {
                                 Text("\(index + 1) · \(TutorialModel.titles[index])").font(.footnote.weight(.semibold))
                             }
                             .padding(.horizontal, 14).frame(height: 44)
-                            .background(index == model.lesson ? .gold.opacity(0.15) : .white.opacity(0.04), in: Capsule())
+                            .background(index == model.lesson ? .gold.opacity(0.15) : Theme.Wood.inlay.opacity(0.5), in: Capsule())
                             .overlay(Capsule().stroke(index == model.lesson ? .gold : .white.opacity(0.1)))
                         }.buttonStyle(.plain).foregroundStyle(index == model.lesson ? .gold : .ivory)
                         .accessibilityLabel("Lesson \(index + 1), \(TutorialModel.titles[index])\(model.completed.contains(index) ? ", complete" : "")")
@@ -137,7 +137,7 @@ struct SeatTile: View {
                 }
             }
             .padding(12).frame(minWidth: 80, minHeight: 44)
-            .background(.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 12))
+            .background(Theme.Wood.inlay.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(ring ?? .clear, lineWidth: 3))
         }.buttonStyle(.plain).foregroundStyle(.ivory)
     }

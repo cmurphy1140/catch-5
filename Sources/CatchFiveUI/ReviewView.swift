@@ -24,6 +24,7 @@ struct ReviewView: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden).background(WoodGrainView().ignoresSafeArea())
             .navigationTitle("Hand review")
             .toolbar { Button("Done", action: onDismiss) }
         }
@@ -80,6 +81,7 @@ struct ScoreboardView: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden).background(WoodGrainView().ignoresSafeArea())
             .navigationTitle("Scoreboard")
             .toolbar { Button("Done", action: onDismiss) }
         }
@@ -117,6 +119,7 @@ struct StatisticsView: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden).background(WoodGrainView().ignoresSafeArea())
             .navigationTitle("Statistics")
             .toolbar { Button("Done", action: onDismiss) }
         }
