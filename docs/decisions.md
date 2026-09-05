@@ -154,7 +154,7 @@ Each entry: what was decided, what it was chosen over, and why. Dates are when t
 
 **Why:** The partial credit measured worse in every variant tried, because it made the player cling to cards it should have spent and dump cards it should have kept.
 
-## D20. Export by rendering, never by hand-maintained copies (PR #4, 2026-09-04)
+## D21. Export by rendering, never by hand-maintained copies (PR #4, 2026-09-04)
 
 **Chosen:** `scripts/export-docs.py` generates PDF and PNG into the gitignored `work/docs-export/` folder from the Markdown source: one PDF per page, a combined `catch-five-explainer.pdf`, and one PNG per Mermaid block.
 
