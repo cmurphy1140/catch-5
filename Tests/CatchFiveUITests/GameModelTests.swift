@@ -935,3 +935,14 @@ import Testing
     #expect(model.isHumanTurn)
     #expect(model.match.hand.legalMoves(seat: 0).allSatisfy { $0.suit == led })
 }
+
+@Test func discardsFlyToThePileUnderTheDeck() {
+    // Discards head for the top-right corner like the deal, but land lower: under the deck, not on it.
+    for index in 0..<6 {
+        let deal = HandFanView.dealOrigin(index: index, count: 6, width: 360)
+        let discard = HandFanView.discardTarget(index: index, count: 6, width: 360)
+        #expect(discard.width == deal.width)             // same corner
+        #expect(discard.height < 0 && discard.height > deal.height)   // upward, but not as far
+    }
+    #expect(Theme.Table.discardDrop > Theme.Table.deckWidth * Theme.Card.ratio)   // clear of the deck itself
+}
