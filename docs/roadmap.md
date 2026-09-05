@@ -1,6 +1,6 @@
 # Roadmap: from playable to shippable
 
-**Status (2026-09-04):** all six milestones are merged (PRs #8 to #13), plus the tutorial (PR #14). What remains is installing on a phone and archiving for TestFlight, covered in [device-install.md](device-install.md).
+**Status (2026-09-04):** all six milestones are merged (PRs #8 to #13), plus the tutorial (PR #14). The app was installed and launched on Connor's iPhone on 2026-09-05 following [device-install.md](device-install.md); archiving for TestFlight is the only step not yet exercised.
 
 Drafted 2026-09-04 by the planning model from the code and decision log; edit freely. Six milestones toward an enjoyable single-player Catch 5. Strategy strength is parked (D22); every milestone below is product work built on infrastructure that already exists: the replay log, `PlayerView`, `Advice`, and the living docs. Each milestone updates `docs/` in the same commit and adds a numbered decision.
 
