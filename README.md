@@ -1,4 +1,4 @@
-# CardGame.io
+# Catch 5
 
 A SwiftUI iOS card-game app in development, starting with Catch 5 (Pitch with Fives) using custom partnership rules and a winning score of 25.
 
