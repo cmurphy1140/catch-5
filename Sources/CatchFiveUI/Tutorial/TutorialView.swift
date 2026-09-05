@@ -6,6 +6,7 @@ struct TutorialView: View {
     @ObservedObject var model: TutorialModel
     let onDismiss: () -> Void
     @State private var showRules = false
+    @State private var showExplainer = false
 
     var body: some View {
         NavigationStack {
@@ -23,10 +24,18 @@ struct TutorialView: View {
             .foregroundStyle(.ivory)
             .background(LinearGradient(colors: [.felt, .black], startPoint: .topLeading, endPoint: .bottomTrailing).ignoresSafeArea())
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Full rules") { showRules = true } }
+                ToolbarItem(placement: .cancellationAction) {
+                    Menu("More") {
+                        Button("Full rules") { showRules = true }
+                        Button("How Catch 5 is built") { showExplainer = true }
+                    }
+                }
                 ToolbarItem(placement: .confirmationAction) { Button("Done", action: onDismiss) }
             }
             .sheet(isPresented: $showRules) { RulesView { showRules = false } }
+            #if canImport(UIKit)
+            .sheet(isPresented: $showExplainer) { ExplainerView { showExplainer = false } }
+            #endif
         }
         .preferredColorScheme(.dark)
     }

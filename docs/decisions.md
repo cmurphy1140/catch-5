@@ -251,3 +251,11 @@ Portrait iPhone first, with iPad allowed in the same 640-point column, stays the
 **Over:** Hand-written explanations without engine checks, or a scripted live hand.
 
 **Why:** A tutorial that can drift from the rules is worse than none; checking the fixtures against `legalCards`, `trickWinner`, `scoreHand` and `settle` means a rules change fails a test before it teaches something false, and it already caught one mistake. The tutorial replaces the rules sheet on first launch; the rules stay one tap away inside it.
+
+## D32. The explainer pages ship inside the app as bundled HTML (PR #16, 2026-09-05)
+
+**Chosen:** The ten Claude Design pages (`App/Explainer/*.dc.html`, about 5 MB) are bundled as a folder and shown in a `WKWebView` loaded from the file URL with read access to the folder, so their relative links work offline. Navigation is allowed only inside the folder; web links open in Safari. Entry points: Settings ("How Catch 5 is built") and the tutorial's More menu. A test checks that every page the library lists is present and that no page's head references the network.
+
+**Over:** Rendering the Markdown in-app, or linking out to GitHub.
+
+**Why:** The exported pages are self-contained (blob: assets only, verified in a browser with the network log open) and already carry the diagrams and the interactive decisions table, so bundling them is the shortest path to reading the documentation on the phone. The cost is that they are a snapshot: re-export from Claude Design after the docs change, then copy the files into `App/Explainer`. The hand-built simulator bundle copies the folder too.

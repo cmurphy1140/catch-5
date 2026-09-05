@@ -50,7 +50,7 @@ flowchart TD
 
 Each `swiftc` call is the compiler invoked directly, with `-target arm64-apple-ios17.0-simulator` so the binary is built for the simulator, and `-swift-version 6`. The `-I` and `-L` flags tell later steps where to find the `.swiftmodule` and `.a` files from earlier steps.
 
-`project.yml` and `CatchFive.xcodeproj` exist for the day Xcode's simulator platform is installed; `xcodegen` regenerates the project from the YAML. They are not used by the script, but the script does copy two things the store build also uses: the icon, scaled from `App/Assets.xcassets/AppIcon.appiconset/icon-1024.png` (rendered by `swift scripts/make-icon.swift <output>`), and `App/PrivacyInfo.xcprivacy`.
+`project.yml` and `CatchFive.xcodeproj` exist for the day Xcode's iOS platform is installed ([device-install.md](device-install.md)); `xcodegen` regenerates the project from the YAML. They are not used by the script, but the script does copy three things the store build also uses: the `App/Explainer` folder of bundled documentation pages, the icon, scaled from `App/Assets.xcassets/AppIcon.appiconset/icon-1024.png` (rendered by `swift scripts/make-icon.swift <output>`), and `App/PrivacyInfo.xcprivacy`.
 
 ## Toward the App Store
 
