@@ -131,8 +131,10 @@ struct HandFanView: View {
 /// Three quick side-to-side oscillations over 0.3 s; runs whenever `trigger` changes.
 struct ShakeEffect: ViewModifier {
     let trigger: Int
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     func body(content: Content) -> some View {
-        let a = Theme.Motion.shakeAmplitude
+        // Under Reduce Motion nothing moves; the refusal reason on the message line does the talking.
+        let a = reduceMotion ? 0 : Theme.Motion.shakeAmplitude
         content.keyframeAnimator(initialValue: 0.0, trigger: trigger) { view, x in
             view.offset(x: x)
         } keyframes: { _ in

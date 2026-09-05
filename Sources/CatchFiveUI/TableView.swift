@@ -22,6 +22,18 @@ public struct TableView: View {
     @State private var shakes: [Card: Int] = [:]
     @State private var shakeCount = 0
     @State private var toast: PlayerAction?
+    /// What the last revision changed, reduced to the one cue worth a haptic.
+    @State private var cue: (id: Int, cue: TableFeedback.Cue)?
+    @State private var seen = Seen()
+    @AccessibilityFocusState private var statusFocused: Bool
+
+    /// The counters the last revision left behind, so the next one can say what changed.
+    private struct Seen {
+        var tricks = 0
+        var hands = 0
+        var winner: Int?
+        var action: PlayerAction?
+    }
 
     private let onLeave: () -> Void
     /// Something outside this view covers the table (the welcome card); computers wait while it is up.
@@ -76,7 +88,8 @@ public struct TableView: View {
             TableSurface(model: model, namespace: cards, collapsedTricks: collapsedTricks, reopenedTrick: reopenedTrick, toast: toast,
                          onReopenTrick: { withAnimation(motion(Theme.Motion.collapse)) { reopenedTrick = model.match.hand.completedTricks.count } },
                          onCloseTrick: { withAnimation(motion(Theme.Motion.collapse)) { reopenedTrick = nil } },
-                         onReview: { showReview = true }, onNineAndOut: { confirmNineAndOut = true })
+                         onReview: { showReview = true }, onNineAndOut: { confirmNineAndOut = true },
+                         statusFocus: $statusFocused)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.horizontal, 16)
             // Cards stop growing at XXXL so the fan keeps six cards on screen; the cap must sit above the
@@ -103,6 +116,11 @@ public struct TableView: View {
             .onChange(of: model.match.handNumber) { _, _ in collapsedTricks = 0; reopenedTrick = nil }
             .onChange(of: model.revision) { _, _ in withAnimation(motion(Theme.Motion.collapse)) { reopenedTrick = nil } }
             .onChange(of: model.lastHumanAction) { _, action in toast = action }
+            .onChange(of: model.revision) { _, revision in noteChanges(revision) }
+            // Focus follows the game: a lifted cover or a new turn puts VoiceOver on the status line.
+            .onChange(of: covered) { _, now in if !now { statusFocused = true } }
+            .onChange(of: pause.sheetShown) { _, now in if !now { statusFocused = true } }
+            .onChange(of: model.isHumanTurn) { _, now in if now { statusFocused = true } }
             .task(id: toast) {
                 guard toast != nil else { return }
                 try? await Task.sleep(for: .seconds(Theme.Motion.toastSeconds))
@@ -112,15 +130,35 @@ public struct TableView: View {
             .onChange(of: scenePhase) { _, phase in if phase != .active { model.persist() } }
     }
 
-    /// The haptic vocabulary from the plan, all gated by the settings toggle.
+    /// Two haptics only: the refusal buzz, and one outcome cue per accepted action (`TableFeedback`).
     private var withHaptics: some View {
         withScheduling
-            .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.6), trigger: model.lastHumanAction) { _, new in playHaptic(new) }
-            .sensoryFeedback(.selection, trigger: model.lastHumanAction) { _, new in callHaptic(new) }
             .sensoryFeedback(.impact(flexibility: .rigid, intensity: 0.4), trigger: shakeCount) { _, _ in model.settings.haptics }
-            .sensoryFeedback(trickFeedback, trigger: model.match.hand.completedTricks.count) { old, new in model.settings.haptics && new > old }
-            .sensoryFeedback(.success, trigger: model.match.history.count) { _, new in model.settings.haptics && new > 0 }
-            .sensoryFeedback(.impact(weight: .heavy), trigger: model.match.winner) { _, new in model.settings.haptics && new != nil }
+            .sensoryFeedback(cue?.cue.feedback ?? .selection, trigger: cue?.id ?? 0) { _, _ in model.settings.haptics && cue != nil }
+    }
+
+    /// After each accepted action, work out what it did and pick the one cue and announcement for it.
+    private func noteChanges(_ revision: Int) {
+        let hand = model.match.hand
+        let tricks = hand.completedTricks.count
+        let hands = model.match.history.count
+        let trickWinner = tricks > seen.tricks ? hand.completedTricks.last?.winner : nil
+        let handEnded = hands > seen.hands
+        let matchWinner = model.match.winner != seen.winner ? model.match.winner : nil
+        let action: TableFeedback.HumanAction? = {
+            guard let last = model.lastHumanAction, last != seen.action else { return nil }
+            if case .play = last { return .play }
+            return .call
+        }()
+        if let picked = TableFeedback.cue(action: action, trickWinner: trickWinner, handEnded: handEnded, matchWinner: matchWinner) {
+            cue = (revision, picked)
+        }
+        if let trickWinner, !handEnded {
+            AccessibilityNotification.Announcement("\(model.seatNames[trickWinner]) took the trick").post()
+        } else if handEnded, let outcome = model.lastHandOutcome {
+            AccessibilityNotification.Announcement("\(outcome.headline). \(outcome.bidderLine)").post()
+        }
+        seen = Seen(tricks: tricks, hands: hands, winner: model.match.winner, action: model.lastHumanAction)
     }
 
     private var withSheets: some View {
@@ -159,23 +197,9 @@ public struct TableView: View {
 
     private func motion(_ animation: Animation) -> Animation { reduceMotion ? Theme.Motion.reduced : animation }
 
-    private func playHaptic(_ action: PlayerAction?) -> Bool {
-        guard model.settings.haptics, let action else { return false }
-        if case .play = action { return true }
-        return false
-    }
 
-    private func callHaptic(_ action: PlayerAction?) -> Bool {
-        guard model.settings.haptics, let action else { return false }
-        if case .play = action { return false }
-        return true
-    }
 
     /// A finished trick is worth a medium tap when our side took it, a light one otherwise.
-    private var trickFeedback: SensoryFeedback {
-        (model.match.hand.completedTricks.last?.winner ?? 1) % 2 == 0
-            ? .impact(weight: .medium, intensity: 0.9) : .impact(weight: .light, intensity: 0.7)
-    }
 
     private func shake(_ card: Card) {
         shakes[card, default: 0] += 1

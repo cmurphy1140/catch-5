@@ -720,3 +720,15 @@ import Testing
     let before = model.match.history.count > 1 ? model.match.history[model.match.history.count - 2].scores : [0, 0]
     #expect(outcome.bidderLine.contains("score \(before[last.bidder % 2]) → \(last.scores[last.bidder % 2])") || last.isNineAndOut)
 }
+
+@Test func oneFeedbackCuePerActionWithTheOutcomeThatMattersMost() {
+    // A single tap can play a card, take a trick, end the hand and win the match at once; only one cue plays.
+    #expect(TableFeedback.cue(action: .play, trickWinner: nil, handEnded: false, matchWinner: nil) == .play)
+    #expect(TableFeedback.cue(action: .call, trickWinner: nil, handEnded: false, matchWinner: nil) == .call)
+    #expect(TableFeedback.cue(action: .play, trickWinner: 0, handEnded: false, matchWinner: nil) == .trickWon)
+    #expect(TableFeedback.cue(action: nil, trickWinner: 1, handEnded: false, matchWinner: nil) == .trickLost)
+    #expect(TableFeedback.cue(action: .play, trickWinner: 2, handEnded: true, matchWinner: nil) == .handEnded)
+    #expect(TableFeedback.cue(action: .play, trickWinner: 0, handEnded: true, matchWinner: 0) == .matchWon)
+    #expect(TableFeedback.cue(action: .play, trickWinner: 1, handEnded: true, matchWinner: 1) == .matchLost)
+    #expect(TableFeedback.cue(action: nil, trickWinner: nil, handEnded: false, matchWinner: nil) == nil)
+}

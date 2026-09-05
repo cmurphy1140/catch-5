@@ -11,6 +11,7 @@ public struct RootView: View {
     /// The returning player's card; also reopened by the table's chevron.
     @State private var showWelcome: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorSchemeContrast) private var contrast
 
     public init(model: GameModel) {
         _model = StateObject(wrappedValue: model)
@@ -36,13 +37,16 @@ public struct RootView: View {
             case .table:
                 TableView(model: model, covered: showWelcome) { withAnimation(motion) { showWelcome = true } }
                     .transition(.opacity)
+                    // Under the card the table is neither tappable nor reachable by VoiceOver.
+                    .accessibilityHidden(showWelcome)
                     .overlay {
                         if showWelcome {
                             ZStack {
-                                Color.black.opacity(0.55).ignoresSafeArea()
+                                Color.black.opacity(contrast == .increased ? 0.75 : 0.55).ignoresSafeArea()
                                 WelcomeCard(model: model) { withAnimation(motion) { showWelcome = false } }
                             }
                             .transition(.opacity)
+                            .accessibilityAddTraits(.isModal)
                         }
                     }
             }
