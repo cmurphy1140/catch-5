@@ -50,6 +50,7 @@ Initial dealing uses two packets of three starting left of dealer. Refill gives 
 - `Tests/CatchFiveTests`: repeatable rule tests with explicit card fixtures.
 - `docs/learning-path.md`: start here to read the code without an IDE; links the architecture, game-flow, types, testing, decision-log and build pages, all with diagrams.
 - `docs/catch-five-rules.md`: confirmed house rules.
+- `docs/roadmap.md`: the planned milestones and their order.
 - `docs/engine-plan.md`: initial implementation milestone.
 - `docs/code-map.md`: plain-language architecture and source-to-test connections.
 - `scripts/export-docs.py`: renders the explainer pages to PDF and their diagrams to PNG in `work/docs-export/` for upload to Claude Design.

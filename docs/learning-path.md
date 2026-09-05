@@ -13,6 +13,7 @@ This is the front door to the living documentation. Each linked page is kept in 
 | 5 | [testing.md](testing.md) | How Swift Testing works, the test pyramid here, and how each feature was built test-first |
 | 6 | [decisions.md](decisions.md) | The decision log: what was chosen, what was rejected, and why |
 | 7 | [code-map.md](code-map.md) | Older call-trace walkthroughs (match scoring, save/resume, computer path); still accurate |
+| 8 | [roadmap.md](roadmap.md) | The next six milestones toward a shippable app, with dependencies, tests to write first and risks |
 
 ## Swift vocabulary used in these pages
 
