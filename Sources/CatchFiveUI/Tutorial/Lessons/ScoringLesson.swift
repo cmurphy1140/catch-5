@@ -7,10 +7,11 @@ struct ScoringLesson: View {
     var body: some View {
         VStack(spacing: 16) {
             LessonText(paragraphs: [
-                "Nine points are on offer each hand, all decided by the cards each team captured. High and Low go to whoever took the highest and lowest trump actually played. The jack of trump is 1 point, and the five of trump is 5.",
-                "Game is 1 point for the team whose captured cards add up to more: tens count 10, aces 4, kings 3, queens 2, jacks 1. A tie goes to the bidders.",
-                "The bidders keep their points if they made the bid and lose the bid if they fell short. The other team always keeps its points. First to 25 wins.",
-            ], tactic: "The five is worth more than everything else put together. Give it to your partner's winning card; watch for the moment an opponent is forced to play it.")
+                "Nine points a hand, all decided by what each team captured.",
+                "High and Low: the highest and lowest trump played, 1 point each. The jack of trump: 1. The five of trump: 5.",
+                "Game: 1 point for the higher count, where tens are 10, aces 4, kings 3, queens 2, jacks 1. A tie goes to the bidders.",
+                "Bidders keep their points if they made the bid and lose the bid if not. The other team always keeps its points. First to 25 wins.",
+            ], tactic: "The five outweighs everything else together. Feed it to your partner's winning card, and watch for an opponent forced to play it.")
             Text("Spades were trump and they bid 4. Assign each point to the team that earned it.").font(.subheadline).multilineTextAlignment(.center)
             pile("US", TutorialFixtures.usCaptured)
             pile("THEM", TutorialFixtures.themCaptured)
