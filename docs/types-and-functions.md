@@ -201,6 +201,10 @@ classDiagram
 | `stepComputer()` | one computer action for whichever non-human seat is due | `humanActionAdvancesComputersAndStopsForHuman` |
 | `allows(_:)` | dry run on a copy of the match | drives button enabling |
 | `latestCall(for:)`, `contract`, `seatNames` | wording for the auction display | `modelDescribesAuctionCallsAndContract` |
+| `settings`, `seatNames` | player preferences (play speed, seat names, haptics), saved to `settings.json` whenever they change; names flow into the contract, explanations, tiles and summary | `seatNamesFlowIntoContractAndExplanations`, `settingsRoundTripThroughDiskAndTolerateMissingKeys` |
+| `humanCards` | the hand as shown: trumps first, highest to lowest, then the other suits in a fixed order | `humanCardsSortTrumpFirstThenBySuitAndRank` |
+| `notice` | one-line note about something that happened without a tap, such as "You discarded 2 and drew 2."; cleared by the next action | `trumpChoiceReportsDiscards` |
+| `message(for:)` | rule errors in a player's words ("You must follow suit…") | `illegalPlayExplainsFollowSuitInPlainWords` |
 | `hint`, `showHint()` | the strategy's advice for seat 0 on request; cleared by the next accepted action | `hintMatchesTheComputerStrategyAndClearsAfterActing` |
 | `explanation(for:inLastTrick:)`, `explain(_:inLastTrick:)`, `explanation` | why a card on the table or in the last trick was played; for the human's own card it compares with what the strategy preferred | `explanationsNameTheSeatAndCompareTheHumanToTheStrategy` |
 | `nextHand()`, `newGame()` | fresh shuffled deck via `deck()` | |
@@ -210,9 +214,11 @@ classDiagram
 
 | Name | Purpose |
 |---|---|
-| `TableView` | the whole screen: header, scores and contract, three opponent tiles, status line, Hint button and advice panel on your turn (the suggested card is ringed in gold), trick area where tapping any played card explains it, hand, phase-specific controls, new-game confirmation, error alert, computer scheduler task, background save |
+| `Settings`, `SettingsStore` | `Settings.swift`: Codable preferences with defaults for missing keys, and `delay(leadingTrick:)` for the computer pause per play speed; the store reads and writes JSON atomically | `delayDependsOnPlaySpeedAndLeadPosition`, `settingsRoundTripThroughDiskAndTolerateMissingKeys` |
+| `SettingsView` | sheet from the gear button: play speed, four seat names, haptics toggle | manual |
+| `TableView` | the whole screen: header, scores and contract, three opponent tiles, status line naming who is thinking, discard notice, Hint button and advice panel on your turn (the suggested card is ringed in gold), trick area where tapping any played card explains it, hand, phase-specific controls, new-game confirmation, error alert, computer scheduler task, background save |
 | `CardView` | a 48×72 card face with accessibility label; `Suit.glyph`, `Suit.ink`, `Card.label` helpers |
-| `HandSummaryView` | who took High, Low, Jack, Five, Game for the last hand and what was bid |
+| `HandSummaryView` | who took High, Low, Jack, Five, Game for the last hand and what was bid, using the configured seat names |
 | colour extensions | `.ivory`, `.felt`, `.gold` |
 
 ## Sources/CatchFiveDemo

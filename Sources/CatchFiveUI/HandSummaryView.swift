@@ -3,6 +3,7 @@ import SwiftUI
 
 struct HandSummaryView: View {
     let match: Match
+    let names: [String]
     var body: some View {
         if let summary = match.history.last {
             VStack(spacing: 8) {
@@ -12,7 +13,7 @@ struct HandSummaryView: View {
                 row("Jack", team: summary.result.jackTeam)
                 row("Five · 5 points", team: summary.result.fiveTeam)
                 row("Game · \(summary.result.gameValues[0])–\(summary.result.gameValues[1])", team: summary.result.gameTeam)
-                Text("\(["You", "West", "Partner", "East"][summary.bidder]) bid \(summary.isNineAndOut ? "9 and out" : String(summary.bid))")
+                Text("\(names[summary.bidder]) bid \(summary.isNineAndOut ? "9 and out" : String(summary.bid))")
                     .font(.caption).opacity(0.6)
             }.padding(16).background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 16))
         }
@@ -21,7 +22,7 @@ struct HandSummaryView: View {
         HStack {
             Text(name)
             Spacer()
-            Text(team.map { $0 == 0 ? "Your team" : "West + East" } ?? "Out of play")
+            Text(team.map { $0 == 0 ? "Your team" : "\(names[1]) + \(names[3])" } ?? "Out of play")
         }.font(.caption)
     }
 }

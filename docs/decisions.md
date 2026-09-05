@@ -193,3 +193,11 @@ Each entry: what was decided, what it was chosen over, and why. Dates are when t
 **Over:** Storing each computer's reason alongside the action log.
 
 **Why:** Nothing new needs saving, old saves gain the feature for free, and the explanation can never disagree with the code that played. For the human's own card the same view says what the strategy would have done instead, which is the "why did the computer do that" question turned into a coaching moment.
+
+## D25. Settings live in the UI module and are saved beside the game (PR #8, 2026-09-04)
+
+**Chosen:** `Settings` (play speed, seat names, haptics) is a Codable struct in `CatchFiveUI`, written to `settings.json` next to `game.json` whenever it changes, with defaults for any missing key so older files keep loading. `GameModel` owns it and derives seat names, the sorted hand and the computer pause from it.
+
+**Over:** `UserDefaults`, or threading preferences into the engine.
+
+**Why:** The engine stays free of preferences, so nothing in the rules changes with a name or a speed. A JSON file next to the save is easy to inspect, matches how the game is stored, and needs no privacy-manifest reason. Keeping one `seatNames` source in the view model ended the three duplicated name lists the roadmap found.

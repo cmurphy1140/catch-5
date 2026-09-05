@@ -14,7 +14,7 @@ flowchart LR
     ICON["Icon, privacy manifest, xcodegen<br/>(can start any time)"] -.-> M6
 ```
 
-## M1. Table polish and Settings (M)
+## M1. Table polish and Settings (M) — done in PR #8
 
 **Goal:** Make a full match comfortable to play at the reader's own pace.
 

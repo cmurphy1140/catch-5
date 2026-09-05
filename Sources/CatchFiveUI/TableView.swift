@@ -5,6 +5,7 @@ public struct TableView: View {
     @StateObject private var model: GameModel
     @Environment(\.scenePhase) private var scenePhase
     @State private var confirmNewGame = false
+    @State private var showSettings = false
 
     public init(model: GameModel) { _model = StateObject(wrappedValue: model) }
 
@@ -14,13 +15,14 @@ public struct TableView: View {
                 header
                 scores
                 HStack {
-                    opponent(1, name: "West")
+                    opponent(1)
                     Spacer()
-                    opponent(2, name: "Partner")
+                    opponent(2)
                     Spacer()
-                    opponent(3, name: "East")
+                    opponent(3)
                 }
                 Text(status).font(.subheadline).multilineTextAlignment(.center).frame(minHeight: 40)
+                if let notice = model.notice { Text(notice).font(.caption).foregroundStyle(.gold.opacity(0.85)) }
                 if model.isHumanTurn { hintRow }
                 if model.match.hand.phase == .playing || model.match.hand.phase == .finished { trick }
                 if !model.humanCards.isEmpty { hand }
@@ -36,11 +38,14 @@ public struct TableView: View {
         .preferredColorScheme(.dark)
         .task(id: model.revision) {
             guard !model.isHumanTurn, model.match.hand.nextSeat != nil, model.match.winner == nil else { return }
-            try? await Task.sleep(for: .milliseconds(model.match.hand.currentTrick.isEmpty ? 1200 : 700))
+            try? await Task.sleep(for: model.settings.delay(leadingTrick: model.match.hand.currentTrick.isEmpty))
             guard !Task.isCancelled else { return }
             model.stepComputer()
         }
         .onChange(of: scenePhase) { _, phase in if phase != .active { model.persist() } }
+        .sensoryFeedback(.impact(weight: .light), trigger: model.match.hand.completedTricks.count) { _, _ in model.settings.haptics }
+        .sensoryFeedback(.success, trigger: model.match.history.count) { _, _ in model.settings.haptics }
+        .sheet(isPresented: $showSettings) { SettingsView(settings: $model.settings) }
         .alert("Game notice", isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
             Button("OK") { model.errorMessage = nil }
         } message: { Text(model.errorMessage ?? "") }
@@ -56,13 +61,17 @@ public struct TableView: View {
                 Text("PARTNERSHIP PITCH · FIRST TO 25").font(.system(size: 9, weight: .medium, design: .monospaced)).tracking(1)
             }
             Spacer()
-            Text("HAND \(model.match.handNumber)").font(.caption.monospaced())
+            VStack(alignment: .trailing, spacing: 6) {
+                Text("HAND \(model.match.handNumber)").font(.caption.monospaced())
+                Button { showSettings = true } label: { Image(systemName: "gearshape") }
+                    .tint(.ivory.opacity(0.7)).accessibilityLabel("Settings")
+            }
         }
     }
 
     private var scores: some View {
         HStack {
-            score("YOU + PARTNER", value: model.match.scores[0])
+            score(team(0), value: model.match.scores[0])
             Spacer()
             VStack(spacing: 4) {
                 Text(model.match.hand.trump.map { "\($0.glyph) TRUMP" } ?? "— TRUMP")
@@ -72,8 +81,12 @@ public struct TableView: View {
                 }
             }.multilineTextAlignment(.center).foregroundStyle(.gold)
             Spacer()
-            score("WEST + EAST", value: model.match.scores[1])
+            score(team(1), value: model.match.scores[1])
         }.padding(16).background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 16))
+    }
+
+    private func team(_ index: Int) -> String {
+        "\(model.seatNames[index]) + \(model.seatNames[index + 2])".uppercased()
     }
 
     private func score(_ title: String, value: Int) -> some View {
@@ -83,9 +96,9 @@ public struct TableView: View {
         }
     }
 
-    private func opponent(_ seat: Int, name: String) -> some View {
+    private func opponent(_ seat: Int) -> some View {
         VStack(spacing: 6) {
-            Text(name).font(.subheadline.weight(.semibold))
+            Text(model.seatNames[seat]).font(.subheadline.weight(.semibold))
             Text(seatDetail(seat)).font(.caption2).opacity(0.65)
             if model.match.hand.auction.dealer == seat { Text("DEALER").font(.system(size: 8, design: .monospaced)).foregroundStyle(.gold) }
         }.padding(12)
@@ -115,13 +128,14 @@ public struct TableView: View {
     }
 
     private var status: String {
-        if let winner = model.match.winner { return winner == 0 ? "Your team wins!" : "West + East win" }
+        if let winner = model.match.winner { return winner == 0 ? "Your team wins!" : "\(model.seatNames[1]) + \(model.seatNames[3]) win" }
+        let actor = model.match.hand.nextSeat.map { model.seatNames[$0] } ?? ""
         switch model.match.hand.phase {
         case .bidding:
             let bid = model.match.hand.auction.isNineAndOut ? "9 and out" : model.match.hand.auction.highestBid.map(String.init) ?? "none"
-            return "High bid: \(bid)\n\(model.isHumanTurn ? "Your bid" : "Bidding…")"
-        case .choosingTrump: return model.isHumanTurn ? "Choose trump" : "Choosing trump…"
-        case .playing: return model.isHumanTurn ? "Your turn\nTap a legal card" : "Computer’s turn"
+            return "High bid: \(bid)\n\(model.isHumanTurn ? "Your bid" : "\(actor) is bidding")"
+        case .choosingTrump: return model.isHumanTurn ? "Choose trump" : "\(actor) is choosing trump"
+        case .playing: return model.isHumanTurn ? "Your turn\nTap a legal card" : "\(actor) is thinking"
         case .finished: return "Hand complete"
         }
     }
@@ -130,7 +144,7 @@ public struct TableView: View {
         let last = model.match.hand.completedTricks.last
         let showingLast = model.match.hand.currentTrick.isEmpty && last != nil
         let plays = showingLast ? last?.plays ?? [] : model.match.hand.currentTrick
-        let names = ["You", "West", "Partner", "East"]
+        let names = model.seatNames
         return VStack(spacing: 12) {
             Text(showingLast ? "LAST TRICK" : "ON THE TABLE")
                 .font(.caption2.monospaced()).tracking(2).opacity(0.6)
@@ -181,7 +195,7 @@ public struct TableView: View {
 
     @ViewBuilder private var controls: some View {
         if model.match.hand.phase == .finished {
-            HandSummaryView(match: model.match)
+            HandSummaryView(match: model.match, names: model.seatNames)
             Button(model.match.winner == nil ? "Deal next hand" : "Play again") {
                 if model.match.winner == nil { model.nextHand() } else { model.newGame() }
             }.buttonStyle(.borderedProminent).tint(.gold).foregroundStyle(.black)

@@ -51,6 +51,8 @@ flowchart TD
 
 Special bid: `nineAndOut` sets `highestBid = 9` and `isNineAndOut = true`. It outranks a normal 9. Only the dealer may bid against it, and only by matching with their own 9-and-out; that override was confirmed as a house rule on 2026-09-04. Normal bids after a 9-and-out throw.
 
+After trump is named the table shows a one-line notice of how many cards the human discarded and drew, since the refill happens without a tap.
+
 `Auction.calls` is the ordered list of accepted calls. The table reads it to show "Bid 3" or "Pass" under each seat; computers receive it in `PlayerView.calls`.
 
 ## One trick
@@ -100,7 +102,7 @@ flowchart TD
     R["model.revision changed"] --> T[".task(id: revision) starts"]
     T --> Q{"human's turn,<br/>or hand/match over?"}
     Q -- yes --> STOP["do nothing; wait for a tap"]
-    Q -- no --> S["sleep 1.2 s if leading a trick,<br/>0.7 s otherwise"]
+    Q -- no --> S["sleep Settings.delay:<br/>longer before a lead,<br/>relaxed / normal / quick"]
     S --> C{"task cancelled?<br/>(revision changed again)"}
     C -- yes --> STOP
     C -- no --> D["stepComputer():<br/>PlayerView → ComputerPlayer.decide → match.apply"]
