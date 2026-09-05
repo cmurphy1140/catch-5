@@ -124,17 +124,33 @@ public struct TableView: View {
                     .font(.footnote).foregroundStyle(.gold)
             }
             HStack(spacing: 12) {
-                ForEach(plays, id: \.seat) { play in
+                // Cards are unique within a hand, so keying by card lets a new trick replace the last one.
+                ForEach(plays, id: \.card) { play in
                     VStack(spacing: 8) {
                         CardView(card: play.card)
-                        Text(["You", "West", "Partner", "East"][play.seat]).font(.caption2)
+                            .overlay(RoundedRectangle(cornerRadius: 8)
+                                .stroke(.gold, lineWidth: showingLast && last?.winner == play.seat ? 3 : 0))
+                        Text(names[play.seat]).font(.caption2)
                     }
+                    .transition(.asymmetric(insertion: .move(edge: Self.edge(for: play.seat)).combined(with: .opacity),
+                                            removal: .opacity))
                 }
                 if plays.isEmpty { Text("Waiting for the first card").font(.footnote).opacity(0.45).frame(height: 96) }
             }.frame(minHeight: 96)
+            .animation(.spring(duration: 0.45), value: model.revision)
         }.frame(maxWidth: .infinity).padding(.vertical, 20)
             .background(.white.opacity(0.025), in: RoundedRectangle(cornerRadius: 24))
             .overlay(RoundedRectangle(cornerRadius: 24).stroke(.white.opacity(0.08)))
+    }
+
+    /// Played cards enter from the side of the table their seat occupies.
+    private static func edge(for seat: Int) -> Edge {
+        switch seat {
+        case 1: .leading
+        case 2: .top
+        case 3: .trailing
+        default: .bottom
+        }
     }
 
     @ViewBuilder private var controls: some View {
@@ -181,8 +197,10 @@ public struct TableView: View {
                             .buttonStyle(.plain)
                             .allowsHitTesting(playable)
                             .opacity(model.match.hand.phase == .playing && !playable ? 0.5 : 1)
+                            .transition(.asymmetric(insertion: .opacity, removal: .move(edge: .top).combined(with: .opacity)))
                     }
                 }.padding(.bottom, 8)
+                .animation(.spring(duration: 0.45), value: model.revision)
             }
         }
     }
