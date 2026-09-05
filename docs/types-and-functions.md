@@ -153,7 +153,7 @@ classDiagram
 | Name | Purpose | Proven by |
 |---|---|---|
 | `MatchError` | handInProgress, matchFinished | `matchRejectsPrematureRedeal` |
-| `HandSummary` | number, dealer, bidder, bid, isNineAndOut, result, running scores | `nextHandRotatesDealerAndRetainsScores` |
+| `HandSummary` | number, dealer, bidder, bid, isNineAndOut, result, running scores; `contractMade` says whether the bidders collected what they promised | `nextHandRotatesDealerAndRetainsScores`, `handSummaryKnowsWhetherTheContractWasMade` |
 | `Match.init(deck:dealer:)` | starts hand 1 and remembers the deck for saves | |
 | `Match.bid` / `bidNineAndOut` / `chooseTrump` / `play` | wrap `Hand`, refuse after a winner, append to the action log; `play` settles the hand exactly once | `matchScoresOnlyAfterLastCardAndOnlyOnce`, `failedBidMakesNegativeMatchScore`, `negativeTeamCannotDeclareNineAndOut` |
 | `Match.startNextHand(deck:)` | only after `finished`; dealer + 1 | `nextHandRotatesDealerAndRetainsScores` |
@@ -188,6 +188,7 @@ classDiagram
 
 | Name | Purpose | Proven by |
 |---|---|---|
+| `ReviewError` | `unexplainedPlay`, thrown only if the strategy had no advice for a legal play | |
 | `PlayReview`, `TrickReview`, `HandReview(match:)` | every play of the finished hand's tricks next to the standard strategy's advice from the same rebuilt view (D24); `agreement(forSeat:)` counts matches | `reviewReconstructsEveryPlayWithAdvice` |
 | `SeatPerformance`, `Match.performance(forSeat:)` | plays agreed and contracts made over the whole match, rebuilt by replaying to each hand boundary; nothing extra is saved | `performanceCountsHumanPlaysAndContractsAcrossHands` |
 
@@ -214,7 +215,9 @@ classDiagram
 | `humanCards` | the hand as shown: trumps first, highest to lowest, then the other suits in a fixed order | `humanCardsSortTrumpFirstThenBySuitAndRank` |
 | `notice` | one-line note about something that happened without a tap, such as "You discarded 2 and drew 2."; cleared by the next action | `trumpChoiceReportsDiscards` |
 | `message(for:)` | rule errors in a player's words ("You must follow suit…") | `illegalPlayExplainsFollowSuitInPlainWords` |
-| `records`, `statistics`, `handReview()`, `performance()` | finished matches from `history.json`, totals over them, the finished hand's review and the human's record so far; a match is recorded exactly once when its winner is decided | `finishedMatchIsRecordedExactlyOnce`, `corruptHistoryDoesNotBlockPlay` |
+| `records`, `statistics`, `handReview()`, `finalPerformance` | finished matches from `history.json`, totals over them, the finished hand's review, and the human's record computed once when a match is recorded or restored finished | `finishedMatchIsRecordedExactlyOnce`, `corruptHistoryDoesNotBlockPlay` |
+| `describe(_:)` | one sentence for a reviewed play, shared by tap-to-explain and the hand review, labelling Easy seats | `reviewRowsShareExplanationWordingAndLabelEasySeats` |
+| `loadDefault(in:)` | loads game, settings and history from a directory; a history that cannot be decoded is set aside as `history-corrupt.json` | `corruptHistoryIsSetAsideByLoadDefault` |
 | `spokenDescription(of:winner:)`, `accessibilityValue(for:)` | VoiceOver wording for a played card ("West played the ten of hearts and took the trick") and for a hand card (playable, not legal now, waiting for your turn) | `spokenDescriptionOfPlayNamesSeatAndCard`, `accessibilityValueReflectsLegality` |
 | `canUndo`, `undo()` | take back the human's latest action this hand and every computer reply after it; saves and bumps `revision` | `undoneMatchSavesAndReloads` |
 | `hint`, `showHint()` | the strategy's advice for seat 0 on request; cleared by the next accepted action | `hintMatchesTheComputerStrategyAndClearsAfterActing` |
@@ -230,7 +233,7 @@ classDiagram
 | `RulesText` | the house rules as sections of verbatim paragraphs from `docs/catch-five-rules.md`, plus "Reading the table" notes about the screen | `rulesSheetContainsEveryHouseRuleParagraph` (reads the doc and fails on any drift) |
 | `RulesView` | the rules sheet, from the book button and automatically on first launch | manual |
 | `needsRulesIntroduction`, `markRulesSeen()` (on `GameModel`) | first-run flag backed by `Settings.hasSeenRules` | `firstLaunchShowsRulesOnce` |
-| `MatchRecord`, `Statistics`, `MatchHistoryStore` | `MatchHistory.swift`: one finished match (date, scores, hands, difficulty, human contracts and agreement); totals; JSON store with ISO 8601 dates | `statisticsAggregateAcrossRecords` |
+| `MatchRecord`, `Statistics`, `MatchHistoryStore` | `MatchHistory.swift`: one finished match (id, date to the second, scores, hands, difficulty in effect at the finish, human contracts and agreement) decoded with defaults for fields added later; totals; JSON store with ISO 8601 dates and `readSettingAsideCorruption(at:)` | `statisticsAggregateAcrossRecords`, `matchRecordDecodesOlderFilesAndRejectsBadScores` |
 | `ReviewView`, `ScoreboardView`, `StatisticsView` | `ReviewView.swift`: the finished hand play by play with disagreements in gold; every hand of the match (tap the score bar); totals and recent matches (chart button) | manual |
 | `SettingsView` | sheet from the gear button: difficulty, play speed, four seat names, haptics toggle | manual |
 | `TableView` | the whole screen (text styles throughout, seat tiles and scores read as single VoiceOver elements, played cards announce seat and card, hand cards announce legality, Reduce Motion replaces slides with fades): header, scores and contract, three opponent tiles, status line naming who is thinking, discard notice, Hint and Undo buttons and advice panel on your turn (the suggested card is ringed in gold), trick area where tapping any played card explains it, a match-over card with the human's record, Review hand and Deal next hand buttons, hand, phase-specific controls, new-game confirmation, error alert, computer scheduler task, background save |

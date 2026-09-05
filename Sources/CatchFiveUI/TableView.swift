@@ -54,10 +54,14 @@ public struct TableView: View {
         .sheet(isPresented: $showRules, onDismiss: { model.markRulesSeen() }) { RulesView { showRules = false } }
         .onAppear { if model.needsRulesIntroduction { showRules = true } }
         .sheet(isPresented: $showReview) {
-            if let review = model.handReview() { ReviewView(review: review, names: model.seatNames) { showReview = false } }
+            if let review = model.handReview() {
+                ReviewView(review: review, names: model.seatNames, difficulty: model.settings.difficulty, describe: model.describe) { showReview = false }
+            } else {
+                ReviewUnavailableView { showReview = false }
+            }
         }
         .sheet(isPresented: $showScoreboard) { ScoreboardView(history: model.match.history, names: model.seatNames) { showScoreboard = false } }
-        .sheet(isPresented: $showStatistics) { StatisticsView(records: model.records) { showStatistics = false } }
+        .sheet(isPresented: $showStatistics) { StatisticsView(stats: model.statistics, records: model.records) { showStatistics = false } }
         .alert("Game notice", isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
             Button("OK") { model.errorMessage = nil }
         } message: { Text(model.errorMessage ?? "") }
@@ -88,6 +92,12 @@ public struct TableView: View {
     }
 
     private var scores: some View {
+        Button { showScoreboard = true } label: { scorePanel }
+            .buttonStyle(.plain)
+            .accessibilityHint("Shows every hand of this match")
+    }
+
+    private var scorePanel: some View {
         HStack {
             score(team(0), value: model.match.scores[0])
             Spacer()
@@ -102,8 +112,6 @@ public struct TableView: View {
             score(team(1), value: model.match.scores[1])
         }.padding(16).background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 16))
         .contentShape(Rectangle())
-        .onTapGesture { showScoreboard = true }
-        .accessibilityAddTraits(.isButton).accessibilityHint("Shows every hand of this match")
     }
 
     private func team(_ index: Int) -> String {
@@ -259,7 +267,7 @@ public struct TableView: View {
 
     /// The card shown once a team reaches 25 or a 9-and-out resolves.
     private func matchOver(_ winner: Int) -> some View {
-        let performance = model.performance()
+        let performance = model.finalPerformance
         return VStack(spacing: 8) {
             Text(winner == 0 ? "YOU WIN THE MATCH" : "\(model.seatNames[1]) + \(model.seatNames[3]) WIN").font(.system(.subheadline, design: .monospaced).weight(.bold)).tracking(2)
             Text("\(model.match.scores[0]) – \(model.match.scores[1]) after \(model.match.history.count) hands").font(.title3.weight(.semibold))

@@ -269,7 +269,7 @@ import Testing
     defer { try? FileManager.default.removeItem(at: url) }
     try Data("not json".utf8).write(to: url)
     #expect(throws: (any Error).self) { try MatchHistoryStore.read(from: url) }
-    let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3), records: (try? MatchHistoryStore.read(from: url)) ?? [], historyURL: url)
+    let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3), records: MatchHistoryStore.readSettingAsideCorruption(at: url), historyURL: url)
     #expect(model.records.isEmpty)
     model.showHint()
     model.send(try #require(model.hint).action)
@@ -299,4 +299,49 @@ import Testing
     }
     model.send(.play(try #require(legal.first)))
     #expect(model.accessibilityValue(for: model.humanCards[0]) == "waiting for your turn")
+}
+
+@Test func matchRecordDecodesOlderFilesAndRejectsBadScores() throws {
+    let older = Data("[{\"date\":\"2026-09-04T20:00:00Z\",\"scores\":[26,10],\"winner\":0,\"hands\":6}]".utf8)
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: url) }
+    try older.write(to: url)
+    let records = try MatchHistoryStore.read(from: url)
+    #expect(records.count == 1)
+    #expect(records[0].scores == [26, 10] && records[0].humanBids == 0 && records[0].difficulty == .standard)
+    try Data("[{\"date\":\"2026-09-04T20:00:00Z\",\"scores\":[26],\"winner\":0,\"hands\":6}]".utf8).write(to: url)
+    #expect(throws: (any Error).self) { try MatchHistoryStore.read(from: url) }
+}
+
+@MainActor @Test func corruptHistoryIsSetAsideByLoadDefault() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    try Data("not json".utf8).write(to: directory.appendingPathComponent("history.json"))
+    let model = GameModel.loadDefault(in: directory)
+    #expect(model.records.isEmpty)
+    #expect(FileManager.default.fileExists(atPath: directory.appendingPathComponent("history-corrupt.json").path))
+    #expect(!FileManager.default.fileExists(atPath: directory.appendingPathComponent("history.json").path))
+    model.showHint()
+    model.send(try #require(model.hint).action)
+    #expect(model.errorMessage == nil)
+}
+
+@MainActor @Test func reviewRowsShareExplanationWordingAndLabelEasySeats() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    let model = GameModel(match: try Match(deck: deck, dealer: 3))
+    model.settings.difficulty = .easy
+    model.send(.bid(9))
+    for _ in 0..<3 { model.stepComputer() }
+    model.send(.chooseTrump(.clubs))
+    while model.match.hand.phase == .playing {
+        if model.isHumanTurn { model.showHint(); model.send(try #require(model.hint).action) } else { model.stepComputer() }
+    }
+    let review = try #require(model.handReview())
+    let west = try #require(review.tricks[0].plays.first { $0.play.seat == 1 })
+    let text = model.describe(west)
+    #expect(text.hasPrefix("West (easy) played the \(west.play.card.name)"))
+    #expect(text == model.explanation(for: west.play, inLastTrick: false, trickIndex: 0))
+    #expect(!text.contains("::") && !text.contains("Play the"))
+    #expect(model.finalPerformance == nil)
 }

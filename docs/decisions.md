@@ -232,7 +232,7 @@ Each entry: what was decided, what it was chosen over, and why. Dates are when t
 
 **Over:** Counting agreements as the hand is played, or storing reviews with the save.
 
-**Why:** The action log already holds everything needed (D5), so a match restored from disk at any point still produces the same record, and the review code has one implementation. Records are written once, guarded by a flag that is set when a finished match is restored, so a relaunch cannot duplicate an entry. A corrupt history file is set aside rather than blocking play.
+**Why:** The action log already holds everything needed (D5), so a match restored from disk at any point still produces the same record, and the review code has one implementation. Records are written once, guarded by a flag that is set when a finished match is restored, so a relaunch cannot duplicate an entry. A history file that cannot be decoded is renamed `history-corrupt.json` before anything is written, so a bad file never blocks play and is never overwritten. Records decode with defaults for fields added later, the same rule as `Settings` (D25); dates are stored to the second and `difficulty` is the value in effect when the match ended. The human's record is computed once at the finish (`finalPerformance`), not on every render, and the review always compares plays to the standard strategy whatever the difficulty, saying so for Easy seats. (Amended after code review, PR #13.)
 
 ## D30. Accessibility through the view model, and App Store scaffolding in `App/` (PR #13, 2026-09-04)
 

@@ -10,6 +10,12 @@ public struct HandSummary: Sendable {
     public let isNineAndOut: Bool
     public let result: HandScore
     public let scores: [Int]
+
+    /// Whether the bidding team collected what it promised (all nine for a 9-and-out).
+    public var contractMade: Bool {
+        let points = result.points[bidder % 2]
+        return isNineAndOut ? points == 9 : points >= bid
+    }
 }
 
 /// Owns the whole game. All player actions pass through the current Hand's rules.
