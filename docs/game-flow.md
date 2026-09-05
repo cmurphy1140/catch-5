@@ -128,6 +128,10 @@ flowchart TD
 
 The Hint button runs exactly this from your seat and shows the branch it took in words, ringing the suggested card. Tapping a card on the table or in the last trick rebuilds the view that seat had before playing it and shows the same explanation for that play. `stake` is the card's own point value if the other side captures it (a five is 5, a certain Low is 1, a ten is 0.6). `control` is what a trump is worth for later tricks, highest for an unbeatable one and zero on the last trick. `p` is 1 for an unbeatable card, otherwise 0.8 or 0.6 depending on how many seats still play, and when partner is winning it is the chance partner's card holds.
 
+## After a hand, and after a match
+
+"Review hand" rebuilds every play of the finished hand next to what the standard strategy would have done (the same reconstruction as tap-to-explain), with the plays that differ shown in gold. Tapping the score bar lists every hand so far. When a team reaches 25, a match-over card shows the final score and the human's record, and one `MatchRecord` is appended to `history.json`; the chart button shows totals across all recorded matches.
+
 ## Undo
 
 ```mermaid

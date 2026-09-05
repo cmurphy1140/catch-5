@@ -225,3 +225,11 @@ Each entry: what was decided, what it was chosen over, and why. Dates are when t
 **Over:** Storing snapshots, or writing inverse operations for each action.
 
 **Why:** The replay log (D5) already proves any prefix is a legal position, so undo cannot corrupt a game and needs no new persistence: the shortened log is simply saved. Because the computers are deterministic, replaying the unchanged prefix reproduces exactly the position the human saw. The human has seen the replies that get dropped; that is accepted as the price of a one-tap undo.
+
+## D29. Match records are derived from the action log at the finish (PR #12, 2026-09-04)
+
+**Chosen:** When a winner is decided, `GameModel` computes the human's record for the match by replaying it (`Match.performance(forSeat:)`, which reviews each finished hand with `HandReview`) and appends one `MatchRecord` to `history.json`. Nothing is tallied during play; the hand review itself is rebuilt from public information the same way tap-to-explain is.
+
+**Over:** Counting agreements as the hand is played, or storing reviews with the save.
+
+**Why:** The action log already holds everything needed (D5), so a match restored from disk at any point still produces the same record, and the review code has one implementation. Records are written once, guarded by a flag that is set when a finished match is restored, so a relaunch cannot duplicate an entry. A corrupt history file is set aside rather than blocking play.

@@ -218,3 +218,60 @@ import Testing
     #expect(try MatchSave.read(from: url).actionCount == 0)
     #expect(!model.canUndo)
 }
+
+@MainActor private func finishMatch(_ model: GameModel) throws {
+    for _ in 0..<20000 {
+        if model.match.winner != nil { return }
+        if model.match.hand.phase == .finished { model.nextHand(); continue }
+        if model.isHumanTurn {
+            model.showHint()
+            model.send(try #require(model.hint).action)
+        } else {
+            model.stepComputer()
+        }
+    }
+}
+
+@MainActor @Test func finishedMatchIsRecordedExactlyOnce() throws {
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: url) }
+    let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3), historyURL: url)
+    let stamp = Date(timeIntervalSince1970: 1_800_000_000)
+    model.now = { stamp }
+    try finishMatch(model)
+    #expect(model.records.count == 1)
+    let record = try #require(model.records.first)
+    #expect(record.date == stamp && record.scores == model.match.scores && record.hands == model.match.history.count)
+    #expect(record.humanPlays == record.humanPlaysAgreed && record.humanPlays == record.hands * 6)
+    #expect(model.handReview()?.tricks.count == 6)
+    model.showHint()   // a no-op after the match; must not record again
+    #expect(try MatchHistoryStore.read(from: url) == model.records)
+    let restored = GameModel(match: model.match, records: try MatchHistoryStore.read(from: url), historyURL: url)
+    restored.newGame()
+    #expect(restored.records.count == 1)
+    try finishMatch(restored)
+    #expect(restored.records.count == 2)
+}
+
+@Test func statisticsAggregateAcrossRecords() {
+    let won = MatchRecord(date: .init(), scores: [26, 10], winner: 0, hands: 6, difficulty: .standard, humanBids: 2, humanBidsMade: 2, humanPlays: 36, humanPlaysAgreed: 27)
+    let lost = MatchRecord(date: .init(), scores: [12, 25], winner: 1, hands: 5, difficulty: .easy, humanBids: 2, humanBidsMade: 1, humanPlays: 30, humanPlaysAgreed: 15)
+    let stats = Statistics([won, lost])
+    #expect(stats.matches == 2 && stats.wins == 1)
+    #expect(stats.averageMargin == 1.5)
+    #expect(stats.contractRate == 0.75)
+    #expect(stats.agreementRate.map { abs($0 - 42.0 / 66.0) < 0.0001 } == true)
+    #expect(Statistics([]).contractRate == nil && Statistics([]).averageMargin == 0)
+}
+
+@MainActor @Test func corruptHistoryDoesNotBlockPlay() throws {
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: url) }
+    try Data("not json".utf8).write(to: url)
+    #expect(throws: (any Error).self) { try MatchHistoryStore.read(from: url) }
+    let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3), records: (try? MatchHistoryStore.read(from: url)) ?? [], historyURL: url)
+    #expect(model.records.isEmpty)
+    model.showHint()
+    model.send(try #require(model.hint).action)
+    #expect(model.errorMessage == nil)
+}
