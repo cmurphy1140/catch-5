@@ -82,6 +82,15 @@ public final class GameModel: ObservableObject {
         return "\(seatNames[bidder]) bid \(auction.isNineAndOut ? "9 and out" : String(bid))"
     }
 
+    /// Whether the human's latest action in this hand can be taken back.
+    public var canUndo: Bool { match.undoPoint(forSeat: 0) != nil }
+
+    /// Take back the human's latest action in this hand and every computer reply after it.
+    public func undo() {
+        guard let point = match.undoPoint(forSeat: 0) else { return }
+        perform { match = try match.rewound(toActionCount: point) }
+    }
+
     /// True until the player has dismissed the rules sheet once.
     public var needsRulesIntroduction: Bool { !settings.hasSeenRules }
     public func markRulesSeen() { settings.hasSeenRules = true }

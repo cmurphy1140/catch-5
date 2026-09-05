@@ -43,9 +43,7 @@ public enum MatchSave {
         do {
             let archive = try JSONDecoder().decode(Archive.self, from: data)
             guard archive.version == 1 else { throw SaveError.unsupportedVersion(archive.version) }
-            var match = try Match(deck: archive.initialDeck, dealer: archive.initialDealer)
-            for action in archive.actions { try action.apply(to: &match) }
-            return match
+            return try Match.replaying(deck: archive.initialDeck, dealer: archive.initialDealer, actions: archive.actions)
         } catch let error as SaveError {
             throw error
         } catch {

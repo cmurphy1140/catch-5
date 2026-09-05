@@ -24,7 +24,7 @@ public struct TableView: View {
                 }
                 Text(status).font(.subheadline).multilineTextAlignment(.center).frame(minHeight: 40)
                 if let notice = model.notice { Text(notice).font(.caption).foregroundStyle(.gold.opacity(0.85)) }
-                if model.isHumanTurn { hintRow }
+                if model.isHumanTurn || model.canUndo { hintRow }
                 if model.match.hand.phase == .playing || model.match.hand.phase == .finished { trick }
                 if !model.humanCards.isEmpty { hand }
                 controls
@@ -129,8 +129,15 @@ public struct TableView: View {
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(.gold.opacity(0.4)))
                 .accessibilityLabel("Hint: \(hint.reason)")
         } else {
-            Button { model.showHint() } label: { Label("Hint", systemImage: "lightbulb") }
-                .font(.footnote).tint(.gold).buttonStyle(.bordered)
+            HStack(spacing: 12) {
+                if model.isHumanTurn {
+                    Button { model.showHint() } label: { Label("Hint", systemImage: "lightbulb") }
+                }
+                if model.canUndo {
+                    // Rewinds the replay log to just before your last action, dropping the replies after it.
+                    Button { model.undo() } label: { Label("Undo", systemImage: "arrow.uturn.backward") }
+                }
+            }.font(.footnote).tint(.gold).buttonStyle(.bordered)
         }
     }
 

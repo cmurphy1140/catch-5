@@ -201,3 +201,20 @@ import Testing
     let reloaded = GameModel(match: try Match(deck: deck, dealer: 3), settings: try SettingsStore.read(from: url))
     #expect(!reloaded.needsRulesIntroduction)
 }
+
+@MainActor @Test func undoneMatchSavesAndReloads() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: url) }
+    let model = GameModel(match: try Match(deck: deck, dealer: 3), saveURL: url)
+    #expect(!model.canUndo)
+    model.send(.bid(9))
+    for _ in 0..<3 { model.stepComputer() }
+    #expect(model.match.hand.phase == .choosingTrump && model.canUndo)
+    let revision = model.revision
+    model.undo()
+    #expect(model.match.hand.phase == .bidding && model.match.hand.nextSeat == 0 && model.match.actionCount == 0)
+    #expect(model.revision == revision + 1)
+    #expect(try MatchSave.read(from: url).actionCount == 0)
+    #expect(!model.canUndo)
+}

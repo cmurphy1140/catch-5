@@ -158,6 +158,7 @@ classDiagram
 | `Match.bid` / `bidNineAndOut` / `chooseTrump` / `play` | wrap `Hand`, refuse after a winner, append to the action log; `play` settles the hand exactly once | `matchScoresOnlyAfterLastCardAndOnlyOnce`, `failedBidMakesNegativeMatchScore`, `negativeTeamCannotDeclareNineAndOut` |
 | `Match.startNextHand(deck:)` | only after `finished`; dealer + 1 | `nextHandRotatesDealerAndRetainsScores` |
 | `Match.apply(_:seat:)` | one entry point for `PlayerAction` from humans and computers | `computersCompleteShuffledMatchesThroughRealRules` |
+| `Match.actionCount`, `rewound(toActionCount:)`, `undoPoint(forSeat:)` | rebuild the match from the same deal with only the first n accepted actions; the action count to rewind to so a seat's latest action this hand is taken back (nil once scored or across a hand boundary). `MatchSave.decode` uses the same `replaying` helper | `rewoundMatchEqualsFreshReplay`, `undoDropsHumanActionAndComputerReplies`, `undoUnavailableAcrossHandBoundaryAndAfterScoring` |
 
 ## Sources/CatchFive/ComputerPlayer.swift
 
@@ -206,6 +207,7 @@ classDiagram
 | `humanCards` | the hand as shown: trumps first, highest to lowest, then the other suits in a fixed order | `humanCardsSortTrumpFirstThenBySuitAndRank` |
 | `notice` | one-line note about something that happened without a tap, such as "You discarded 2 and drew 2."; cleared by the next action | `trumpChoiceReportsDiscards` |
 | `message(for:)` | rule errors in a player's words ("You must follow suit…") | `illegalPlayExplainsFollowSuitInPlainWords` |
+| `canUndo`, `undo()` | take back the human's latest action this hand and every computer reply after it; saves and bumps `revision` | `undoneMatchSavesAndReloads` |
 | `hint`, `showHint()` | the strategy's advice for seat 0 on request; cleared by the next accepted action | `hintMatchesTheComputerStrategyAndClearsAfterActing` |
 | `explanation(for:inLastTrick:)`, `explain(_:inLastTrick:)`, `explanation` | why a card on the table or in the last trick was played; for the human's own card it compares with what the strategy preferred | `explanationsNameTheSeatAndCompareTheHumanToTheStrategy` |
 | `nextHand()`, `newGame()` | fresh shuffled deck via `deck()` | |
@@ -220,7 +222,7 @@ classDiagram
 | `RulesView` | the rules sheet, from the book button and automatically on first launch | manual |
 | `needsRulesIntroduction`, `markRulesSeen()` (on `GameModel`) | first-run flag backed by `Settings.hasSeenRules` | `firstLaunchShowsRulesOnce` |
 | `SettingsView` | sheet from the gear button: difficulty, play speed, four seat names, haptics toggle | manual |
-| `TableView` | the whole screen: header, scores and contract, three opponent tiles, status line naming who is thinking, discard notice, Hint button and advice panel on your turn (the suggested card is ringed in gold), trick area where tapping any played card explains it, hand, phase-specific controls, new-game confirmation, error alert, computer scheduler task, background save |
+| `TableView` | the whole screen: header, scores and contract, three opponent tiles, status line naming who is thinking, discard notice, Hint and Undo buttons and advice panel on your turn (the suggested card is ringed in gold), trick area where tapping any played card explains it, hand, phase-specific controls, new-game confirmation, error alert, computer scheduler task, background save |
 | `CardView` | a 48×72 card face with accessibility label; `Suit.glyph`, `Suit.ink`, `Card.label` helpers |
 | `HandSummaryView` | who took High, Low, Jack, Five, Game for the last hand and what was bid, using the configured seat names |
 | colour extensions | `.ivory`, `.felt`, `.gold` |

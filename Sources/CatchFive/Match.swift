@@ -75,3 +75,33 @@ public struct Match: Sendable {
         actions.append(.nextHand(deck: deck))
     }
 }
+
+extension Match {
+    public var actionCount: Int { actions.count }
+
+    /// Rebuilds a match from the same first deal by replaying only the first `count` accepted actions.
+    public func rewound(toActionCount count: Int) throws -> Match {
+        guard count <= actions.count else { throw MatchError.handInProgress }
+        return try Match.replaying(deck: initialDeck, dealer: initialDealer, actions: Array(actions.prefix(count)))
+    }
+
+    /// The action count to rewind to so that `seat`'s latest action in the current hand is taken back,
+    /// along with everything after it. Nil once the hand is scored or when the seat has not acted this hand.
+    public func undoPoint(forSeat seat: Int) -> Int? {
+        guard winner == nil, hand.phase != .finished else { return nil }
+        for (index, action) in actions.enumerated().reversed() {
+            switch action {
+            case .nextHand: return nil
+            case let .bid(actor, _), let .nineAndOut(actor), let .trump(actor, _), let .play(actor, _):
+                if actor == seat { return index }
+            }
+        }
+        return nil
+    }
+
+    static func replaying(deck: [Card], dealer: Int, actions: [SavedAction]) throws -> Match {
+        var match = try Match(deck: deck, dealer: dealer)
+        for action in actions { try action.apply(to: &match) }
+        return match
+    }
+}
