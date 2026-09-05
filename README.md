@@ -13,10 +13,10 @@ The pure Swift engine runs complete matches, and a SwiftUI table lets one human 
 - Full deal, discard/refill, bidding-to-play transitions, turn enforcement and six-trick completion.
 - Match coordinator with automatic scoring, hand history, dealer rotation and victory enforcement.
 - Versioned save/resume with validated action replay and atomic file writes.
-- Baseline computer bidding, trump selection and card play using only a restricted PlayerView; leads keep the trump five back.
+- Computer bidding from an expected-points estimate; card play scores every legal card from trick memory (unseen cards, unbeatable trumps, certain High/Low, control kept) using only a restricted PlayerView.
 - Auction call history per seat, shown on the table during bidding and summarised as the contract afterwards.
 - SwiftUI table with bidding, trump choice, legal-card play, last-trick recap, hand summary and save on every accepted action.
-- 55 Swift Testing tests, including 208 deterministic hands and 24 shuffled computer matches.
+- 61 Swift Testing tests, including 208 deterministic hands, 24 shuffled computer matches and a 600-match strength benchmark against a frozen earlier player.
 
 `Auction` accepts normal bids and 9-and-out, treating 9-and-out as outranking a normal 9 with dealer matching allowed. Both are confirmed house rules.
 

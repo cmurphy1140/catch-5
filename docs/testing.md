@@ -43,13 +43,14 @@ flowchart BT
     L2["Hand lifecycle (7 tests)<br/>HandTests<br/>208 deterministic complete hands, card conservation after every move"]
     L3["Match coordinator (8 tests)<br/>MatchTests<br/>five-hand fixture with hand-checked scores 2–7, 10–5, 12–12, 19–14, 26–16"]
     L4["Persistence (7 tests)<br/>SaveTests<br/>resume in every phase, corrupt files, disk errors"]
-    L5["Computer players (13 tests)<br/>ComputerPlayerTests<br/>single decisions + 24 shuffled matches + 200-match bidding calibration"]
+    L5["Computer players (15 tests)<br/>ComputerPlayerTests<br/>single decisions + 24 shuffled matches + 200-match bidding calibration"]
+    L5b["Strategy benchmark (2 tests)<br/>StrategyBenchmark + BaselinePlayer<br/>600 mirrored matches against the frozen PR #2 player"]
     L6["View model (3 tests)<br/>GameModelTests<br/>human/computer handoff, save on success, error on illegal move"]
     L7["Manual: simulator<br/>screenshots of bidding, trump choice, play, hand summary"]
-    L1 --> L2 --> L3 --> L4 --> L5 --> L6 --> L7
+    L1 --> L2 --> L3 --> L4 --> L5 --> L5b --> L6 --> L7
 ```
 
-Total: 57 automated tests, about 0.4 s. Every layer above the first uses the real code beneath it; nothing is mocked. If `trickWinner` broke, the failure would show up in one small trick test *and* in the 208-hand simulation, and the small one tells you exactly what changed.
+Total: 61 automated tests, about 3 s (the strategy benchmark is most of that). Every layer above the first uses the real code beneath it; nothing is mocked. If `trickWinner` broke, the failure would show up in one small trick test *and* in the 208-hand simulation, and the small one tells you exactly what changed.
 
 ## Two kinds of test, deliberately
 
@@ -87,6 +88,12 @@ The compile error *is* the first failing test. Only then does the implementation
 `computerBiddingIsCompetitiveAndUsuallyMakesContract` is different from the others: it asserts statistics, not exact values. Over 200 seeded matches it requires that bidders make their contract at least 70% of the time and that no more than 45% of hands end as a forced dealer 2. Those thresholds sit below the measured figures (about 78% and 33%) so normal tuning passes, but a change that makes the computers reckless or timid fails.
 
 The numbers came from a throwaway harness that printed, for each estimated-points bucket, the average points actually made. The table it produced (estimate 4 → 4.85 average, 5 → 5.6, 6 → 6.4) is what justified using the estimate as a bid cap. See [decisions.md](decisions.md).
+
+## Benchmarks: measuring strength, not just legality
+
+`Tests/CatchFiveTests/BaselinePlayer.swift` is a frozen copy of the computer player as merged in PR #2. It is never improved. `StrategyBenchmark.swift` plays every seed twice with the teams swapped (`mirroredBenchmark`), so seat and dealer advantages cancel, and reports the candidate's win rate and average score margin. `benchmarkHarnessIsFairWhenBothSidesUseTheSameStrategy` checks that identical strategies come out exactly 50/50 with zero margin. `computerPlayerBeatsFrozenBaseline` then requires the shipped player to win at least 58% of 600 matches with a margin of at least two points; the 2026-09-04 player measured 66% and +5.5.
+
+The same harness is how strategy ideas are judged during development: freeze the current player as a reference copy in the test target, change `ComputerPlayer`, and compare. Parameter values in the play policy (control weights, hold chances, bid margin) were chosen by running a grid of variants through it, each on 1200 matches, and keeping the best. See [decisions.md](decisions.md) D17 to D20.
 
 ## What is not automated
 
