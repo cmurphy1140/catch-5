@@ -42,6 +42,35 @@ extension PlayerView {
     }
 }
 
+extension PlayerView {
+    /// The view `play.seat` had just before making `play`, rebuilt from public information and
+    /// that seat's remaining cards: pass nil for a card still on the table, or the index of the
+    /// completed trick it belongs to. Explains earlier plays with the same code that made them.
+    public init(match: Match, replaying play: Play, inCompletedTrick index: Int?) throws {
+        let hand = match.hand
+        guard (0..<4).contains(play.seat) else { throw RuleError.invalidSeat }
+        let trick: [Play], earlier: [CompletedTrick], later: [Play]
+        if let index {
+            guard hand.completedTricks.indices.contains(index) else { throw HandError.cardNotHeld }
+            let plays = hand.completedTricks[index].plays
+            guard let position = plays.firstIndex(of: play) else { throw HandError.cardNotHeld }
+            trick = Array(plays[..<position])
+            earlier = Array(hand.completedTricks[..<index])
+            later = Array(plays[position...]) + hand.completedTricks[(index + 1)...].flatMap(\.plays) + hand.currentTrick
+        } else {
+            guard let position = hand.currentTrick.firstIndex(of: play) else { throw HandError.cardNotHeld }
+            trick = Array(hand.currentTrick[..<position])
+            earlier = hand.completedTricks
+            later = Array(hand.currentTrick[position...])
+        }
+        let cards = hand.hands[play.seat] + later.filter { $0.seat == play.seat }.map(\.card)
+        self.init(seat: play.seat, cards: cards, phase: .playing, nextSeat: play.seat,
+                  dealer: hand.auction.dealer, highestBid: hand.auction.highestBid,
+                  bidder: hand.auction.winner, trump: hand.trump, trick: trick,
+                  calls: hand.auction.calls, completedTricks: earlier)
+    }
+}
+
 public enum PlayerAction: Equatable, Sendable {
     case nineAndOut
     case bid(Int?)
@@ -181,7 +210,10 @@ public enum ComputerPlayer {
     private static func chooseCard(_ view: PlayerView) -> (card: Card, reason: String)? {
         guard let trump = view.trump else { return nil }
         let knowledge = Knowledge(view: view, trump: trump)
-        let legal = legalCards(in: view.cards, led: view.trick.first?.card.suit)
+        // Canonical order makes the choice independent of how the hand happens to be arranged.
+        let legal = legalCards(in: view.cards, led: view.trick.first?.card.suit).sorted {
+            (Suit.allCases.firstIndex(of: $0.suit)!, $0.rank.rawValue) < (Suit.allCases.firstIndex(of: $1.suit)!, $1.rank.rawValue)
+        }
         guard let lead = view.trick.first else { return chooseLead(legal, knowledge) }
         let led = lead.card.suit
         let current = view.trick.max { rank($0.card, led: led, trump: trump) < rank($1.card, led: led, trump: trump) }!

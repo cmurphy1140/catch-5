@@ -215,3 +215,32 @@ struct RepeatableRandom: RandomNumberGenerator {
         try match.apply(advice.action, seat: seat)
     }
 }
+
+@Test func replayedViewExplainsEveryComputerPlayExactly() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    var random = RepeatableRandom(state: 11)
+    var match = try Match(deck: deck.shuffled(using: &random), dealer: 1)
+    var checked = 0
+    while match.winner == nil {
+        if match.hand.phase == .finished { try match.startNextHand(deck: deck.shuffled(using: &random)); continue }
+        let seat = try #require(match.hand.nextSeat)
+        try match.apply(try #require(ComputerPlayer.decide(PlayerView(match: match, seat: seat))), seat: seat)
+        // Every card on the table and in every completed trick must be explained by the same decision.
+        for play in match.hand.currentTrick {
+            let view = try PlayerView(match: match, replaying: play, inCompletedTrick: nil)
+            #expect(ComputerPlayer.decide(view) == .play(play.card)); checked += 1
+        }
+        for (index, trick) in match.hand.completedTricks.enumerated() where index == match.hand.completedTricks.count - 1 {
+            for play in trick.plays {
+                let view = try PlayerView(match: match, replaying: play, inCompletedTrick: index)
+                #expect(view.completedTricks.count == index)
+                #expect(view.cards.contains(play.card))
+                #expect(ComputerPlayer.decide(view) == .play(play.card)); checked += 1
+            }
+        }
+    }
+    #expect(checked > 100)
+    #expect(throws: HandError.cardNotHeld) {
+        try PlayerView(match: match, replaying: Play(seat: 0, card: Card(.clubs, .two)), inCompletedTrick: 0)
+    }
+}

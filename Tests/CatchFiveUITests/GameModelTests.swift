@@ -62,3 +62,26 @@ import Testing
     model.showHint()
     #expect(model.hint == nil)   // not the human's turn
 }
+
+@MainActor @Test func explanationsNameTheSeatAndCompareTheHumanToTheStrategy() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    let model = GameModel(match: try Match(deck: deck, dealer: 3))
+    model.send(.bid(9))   // nobody can outbid nine, so the human names trump and leads
+    for _ in 0..<3 { model.stepComputer() }
+    model.send(.chooseTrump(.clubs))
+    // Play the card the strategy would not choose, if there is one, then let the computers follow.
+    let advice = try #require(ComputerPlayer.advise(PlayerView(match: model.match, seat: 0)))
+    let other = model.humanCards.first { model.allows(.play($0)) && .play($0) != advice.action }
+    model.send(.play(other ?? model.humanCards[0]))
+    for _ in 0..<3 { model.stepComputer() }
+    let trick = try #require(model.match.hand.completedTricks.last)
+    let west = try #require(model.explanation(for: trick.plays[1], inLastTrick: true))
+    #expect(west.hasPrefix("West played the \(trick.plays[1].card.name)"))
+    let you = try #require(model.explanation(for: trick.plays[0], inLastTrick: true))
+    #expect(you.hasPrefix("You played the"))
+    if other != nil { #expect(you.contains("strategy would have")) }
+    model.explain(trick.plays[1], inLastTrick: true)
+    #expect(model.explanation == west)
+    model.explain(trick.plays[1], inLastTrick: true)
+    #expect(model.explanation == nil)   // second tap dismisses
+}

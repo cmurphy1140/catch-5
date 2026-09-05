@@ -9,6 +9,8 @@ public final class GameModel: ObservableObject {
     @Published public var errorMessage: String?
     /// The computer strategy's advice for the human seat, shown on request and cleared by the next action.
     @Published public private(set) var hint: Advice?
+    /// Why a card on the table or in the last trick was played; toggled by tapping it.
+    @Published public private(set) var explanation: String?
     private let saveURL: URL?
 
     public init(match: Match, saveURL: URL? = nil) {
@@ -57,6 +59,26 @@ public final class GameModel: ObservableObject {
         hint = ComputerPlayer.advise(view)
     }
 
+    /// Plain words for why `play` happened, from the strategy's point of view at that moment.
+    public func explanation(for play: Play, inLastTrick: Bool) -> String? {
+        let index = inLastTrick ? match.hand.completedTricks.count - 1 : nil
+        guard let view = try? PlayerView(match: match, replaying: play, inCompletedTrick: index),
+              let advice = ComputerPlayer.advise(view) else { return nil }
+        // Advice reads "Play the X: reason"; keep only the reason after the colon.
+        let reason = advice.reason.split(separator: ":", maxSplits: 1).last.map { $0.trimmingCharacters(in: .whitespaces) } ?? advice.reason
+        let name = Self.seatNames[play.seat]
+        if play.seat == 0, advice.action != .play(play.card), case let .play(preferred) = advice.action {
+            return "You played the \(play.card.name). The strategy would have played the \(preferred.name): \(reason)"
+        }
+        return "\(name) played the \(play.card.name): \(reason)"
+    }
+
+    /// Show the explanation for a played card, or hide it if it is already showing.
+    public func explain(_ play: Play, inLastTrick: Bool) {
+        let text = explanation(for: play, inLastTrick: inLastTrick)
+        explanation = explanation == text ? nil : text
+    }
+
     public func allows(_ action: PlayerAction) -> Bool {
         guard isHumanTurn else { return false }
         var copy = match
@@ -71,6 +93,7 @@ public final class GameModel: ObservableObject {
             try action()
             errorMessage = nil
             hint = nil
+            explanation = nil
             persist()
             revision += 1
         } catch {

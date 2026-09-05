@@ -142,18 +142,28 @@ public struct TableView: View {
             HStack(spacing: 12) {
                 // Cards are unique within a hand, so keying by card lets a new trick replace the last one.
                 ForEach(plays, id: \.card) { play in
-                    VStack(spacing: 8) {
-                        CardView(card: play.card)
-                            .overlay(RoundedRectangle(cornerRadius: 8)
-                                .stroke(.gold, lineWidth: showingLast && last?.winner == play.seat ? 3 : 0))
-                        Text(names[play.seat]).font(.caption2)
-                    }
+                    // Tap a played card to hear why that seat played it.
+                    Button { model.explain(play, inLastTrick: showingLast) } label: {
+                        VStack(spacing: 8) {
+                            CardView(card: play.card)
+                                .overlay(RoundedRectangle(cornerRadius: 8)
+                                    .stroke(.gold, lineWidth: showingLast && last?.winner == play.seat ? 3 : 0))
+                            Text(names[play.seat]).font(.caption2)
+                        }
+                    }.buttonStyle(.plain).foregroundStyle(.ivory)
+                    .accessibilityHint("Explains why this card was played")
                     .transition(.asymmetric(insertion: .move(edge: Self.edge(for: play.seat)).combined(with: .opacity),
                                             removal: .opacity))
                 }
                 if plays.isEmpty { Text("Waiting for the first card").font(.footnote).opacity(0.45).frame(height: 96) }
             }.frame(minHeight: 96)
             .animation(.spring(duration: 0.45), value: model.revision)
+            if let explanation = model.explanation {
+                Text(explanation).font(.footnote).multilineTextAlignment(.center).foregroundStyle(.gold)
+                    .padding(.horizontal, 16)
+            } else if !plays.isEmpty {
+                Text("Tap a card to see why it was played").font(.caption2).opacity(0.4)
+            }
         }.frame(maxWidth: .infinity).padding(.vertical, 20)
             .background(.white.opacity(0.025), in: RoundedRectangle(cornerRadius: 24))
             .overlay(RoundedRectangle(cornerRadius: 24).stroke(.white.opacity(0.08)))
