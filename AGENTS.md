@@ -1,7 +1,7 @@
 # Catch 5
 
 ## Current Status
-Single-player Catch 5 is feature complete: pure Swift rules engine, three computer opponents (Easy and Standard), replay-log save/resume, and a SwiftUI table with hints, tap-to-explain, hand review, undo, scoreboard, match history, settings, a five-lesson tutorial, the documentation pages bundled for offline reading, Dynamic Type and VoiceOver. 101 tests pass. The gameplay screen is a table-first layout (seats around the pile, fanned hand, cards that travel, gold reserved for five meanings). The app runs in the simulator via `scripts/build-simulator.py` and on Connor's iPhone via `xcodebuild` plus `devicectl` (`docs/device-install.md`).
+Single-player Catch 5 is feature complete: pure Swift rules engine, three computer opponents (Easy and Standard), replay-log save/resume, and a SwiftUI table with hints, tap-to-explain, hand review, undo, scoreboard, match history, settings, a five-lesson tutorial, the documentation pages bundled for offline reading, Dynamic Type and VoiceOver. The app opens on a main menu after a one-time name prompt, and the three computer seats are a fixed cast (Hazel, Otto, Rue) with drawn portraits. 108 tests pass. The gameplay screen is a table-first layout (seats around the pile, fanned hand, cards that travel, gold reserved for five meanings). The app runs in the simulator via `scripts/build-simulator.py` and on Connor's iPhone via `xcodebuild` plus `devicectl` (`docs/device-install.md`).
 
 ## Architecture
 Swift Testing and a dependency-free Swift package for rules (`Sources/CatchFive`); `GameModel` and SwiftUI views consume it (`Sources/CatchFiveUI`). Team 0 seats are 0/2, team 1 seats are 1/3; turns advance in ascending seat order modulo four. Computers and hints see only a `PlayerView`.
