@@ -217,3 +217,11 @@ Each entry: what was decided, what it was chosen over, and why. Dates are when t
 **Over:** Loading the Markdown file into the app bundle, or rewriting the rules in friendlier prose.
 
 **Why:** The hand-built simulator bundle has no resource pipeline, so the text has to live in code; the test makes the copy safe. Quoting the document verbatim keeps one wording of the rules everywhere, which matters because the document is what Connor confirmed.
+
+## D28. Undo rewinds the replay log rather than mutating state (PR #11, 2026-09-04)
+
+**Chosen:** `Match.rewound(toActionCount:)` rebuilds the match from the first deal by replaying a prefix of the accepted actions, using the same helper the save loader uses. `undoPoint(forSeat:)` finds the human's latest action in the current hand; undo drops it and every computer reply after it. Nothing after a hand is scored, and nothing across a hand boundary.
+
+**Over:** Storing snapshots, or writing inverse operations for each action.
+
+**Why:** The replay log (D5) already proves any prefix is a legal position, so undo cannot corrupt a game and needs no new persistence: the shortened log is simply saved. Because the computers are deterministic, replaying the unchanged prefix reproduces exactly the position the human saw. The human has seen the replies that get dropped; that is accepted as the price of a one-tap undo.

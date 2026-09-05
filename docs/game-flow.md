@@ -128,6 +128,17 @@ flowchart TD
 
 The Hint button runs exactly this from your seat and shows the branch it took in words, ringing the suggested card. Tapping a card on the table or in the last trick rebuilds the view that seat had before playing it and shows the same explanation for that play. `stake` is the card's own point value if the other side captures it (a five is 5, a certain Low is 1, a ten is 0.6). `control` is what a trump is worth for later tricks, highest for an unbeatable one and zero on the last trick. `p` is 1 for an unbeatable card, otherwise 0.8 or 0.6 depending on how many seats still play, and when partner is winning it is the chance partner's card holds.
 
+## Undo
+
+```mermaid
+flowchart LR
+    L["action log:<br/>bid, bid, bid, bid, trump, play(0), play(1), play(2), play(3), play(1)…"] --> P["undoPoint(forSeat: 0)<br/>index of seat 0's latest action this hand"]
+    P --> R["rewound(toActionCount: index)<br/>replay the first deal through that prefix"]
+    R --> S["save the shorter log,<br/>revision += 1"]
+```
+
+Undo is refused once the hand is scored and does not reach back into the previous hand.
+
 ## Saving
 
 Every accepted action calls `persist()`, and `TableView` also calls it whenever the app leaves the foreground (`scenePhase` change). The write is atomic: the old file is replaced only when the new one is complete. `loadDefault()` reads it at launch; on failure the user sees an explanation and a fresh game.

@@ -53,7 +53,7 @@ flowchart LR
 **Tests first:** `rulesSheetContainsEveryHouseRuleParagraph` (reads `docs/catch-five-rules.md` via `#filePath` so the sheet cannot drift from the rules doc), `firstLaunchShowsRulesOnce`.
 **Risks:** None significant.
 
-## M4. Undo the last human action (M)
+## M4. Undo the last human action (M) — done in PR #11
 
 **Goal:** Take back the last bid, trump choice or card, dropping the computer replies that followed.
 
