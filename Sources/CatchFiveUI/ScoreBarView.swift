@@ -18,10 +18,16 @@ struct ScoreBarView: View {
     let onStatistics: () -> Void
     let onTutorial: () -> Void
     let onNewGame: () -> Void
+    let onLeave: () -> Void
 
     var body: some View {
         VStack(spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
+                Button(action: onLeave) {
+                    Image(systemName: "chevron.left").font(.title3).frame(width: 44, height: 44, alignment: .leading)
+                }
+                .tint(.ivory.opacity(0.7))
+                .accessibilityLabel("Back to menu")
                 Text("CATCH 5").font(.system(.title3, design: .serif).weight(.bold))
                 Spacer()
                 Menu {
