@@ -121,3 +121,35 @@ Each entry: what was decided, what it was chosen over, and why. Dates are when t
 **Over:** Relying on an IDE's navigation, or generated API docs.
 
 **Why:** Connor reads the code without an IDE. Diagrams render on GitHub, plain Markdown reads anywhere, and the "same commit" rule keeps pages from rotting.
+
+## D17. Strategy changes are judged by a mirrored benchmark against a frozen player (2026-09-04)
+
+**Chosen:** `Tests/CatchFiveTests/BaselinePlayer.swift` freezes the PR #2 player. `mirroredBenchmark` plays each seed twice with the teams swapped and reports win rate and score margin. A test requires the shipped player to beat the frozen one.
+
+**Over:** Judging strategy edits by reading them, or by the contract rate alone.
+
+**Why:** Card-play heuristics that look right often are not. Mirroring cancels seat and dealer luck, 600 to 1200 matches put the noise floor near two percentage points, and a frozen opponent means the number is comparable across commits. It also caught two of my own "obvious" improvements that measured worse.
+
+## D18. Card play maximises expected points net of control, using trick memory (2026-09-04)
+
+**Chosen:** `PlayerView` carries `completedTricks`. `Knowledge` derives the unseen cards, whether a card is unbeatable, each card's certain point value and the value of keeping a trump. `chooseCard` scores every legal card by the chance our side wins the trick, the points on the table, the card's own stake if lost, and the control given up.
+
+**Over:** The rule list (cheapest winner, feed when last, dump the least valuable).
+
+**Why:** One scoring function covers the cases the rules handled separately and the ones they missed: securing a five with the ace, refusing to trump a worthless trick, feeding a certain Low to a safe partner, and knowing when a king has become the boss. Measured 66% wins and +5.5 points per match against the frozen player.
+
+## D19. Bid to the whole-point estimate with no margin (2026-09-04)
+
+**Chosen:** The bid cap is `floor(estimate)`.
+
+**Over:** The half-point margin of D13.
+
+**Why:** With the stronger card play, a grid over bid margins showed zero margin winning more matches than 0.5 or 1.0 while keeping the contract rate at 81%. A negative margin scored similarly but with a 72% contract rate, which felt reckless for a human opponent to face.
+
+## D20. No "probable" High or Low credit (2026-09-04)
+
+**Chosen:** `pointValue` counts High and Low only when certain from the unseen set.
+
+**Over:** Partial credit for a queen-or-better or a four-or-lower when higher or lower trumps were still unseen.
+
+**Why:** The partial credit measured worse in every variant tried, because it made the player cling to cards it should have spent and dump cards it should have kept.

@@ -103,6 +103,6 @@ ComputerPlayerTests.computersCompleteShuffledMatchesThroughRealRules
   -> save/load finished match
 ```
 
-Responsibility: PlayerView answers “what can this player know?” ComputerPlayer answers “what should it try?” Match answers “is that action allowed, and what happens next?” These are deliberately separate. The strategy is a deterministic baseline: favor strong suits, avoid bidding against partner, preserve the Five when losing, and feed points to a winning partner when last to act. Tests establish legal behavior and completion, not expert strength. It does not yet remember previous tricks or attempt 9 and out.
+Responsibility: PlayerView answers “what can this player know?” ComputerPlayer answers “what should it try?” Match answers “is that action allowed, and what happens next?” These are deliberately separate. Bidding uses an expected-points estimate per suit. Card play builds a `Knowledge` value from the seat's cards and every card already played, then scores each legal card by expected points net of the control given up. Strength is measured by `StrategyBenchmark` against the frozen `BaselinePlayer`. It does not attempt 9 and out.
 
 Try `swift run catch-five-demo --computer` for a narrated match with fresh shuffled decks.
