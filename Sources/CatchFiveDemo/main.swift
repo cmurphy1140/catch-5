@@ -72,4 +72,8 @@ func runMatch() throws {
     throw DemoError.matchDidNotFinish
 }
 
-try runMatch()
+if CommandLine.arguments.contains("--computer") {
+    try runComputerMatch()
+} else {
+    try runMatch()
+}

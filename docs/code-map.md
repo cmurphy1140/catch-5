@@ -25,6 +25,7 @@ The screen sends an action, such as “Seat 0 plays the queen of clubs.” Match
 | `Sources/CatchFive/Hand.swift` | `Tests/CatchFiveTests/HandTests.swift` | 208 repeatable hands; no duplicate or missing cards |
 | `Sources/CatchFive/Match.swift` | `Tests/CatchFiveTests/MatchTests.swift` | Five full hands ending 26–16, then reject further play |
 | `Sources/CatchFive/MatchSave.swift` | `Tests/CatchFiveTests/SaveTests.swift` | Resume during bidding, trump selection, a trick, or between hands |
+| `Sources/CatchFive/ComputerPlayer.swift` | `Tests/CatchFiveTests/ComputerPlayerTests.swift` | 24 shuffled matches using only restricted observations, then save/load |
 | `Sources/CatchFiveDemo/main.swift` | Run `swift run catch-five-demo` | Calls Match; does not maintain a separate score implementation |
 
 ## Follow One Test
@@ -41,7 +42,7 @@ A fixed deck makes a failure repeatable. Small rule tests explain exactly which 
 
 ## What Is Not Built Yet
 
-Strategic computer players and the SwiftUI screen. Engine save/read APIs exist; automatic app lifecycle saving still needs the UI integration. Normal bidding works end to end. 9-and-out settlement is tested independently; its auction precedence still needs confirmation before connecting it to Match.
+The SwiftUI screen and stronger computer strategy. Baseline heuristic players now work. Engine save/read APIs exist; automatic app lifecycle saving still needs the UI integration. Normal bidding works end to end. 9-and-out settlement is tested independently; its auction precedence still needs confirmation before connecting it to Match.
 
 
 ## Following Functions Without Xcode
@@ -87,3 +88,21 @@ Only successful actions enter the log. Replay rejects illegal actions and invali
 Run `swift run catch-five-demo --save-roundtrip` to watch the demo resume after three plays and continue to the same 26–16 finish.
 
 Editor references: https://code.visualstudio.com/docs/languages/swift and https://www.swift.org/documentation/articles/getting-started-with-cursor-swift.html.
+
+
+## Computer Player Path
+
+```text
+ComputerPlayerTests.computersCompleteShuffledMatchesThroughRealRules
+  -> PlayerView(match:seat:)       // copy only own cards and public information
+  -> ComputerPlayer.decide         // select a strategy action
+    -> bidAmount / preferredSuit / chooseCard
+  -> Match.apply                   // referee still checks the proposed action
+    -> Match.bid / chooseTrump / play
+  -> normal scoring and victory
+  -> save/load finished match
+```
+
+Responsibility: PlayerView answers “what can this player know?” ComputerPlayer answers “what should it try?” Match answers “is that action allowed, and what happens next?” These are deliberately separate. The strategy is a deterministic baseline: favor strong suits, avoid bidding against partner, preserve the Five when losing, and feed points to a winning partner when last to act. Tests establish legal behavior and completion, not expert strength. It does not yet remember previous tricks or attempt 9 and out.
+
+Try `swift run catch-five-demo --computer` for a narrated match with fresh shuffled decks.

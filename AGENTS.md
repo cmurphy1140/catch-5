@@ -1,7 +1,7 @@
 # CardGame.io
 
 ## Current Status
-Greenfield SwiftUI iOS app. Rules and complete hand lifecycle implemented: deal/refill, normal auction, legal moves, trick capture, scoring and match settlement. 37 tests pass, including 208 deterministic hands and a five-hand match. Match owns automatic scoring, summaries, dealer rotation and victory enforcement; terminal demo uses it. Versioned replay-based save/resume and atomic disk APIs are implemented; no automatic app lifecycle saving, strategic opponents or app UI yet.
+Greenfield SwiftUI iOS app. Rules and complete hand lifecycle implemented: deal/refill, normal auction, legal moves, trick capture, scoring and match settlement. 46 tests pass, including 208 deterministic hands and a five-hand match. Match owns automatic scoring, summaries, dealer rotation and victory enforcement; terminal demo uses it. Versioned replay-based save/resume and atomic disk APIs are implemented; baseline computer players use restricted PlayerView, with 24 shuffled match simulations. No automatic app lifecycle saving or app UI yet.
 
 ## Architecture
 Use Swift Testing and a dependency-free Swift package for rules. SwiftUI and a thin view model will consume it. Team 0 seats are 0/2, team 1 seats are 1/3; turns advance in ascending seat order modulo four.

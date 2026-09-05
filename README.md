@@ -13,7 +13,8 @@ The pure Swift engine now runs complete hands and a repeatable text demonstratio
 - Full deal, discard/refill, bidding-to-play transitions, turn enforcement and six-trick completion.
 - Match coordinator with automatic scoring, hand history, dealer rotation and victory enforcement.
 - Versioned save/resume with validated action replay and atomic file writes.
-- 37 Swift Testing tests, including 208 deterministic hands and a complete five-hand match.
+- Baseline computer bidding, trump selection and card play using only a restricted PlayerView.
+- 46 Swift Testing tests, including 208 deterministic hands and 24 shuffled computer matches.
 
 `Auction` currently accepts normal integer bids only. Special bid precedence awaits a house-rule clarification; 9-and-out win/loss settlement is already tested separately.
 
@@ -37,6 +38,8 @@ This prints a deterministic five-hand match, ending Team 0: 26, Team 1: 16. It u
 
 Add `--save-roundtrip` to the demo command to see it save and restore mid-trick. Engine APIs support disk saves; automatic saving when the app closes will be connected with the UI.
 
+Add `--computer` to watch four baseline computer players complete a match with fresh shuffled decks. This mode is separate from the fixed save-roundtrip demo. The strategy is a simple heuristic, not a trained or expert player.
+
 Initial dealing uses two packets of three starting left of dealer. Refill gives each player their replacements clockwise, starting left of dealer. These are provisional packet-order defaults.
 
 ## Structure
@@ -47,10 +50,10 @@ Initial dealing uses two packets of three starting left of dealer. Refill gives 
 - `docs/engine-plan.md`: initial implementation milestone.
 - `docs/code-map.md`: plain-language architecture and source-to-test connections.
 
-Team-indexed inputs use `[team0, team1]`. Team 0 seats are 0/2, team 1 seats are 1/3. The Hand coordinator enforces turn order, card ownership and six-trick completion before scoring. Its read-only state includes all hands for diagnostics; a future UI/player observation layer must restrict opponents to public information. Captured-card scoring can also be used independently on supplied card collections.
+Team-indexed inputs use `[team0, team1]`. Team 0 seats are 0/2, team 1 seats are 1/3. The Hand coordinator enforces turn order, card ownership and six-trick completion before scoring. Its read-only state includes all hands for diagnostics; PlayerView restricts computer strategy to its own cards and public auction/trick information; the future UI must similarly keep opponents’ cards hidden. Captured-card scoring can also be used independently on supplied card collections.
 
 ## Next
 
-Add computer-player strategy and a SwiftUI interface with a thin view model. Special-bid auction precedence remains unresolved.
+Add a SwiftUI interface with a thin view model and refine computer strategy through playtesting. Special-bid auction precedence remains unresolved.
 
 Development branch: `feature/catch-five-engine`. Use tested milestone commits to track progress.
