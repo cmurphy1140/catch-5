@@ -86,7 +86,7 @@ struct HandFanView: View {
 
     /// Where a dealt card starts, relative to its place in the fan: the deck in the table's top-right
     /// corner. Cards sit evenly across the fan, so each one's flight starts a different distance away.
-    static func dealOrigin(index: Int, count: Int, width: Double) -> CGSize {
+    nonisolated static func dealOrigin(index: Int, count: Int, width: Double) -> CGSize {
         let cardCentre = (Double(index) + 0.5) * width / Double(max(count, 1))
         return CGSize(width: width - Theme.Table.deckWidth / 2 - cardCentre, height: -Theme.Table.deckRise)
     }
