@@ -23,7 +23,7 @@ public struct RootView: View {
 
     /// Login until a name is saved; the intro until it has been seen or skipped; then the table, with the
     /// welcome card over it.
-    static func initialScreen(for settings: Settings) -> Screen {
+    nonisolated static func initialScreen(for settings: Settings) -> Screen {
         if !settings.hasSignedIn { return .login }
         return settings.hasSeenRules ? .table : .intro
     }
@@ -32,7 +32,7 @@ public struct RootView: View {
 
     /// Where New match on the sign-in screen leads. An older install that already has a match in progress
     /// keeps it and gets the welcome card, so nothing is thrown away without a choice.
-    static func destinationAfterSignIn(matchInProgress: Bool, hasSeenRules: Bool) -> Destination {
+    nonisolated static func destinationAfterSignIn(matchInProgress: Bool, hasSeenRules: Bool) -> Destination {
         if matchInProgress { return .welcome }
         return hasSeenRules ? .table : .intro
     }
