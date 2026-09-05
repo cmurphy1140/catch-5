@@ -59,7 +59,7 @@ sequenceDiagram
     M->>H: play(seat: 0, card)
     H->>H: guard phase, turn, ownership, follow-suit
     H-->>M: mutated copy, or throws
-    M->>M: append to action log; score if hand finished
+    M->>M: append to action log, score if hand finished
     M-->>GM: success or error
     alt success
         GM->>Disk: write(match) atomically
