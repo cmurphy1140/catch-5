@@ -51,7 +51,7 @@ flowchart TD
 
 Special bid: `nineAndOut` sets `highestBid = 9` and `isNineAndOut = true`. It outranks a normal 9. Only the dealer may bid against it, and only by matching with their own 9-and-out; that override was confirmed as a house rule on 2026-09-04. Normal bids after a 9-and-out throw.
 
-After trump is named the table shows a one-line notice of how many cards the human discarded and drew, since the refill happens without a tap.
+After trump is named the table shows a one-line notice of how many cards the human discarded and drew, since the refill happens without a tap. It rides along in the undo toast for four seconds, then stands on its own until the human's next action.
 
 `Auction.calls` is the ordered list of accepted calls. The table reads it to show "Bid 3" or "Pass" under each seat; computers receive it in `PlayerView.calls`.
 
@@ -73,7 +73,7 @@ sequenceDiagram
     Note over H: on the 6th trick: scoreHand, phase = finished
 ```
 
-The screen keeps the last completed trick visible, ringed in gold on the winning card, until the winner leads the next card. Then the old trick fades and the new lead slides in from that seat's edge of the table.
+On screen, each card arrives on the pile from its seat's side of the table (your own flies up from the hand). A finished trick stays for 900 ms with the winning card ringed in gold, then the four cards collapse toward the winner's seat; a small stack button beside the status line brings the last trick back for tap-to-explain.
 
 ## Scoring at the end of a hand
 
@@ -102,14 +102,15 @@ flowchart TD
     R["model.revision changed"] --> T[".task(id: revision) starts"]
     T --> Q{"human's turn,<br/>or hand/match over?"}
     Q -- yes --> STOP["do nothing; wait for a tap"]
-    Q -- no --> S["sleep Settings.delay:<br/>longer before a lead,<br/>relaxed / normal / quick"]
+    Q -- no --> H["hold a finished trick 900 ms,<br/>collapse it toward the winner"]
+    H --> S["sleep Settings.delay:<br/>longer before a lead,<br/>relaxed / normal / quick"]
     S --> C{"task cancelled?<br/>(revision changed again)"}
     C -- yes --> STOP
     C -- no --> D["stepComputer():<br/>PlayerView → ComputerPlayer.decide → match.apply"]
     D --> R
 ```
 
-Because `stepComputer()` increments `revision`, the next task starts automatically. The human's tap also increments it, which cancels any pending computer sleep, so nothing acts out of turn.
+Because `stepComputer()` increments `revision`, the next task starts automatically. The human's tap also increments it, which cancels any pending computer sleep, so nothing acts out of turn. The two decisions in the middle (hold or not, lead or follow) come from `TableScheduler.plan`, a pure function with its own test.
 
 ## How a computer chooses a card
 
@@ -130,7 +131,7 @@ The Hint button runs exactly this from your seat and shows the branch it took in
 
 ## After a hand, and after a match
 
-"Review hand" rebuilds every play of the finished hand next to what the standard strategy would have done (the same reconstruction as tap-to-explain), with the plays that differ shown in gold. Tapping the score bar lists every hand so far. When a team reaches 25, a match-over card shows the final score and the human's record, and one `MatchRecord` is appended to `history.json`; the chart button shows totals across all recorded matches.
+"Review hand" rebuilds every play of the finished hand next to what the standard strategy would have done (the same reconstruction as tap-to-explain), with the plays that differ marked by a branch icon. Tapping the score bar lists every hand so far. When a team reaches 25, a match-over card shows the final score and the human's record, and one `MatchRecord` is appended to `history.json`; the chart button shows totals across all recorded matches.
 
 ## Undo
 

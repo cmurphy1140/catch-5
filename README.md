@@ -15,8 +15,8 @@ Feature complete for single-player: a pure Swift rules engine, three computer op
 - Versioned save/resume with validated action replay and atomic file writes.
 - Computer bidding from an expected-points estimate; card play scores every legal card from trick memory (unseen cards, unbeatable trumps, certain High/Low, control kept) using only a restricted PlayerView.
 - Auction call history per seat, shown on the table during bidding and summarised as the contract afterwards.
-- SwiftUI table with bidding, trump choice, legal-card play, last-trick recap, hand summary, a Hint button that explains what the computer strategy would do from your seat, tap-to-explain on every played card, a settings sheet (difficulty, play speed, seat names, haptics), a five-lesson tutorial with engine-checked exercises shown on first launch (rules sheet inside it), undo of your last action, a hand review against the strategy, a scoreboard, match history with statistics, Dynamic Type and VoiceOver support, a trump-first sorted hand, plain-word rule errors, and save on every accepted action.
-- 97 Swift Testing tests, including 208 deterministic hands, 24 shuffled computer matches and a 600-match strength benchmark against a frozen earlier player.
+- SwiftUI table that reads like a card table: compact score bar, opponents seated around the pile, cards that travel between seats and pile, a fanned hand with press-lift and haptics, bidding, trump choice, legal-card play, hand summary, a Hint button that explains what the computer strategy would do from your seat, tap-to-explain on every played card, a settings sheet (difficulty, play speed, seat names, haptics), a five-lesson tutorial with engine-checked exercises shown on first launch (rules sheet inside it), undo of your last action, a hand review against the strategy, a scoreboard, match history with statistics, Dynamic Type and VoiceOver support, a trump-first sorted hand, plain-word rule errors, and save on every accepted action.
+- 99 Swift Testing tests, including 208 deterministic hands, 24 shuffled computer matches and a 600-match strength benchmark against a frozen earlier player.
 
 
 ## Run Tests
@@ -45,7 +45,7 @@ Initial dealing uses two packets of three starting left of dealer; refill goes c
 - `Sources/CatchFiveUI`: `GameModel` view model, the table, sheets, settings and the tutorial.
 - `Sources/CatchFiveDemo`: the terminal demo.
 - `App/`: the nine-line app entry point, icon catalog and privacy manifest.
-- `Tests/`: 97 Swift Testing tests across engine and view model.
+- `Tests/`: 101 Swift Testing tests across engine and view model.
 - `scripts/`: `install-phone.sh` (build, sign, install and launch on a connected iPhone), `build-simulator.py` (hand-built simulator bundle), `make-icon.swift`, `export-docs.py` (PDF and PNG export for Claude Design).
 - `docs/learning-path.md`: start here to read the code without an IDE; every page has diagrams.
 - `docs/catch-five-rules.md`: the house rules, which the in-app rules sheet quotes verbatim.

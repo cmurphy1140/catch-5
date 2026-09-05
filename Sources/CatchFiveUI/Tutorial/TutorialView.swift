@@ -82,7 +82,7 @@ struct TutorialView: View {
 
     private var footer: some View {
         HStack {
-            Button("Back") { model.back() }.buttonStyle(.bordered).tint(.gold).disabled(model.lesson == 0)
+            Button("Back") { model.back() }.buttonStyle(.bordered).tint(.ivory.opacity(0.8)).disabled(model.lesson == 0)
             Spacer()
             Button(model.isLastLesson ? "Finish" : "Next lesson") { if model.isLastLesson { onDismiss() } else { model.next() } }
                 .buttonStyle(.borderedProminent).tint(.gold).foregroundStyle(.black)
@@ -100,10 +100,10 @@ struct LessonText: View {
         VStack(alignment: .leading, spacing: 10) {
             ForEach(paragraphs, id: \.self) { Text($0).font(.body) }
             Text("Tactic. \(tactic)")
-                .font(.footnote).foregroundStyle(.gold)
+                .font(.footnote).foregroundStyle(.ivory.opacity(0.9))
                 .padding(12).frame(maxWidth: .infinity, alignment: .leading)
-                .background(.gold.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(.gold.opacity(0.4)))
+                .background(.ivory.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(.ivory.opacity(0.25)))
         }
     }
 }
@@ -112,7 +112,7 @@ struct LessonText: View {
 struct Feedback: View {
     let text: String
     var body: some View {
-        Text(text).font(.footnote).foregroundStyle(.gold).multilineTextAlignment(.center)
+        Text(text).font(.footnote).foregroundStyle(.ivory.opacity(0.85)).multilineTextAlignment(.center)
             .frame(maxWidth: .infinity, minHeight: 60, alignment: .top)
             .accessibilityLabel(text.isEmpty ? "" : "Feedback: \(text)")
     }

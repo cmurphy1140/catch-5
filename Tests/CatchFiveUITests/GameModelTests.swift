@@ -1,5 +1,5 @@
 import CatchFive
-import CatchFiveUI
+@testable import CatchFiveUI
 import Foundation
 import Testing
 
@@ -362,4 +362,68 @@ import Testing
         #expect(!head.contains("src=\"http") && !head.contains("href=\"http"), "\(page) references the network")
     }
     #expect(ExplainerLibrary.pages.first == ExplainerLibrary.indexPage)
+}
+
+@Test func fannedHandCardsKeepAThumbSizedStrip() {
+    // Six overlapped cards must fit the narrowest supported phone and each expose 44pt (docs/redesign-plan.md).
+    for width in [Theme.Card.handWidth, Theme.Card.handWidthWide] {
+        #expect(Theme.Card.touchStrip(width: width) >= Theme.Card.minimumTouchStrip)
+        #expect(width + 5 * Theme.Card.touchStrip(width: width) <= 375 - 32)
+    }
+    #expect(abs(Theme.Card.radius(width: 60) - 3.6) < 0.0001)
+}
+
+@MainActor @Test func lastHumanActionDescribesThePlayAndClearsOnUndo() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    let model = GameModel(match: try Match(deck: deck, dealer: 3))
+    #expect(model.lastHumanAction == nil)
+    model.send(.bid(9))
+    #expect(model.lastHumanAction == .bid(9))
+    #expect(model.describe(.bid(9)) == "Bid 9" && model.describe(.bid(nil)) == "Passed")
+    for _ in 0..<3 { model.stepComputer() }
+    #expect(model.lastHumanAction == .bid(9))   // computer replies do not overwrite it
+    model.send(.chooseTrump(.hearts))
+    #expect(model.describe(try #require(model.lastHumanAction)) == "♥ named trump")
+    let card = model.humanCards[0]
+    model.send(.play(card))
+    #expect(model.describe(.play(card)) == "\(card.label)\(card.suit.glyph) played")
+    model.undo()
+    #expect(model.lastHumanAction == nil)
+    #expect(!model.humanCards.contains(Card(.clubs, .two)))
+    model.send(.play(Card(.clubs, .two)))   // not held, so rejected: a failed send leaves it nil
+    #expect(model.errorMessage != nil && model.lastHumanAction == nil)
+}
+
+@Test func schedulerHoldsAFinishedTrickOnceThenTreatsTheNextPlayAsALead() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    var match = try Match(deck: deck, dealer: 3)
+    // During the auction there is nothing to hold and nothing to lead.
+    #expect(TableScheduler.plan(hand: match.hand, collapsedTricks: 0) == (false, true))
+    try match.bid(seat: 0, amount: 9)
+    for seat in 1...3 { try match.bid(seat: seat, amount: nil) }
+    try match.chooseTrump(seat: 0, suit: .clubs)
+    #expect(TableScheduler.plan(hand: match.hand, collapsedTricks: 0) == (false, true))   // first lead
+    try match.play(seat: 0, card: try #require(match.hand.legalMoves(seat: 0).first))
+    #expect(TableScheduler.plan(hand: match.hand, collapsedTricks: 0) == (false, false))  // a follow
+    for _ in 0..<3 {
+        let seat = try #require(match.hand.nextSeat)
+        try match.play(seat: seat, card: try #require(match.hand.legalMoves(seat: seat).first))
+    }
+    #expect(match.hand.completedTricks.count == 1)
+    #expect(TableScheduler.plan(hand: match.hand, collapsedTricks: 0) == (true, false))   // hold, then a lead follows the hold
+    #expect(TableScheduler.plan(hand: match.hand, collapsedTricks: 1) == (false, true))   // already collapsed: plain lead
+}
+
+@MainActor @Test func noticeSurvivesComputerRepliesUntilTheHumanActs() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    let model = GameModel(match: try Match(deck: deck, dealer: 0))   // West bids first
+    for _ in 0..<3 { model.stepComputer() }
+    model.send(.bid(9))
+    model.send(.chooseTrump(.hearts))
+    let notice = try #require(model.notice)
+    #expect(notice.hasPrefix("You discarded") || notice == "You kept all six cards.")
+    #expect(model.describe(.nineAndOut) == "Bid 9 and out")
+    // Play a card: the notice belongs to the previous action and clears.
+    model.send(.play(try #require(model.humanCards.first)))
+    #expect(model.notice == nil)
 }

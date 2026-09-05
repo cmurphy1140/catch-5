@@ -32,7 +32,7 @@ struct BiddingLesson: View {
         let legal = TutorialFixtures.legalBids.contains(bid)
         let picked = model.bidPick == bid
         return Button(label) { model.chooseBid(bid) }
-            .buttonStyle(.bordered).tint(.gold).frame(minHeight: 44)
+            .buttonStyle(.bordered).tint(.ivory.opacity(0.8)).frame(minHeight: 44)
             .opacity(legal ? 1 : 0.35)
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(picked ? (bid == TutorialFixtures.preferredBid ? Color.correctRing : .incorrectRing) : .clear, lineWidth: 3))
             .accessibilityValue(legal ? "legal" : "not legal: must raise above 3")

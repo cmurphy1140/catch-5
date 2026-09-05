@@ -16,6 +16,7 @@ This is the front door to the living documentation. Each linked page is kept in 
 | 8 | [roadmap.md](roadmap.md) | The six milestones toward a shippable app, all done, with dependencies, tests written first and risks |
 | 9 | [tutorial-spec.md](tutorial-spec.md) | The in-app "How to play" tutorial: five lessons, their fixtures and answer keys, and the tests that check them against the engine |
 | 10 | [device-install.md](device-install.md) | Putting the app on your own iPhone: what this Mac is missing, the one-time setup, and the build-and-install commands |
+| 11 | [redesign-plan.md](redesign-plan.md) | The table-first redesign: research findings, the design tokens, what changed in each view, the risks that shaped it, and the screenshot matrix that verified it |
 
 ## Swift vocabulary used in these pages
 

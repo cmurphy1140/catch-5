@@ -27,7 +27,7 @@ info = dict(CFBundleIdentifier='com.cardgame.catchfive', CFBundleName='CatchFive
             CFBundleDisplayName='Catch 5', CFBundleExecutable='CatchFive', CFBundlePackageType='APPL',
             CFBundleShortVersionString='1.0', CFBundleVersion='1', MinimumOSVersion='17.0',
             LSRequiresIPhoneOS=True, UIDeviceFamily=[1, 2], UILaunchScreen={},
-            LSApplicationCategoryType='public.app-category.card-games',
+            LSApplicationCategoryType='public.app-category.card-games', UIRequiresFullScreen=True,
             UISupportedInterfaceOrientations=['UIInterfaceOrientationPortrait'])
 # The icon the simulator shows on the home screen, scaled from the App Store master.
 icon = root / 'App' / 'Assets.xcassets' / 'AppIcon.appiconset' / 'icon-1024.png'

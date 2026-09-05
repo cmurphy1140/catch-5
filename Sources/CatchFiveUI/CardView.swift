@@ -26,25 +26,79 @@ extension Card {
     var spoken: String { name }
 }
 
+/// How a card face is drawn: at rest, lifted because it may be played, dimmed because it may not,
+/// or flat on the pile. Pressed is applied by `CardPressStyle` on top of these.
+enum CardStyle: Equatable {
+    case rest, playable, dimmed, pile
+}
+
 struct CardView: View {
     let card: Card
+    let style: CardStyle
     // Cards grow with the reader's text size so the faces stay legible under Dynamic Type.
-    @ScaledMetric(relativeTo: .title2) private var width = 48.0
-    @ScaledMetric(relativeTo: .title2) private var rankSize = 23.0
-    @ScaledMetric(relativeTo: .title2) private var suitSize = 27.0
+    @ScaledMetric private var width: Double
+
+    init(card: Card, width: Double = Theme.Card.tutorialWidth, style: CardStyle = .rest) {
+        self.card = card
+        self.style = style
+        _width = ScaledMetric(wrappedValue: width, relativeTo: .title2)
+    }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Text(card.label).font(.system(size: rankSize, weight: .bold, design: .serif))
-            Text(card.suit.glyph).font(.system(size: suitSize))
+        let radius = Theme.Card.radius(width: width)
+        ZStack(alignment: .topLeading) {
+            VStack(spacing: 0) {
+                Text(card.label).font(.system(size: width * 0.42, weight: .bold, design: .serif))
+                Text(card.suit.glyph).font(.system(size: width * 0.46))
+            }.frame(maxWidth: .infinity, maxHeight: .infinity)
+            // The top-left index is what stays visible when the hand is fanned.
+            VStack(spacing: -3) {
+                Text(card.label).font(.system(size: max(13, width * 0.2), weight: .bold, design: .serif))
+                Text(card.suit.glyph).font(.system(size: max(12, width * 0.18)))
+            }.padding(.top, 4).padding(.leading, 5)
         }
         .foregroundStyle(card.suit.ink)
-        .frame(width: width, height: width * 1.5)
-        .background(.ivory, in: RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(.black.opacity(0.15)))
-        .shadow(color: .black.opacity(0.25), radius: 3, y: 3)
+        .frame(width: width, height: width * Theme.Card.ratio)
+        .background(.ivory, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).stroke(.black.opacity(0.15)))
+        .shadow(color: .black.opacity(style == .playable ? 0.35 : 0.25), radius: style == .playable ? 8 : 3, y: style == .playable ? 4 : 3)
+        .offset(y: style == .playable ? -Theme.Card.liftPlayable : 0)
+        .opacity(style == .dimmed ? Theme.Card.dimmedOpacity : 1)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(card.spoken)
+    }
+}
+
+/// A face-down card for the opponents' seats.
+struct CardBackView: View {
+    @ScaledMetric private var width: Double
+
+    init(width: Double = Theme.Card.backWidth) {
+        _width = ScaledMetric(wrappedValue: width, relativeTo: .title2)
+    }
+
+    var body: some View {
+        let radius = Theme.Card.radius(width: width)
+        RoundedRectangle(cornerRadius: radius, style: .continuous)
+            .fill(Color(red: 0.06, green: 0.22, blue: 0.18))
+            .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).stroke(.ivory.opacity(0.7), lineWidth: 1.5))
+            .overlay(RoundedRectangle(cornerRadius: max(2, radius - 3), style: .continuous)
+                .stroke(.ivory.opacity(0.35), lineWidth: 1).padding(5))
+            .frame(width: width, height: width * Theme.Card.ratio)
+            .shadow(color: .black.opacity(0.3), radius: 3, y: 2)
+            .accessibilityHidden(true)
+    }
+}
+
+/// Lifts and slightly enlarges a hand card while it is pressed, before the play is confirmed on release.
+struct CardPressStyle: ButtonStyle {
+    let enabled: Bool
+    func makeBody(configuration: Configuration) -> some View {
+        let pressed = enabled && configuration.isPressed
+        configuration.label
+            .offset(y: pressed ? -Theme.Card.liftPressed : 0)
+            .scaleEffect(pressed ? Theme.Card.pressedScale : 1)
+            .animation(Theme.Motion.press, value: pressed)
     }
 }
 

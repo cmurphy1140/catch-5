@@ -1,0 +1,52 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push to the same branch cancels the run in progress.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+
+jobs:
+  swift-test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: |
+          if [ ! -d "$DEVELOPER_DIR" ]; then
+            echo "DEVELOPER_DIR=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)/Contents/Developer" >> "$GITHUB_ENV"
+          fi
+      - name: Cache the package build
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: spm-${{ runner.os }}-${{ hashFiles('Package.swift', 'Sources/**/*.swift', 'Tests/**/*.swift') }}
+          restore-keys: spm-${{ runner.os }}-
+      - name: Swift version
+        run: swift --version
+      - name: Run the package tests
+        run: swift test
+
+  simulator-build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: |
+          if [ ! -d "$DEVELOPER_DIR" ]; then
+            echo "DEVELOPER_DIR=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)/Contents/Developer" >> "$GITHUB_ENV"
+          fi
+      - name: Build the simulator app bundle
+        run: python3 scripts/build-simulator.py
+      - name: Check the bundle
+        run: |
+          test -x work/simulator-build/CatchFive.app/CatchFive
+          test -f work/simulator-build/CatchFive.app/Info.plist
+          test -d work/simulator-build/CatchFive.app/Explainer

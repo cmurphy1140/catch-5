@@ -24,7 +24,7 @@ struct ScoringLesson: View {
                     }
                     if let correct = model.scoringIsCorrect(category) {
                         Text(correct ? TutorialFixtures.scoringExplanations[category] ?? "" : "Not quite. Look at the cards each side captured.")
-                            .font(.caption2).foregroundStyle(.gold).frame(maxWidth: .infinity, alignment: .leading)
+                            .font(.caption2).foregroundStyle(.ivory.opacity(0.85)).frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
             }
@@ -38,7 +38,7 @@ struct ScoringLesson: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("\(title) CAPTURED").font(.caption2.monospaced()).tracking(1).opacity(0.6)
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) { ForEach(cards, id: \.self) { CardView(card: $0).scaleEffect(0.85).frame(width: 42, height: 62) } }
+                HStack(spacing: 6) { ForEach(cards, id: \.self) { CardView(card: $0, width: Theme.Card.backWidth) } }
                     .padding(.bottom, 6)
             }
         }
@@ -47,7 +47,7 @@ struct ScoringLesson: View {
     private func teamButton(_ category: ScoreCategory, _ team: Int, _ label: String) -> some View {
         let picked = model.scoringPicks[category] == team
         return Button(label) { model.assign(category, to: team) }
-            .buttonStyle(.bordered).tint(.gold).frame(minWidth: 64, minHeight: 44)
+            .buttonStyle(.bordered).tint(.ivory.opacity(0.8)).frame(minWidth: 64, minHeight: 44)
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(picked ? (TutorialFixtures.scoringAnswers[category] == team ? Color.correctRing : .incorrectRing) : .clear, lineWidth: 3))
             .accessibilityLabel("\(category.rawValue) to \(label)")
     }

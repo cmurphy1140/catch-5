@@ -5,10 +5,10 @@
 ```mermaid
 flowchart TB
     subgraph View["View layer — SwiftUI (Sources/CatchFiveUI)"]
-        TV[TableView]
-        CV[CardView]
+        TV["TableView + TableScheduler<br/>ScoreBarView · TableSurface (SeatView, pile) · HandFanView"]
+        CV["CardView · CardBackView · Theme"]
         HS[HandSummaryView]
-        SH["Sheets: Settings, Tutorial + Rules,<br/>Review, Scoreboard, Statistics"]
+        SH["Sheets: Settings, Tutorial + Rules,<br/>Review, Scoreboard, Statistics, Explainer"]
     end
     subgraph VM["View model — GameModel (Sources/CatchFiveUI/GameModel.swift)"]
         GM["GameModel: ObservableObject<br/>owns one Match<br/>send(), stepComputer(), allows(), persist()"]

@@ -13,6 +13,8 @@ public final class GameModel: ObservableObject {
     @Published public private(set) var explanation: String?
     /// A one-line note about something that happened without a tap, such as the discard after trump.
     @Published public private(set) var notice: String?
+    /// The human's most recent accepted action, for the undo toast and haptics; nil after undo or a new hand.
+    @Published public private(set) var lastHumanAction: PlayerAction?
     @Published public var settings: Settings { didSet { persistSettings() } }
     /// Every finished match, oldest first.
     @Published public private(set) var records: [MatchRecord]
@@ -72,9 +74,13 @@ public final class GameModel: ObservableObject {
 
     public func send(_ action: PlayerAction) {
         guard isHumanTurn else { return }
+        notice = nil
         let discards = discardCount(for: action)
         perform { try match.apply(action, seat: 0) }
-        if errorMessage == nil { notice = discards.map(discardNotice) }
+        if errorMessage == nil {
+            notice = discards.map(discardNotice)
+            lastHumanAction = action
+        }
     }
     public func stepComputer() {
         guard match.winner == nil, let seat = match.hand.nextSeat, seat != 0 else { return }
@@ -139,6 +145,19 @@ public final class GameModel: ObservableObject {
     public func undo() {
         guard let point = match.undoPoint(forSeat: 0) else { return }
         perform { match = try match.rewound(toActionCount: point) }
+        lastHumanAction = nil
+        notice = nil
+    }
+
+    /// Short wording for the undo toast: "9♣ played", "Bid 3", "Passed".
+    public func describe(_ action: PlayerAction) -> String {
+        switch action {
+        case let .play(card): "\(card.label)\(card.suit.glyph) played"
+        case .bid(nil): "Passed"
+        case let .bid(amount?): "Bid \(amount)"
+        case .nineAndOut: "Bid 9 and out"
+        case let .chooseTrump(suit): "\(suit.glyph) named trump"
+        }
     }
 
     /// The tutorial's state, sharing completion with `Settings` so it persists with the other preferences.
@@ -196,11 +215,17 @@ public final class GameModel: ObservableObject {
         return (try? copy.apply(action, seat: 0)) != nil
     }
 
-    public func nextHand() { perform { try match.startNextHand(deck: Self.deck()) } }
+    public func nextHand() {
+        perform { try match.startNextHand(deck: Self.deck()) }
+        lastHumanAction = nil
+        notice = nil
+    }
     public func newGame() {
         perform { match = try Match(deck: Self.deck(), dealer: 3) }
         recordedCurrentMatch = false
         finalPerformance = nil
+        lastHumanAction = nil
+        notice = nil
     }
 
     private func perform(_ action: () throws -> Void) {
@@ -209,7 +234,6 @@ public final class GameModel: ObservableObject {
             errorMessage = nil
             hint = nil
             explanation = nil
-            notice = nil
             persist()
             recordMatchIfFinished()
             revision += 1
