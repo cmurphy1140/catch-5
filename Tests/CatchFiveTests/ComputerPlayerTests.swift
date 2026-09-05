@@ -100,3 +100,52 @@ private struct RepeatableRandom: RandomNumberGenerator {
         #expect(restored.scores == match.scores)
     }
 }
+
+@Test func computerLeadsHighestTrumpButKeepsTheFiveBack() {
+    let cards = [Card(.hearts, .ace), Card(.hearts, .five), Card(.clubs, .ten)]
+    #expect(ComputerPlayer.decide(view(cards: cards)) == .play(Card(.hearts, .ace)))
+    let fiveOnlyTrump = [Card(.hearts, .five), Card(.clubs, .ten), Card(.spades, .king)]
+    #expect(ComputerPlayer.decide(view(cards: fiveOnlyTrump)) == .play(Card(.spades, .king)))
+    #expect(ComputerPlayer.decide(view(cards: [Card(.hearts, .five)])) == .play(Card(.hearts, .five)))
+}
+
+@Test func computerSeesPublicAuctionCalls() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    var match = try Match(deck: deck, dealer: 3)
+    try match.bid(seat: 0, amount: 4)
+    let view = try PlayerView(match: match, seat: 1)
+    #expect(view.calls == [AuctionCall(seat: 0, bid: .points(4))])
+}
+
+@Test func estimateRanksControlAndTheFiveAboveScatteredCards() {
+    let strong = [Card(.spades, .ace), Card(.spades, .king), Card(.spades, .five), Card(.hearts, .two)]
+    let weak = [Card(.clubs, .two), Card(.clubs, .three), Card(.hearts, .ace), Card(.diamonds, .king)]
+    #expect(ComputerPlayer.estimate(strong, suit: .spades) > ComputerPlayer.estimate(weak, suit: .clubs))
+    #expect(ComputerPlayer.estimate(strong, suit: .spades) > ComputerPlayer.estimate(strong, suit: .hearts))
+    #expect(ComputerPlayer.estimate([Card(.hearts, .five), Card(.hearts, .ace)], suit: .hearts)
+            > ComputerPlayer.estimate([Card(.hearts, .five), Card(.clubs, .ace)], suit: .hearts))
+    #expect(ComputerPlayer.estimate([Card(.clubs, .ace)], suit: .hearts) == 0)
+    #expect(ComputerPlayer.decide(view(cards: strong, phase: .bidding, highestBid: 3, bidder: 1)) == .bid(4))
+}
+
+/// Guards the bidding calibration: computers should compete for most hands and usually make their contract.
+@Test func computerBiddingIsCompetitiveAndUsuallyMakesContract() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    var hands = 0, made = 0, forcedDealerTwo = 0
+    for seed in 1...200 {
+        var random = RepeatableRandom(state: UInt64(seed))
+        var match = try Match(deck: deck.shuffled(using: &random), dealer: seed % 4)
+        while match.winner == nil {
+            if match.hand.phase == .finished { try match.startNextHand(deck: deck.shuffled(using: &random)); continue }
+            let seat = try #require(match.hand.nextSeat)
+            try match.apply(try #require(ComputerPlayer.decide(PlayerView(match: match, seat: seat))), seat: seat)
+        }
+        for summary in match.history {
+            hands += 1
+            if summary.result.points[summary.bidder % 2] >= summary.bid { made += 1 }
+            if summary.bid == 2 && summary.bidder == summary.dealer { forcedDealerTwo += 1 }
+        }
+    }
+    #expect(Double(made) / Double(hands) >= 0.7)
+    #expect(Double(forcedDealerTwo) / Double(hands) <= 0.45)
+}

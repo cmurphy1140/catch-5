@@ -4,7 +4,7 @@ A SwiftUI iOS card-game app in development, starting with Catch 5 (Pitch with Fi
 
 ## Current Status
 
-The pure Swift engine now runs complete hands and a repeatable text demonstration runs a normal-bid match to completion. There is no playable iOS app yet.
+The pure Swift engine runs complete matches, and a SwiftUI table lets one human play against three computer players with automatic save and restore. A repeatable text demonstration also runs a normal-bid match to completion.
 
 - Normal four-seat bidding with dealer matching and forced opening bid.
 - Follow-suit validation and trick winner calculation.
@@ -13,10 +13,12 @@ The pure Swift engine now runs complete hands and a repeatable text demonstratio
 - Full deal, discard/refill, bidding-to-play transitions, turn enforcement and six-trick completion.
 - Match coordinator with automatic scoring, hand history, dealer rotation and victory enforcement.
 - Versioned save/resume with validated action replay and atomic file writes.
-- Baseline computer bidding, trump selection and card play using only a restricted PlayerView.
-- 46 Swift Testing tests, including 208 deterministic hands and 24 shuffled computer matches.
+- Baseline computer bidding, trump selection and card play using only a restricted PlayerView; leads keep the trump five back.
+- Auction call history per seat, shown on the table during bidding and summarised as the contract afterwards.
+- SwiftUI table with bidding, trump choice, legal-card play, last-trick recap, hand summary and save on every accepted action.
+- 55 Swift Testing tests, including 208 deterministic hands and 24 shuffled computer matches.
 
-`Auction` currently accepts normal integer bids only. Special bid precedence awaits a house-rule clarification; 9-and-out win/loss settlement is already tested separately.
+`Auction` accepts normal bids and 9-and-out, treating 9-and-out as outranking a normal 9 with dealer matching allowed. Both are confirmed house rules.
 
 ## Run Tests
 
@@ -46,7 +48,8 @@ Initial dealing uses two packets of three starting left of dealer. Refill gives 
 
 - `Sources/CatchFive`: pure Swift rules; no UI dependencies.
 - `Tests/CatchFiveTests`: repeatable rule tests with explicit card fixtures.
-- `docs/catch-five-rules.md`: confirmed house rules and unresolved cases.
+- `docs/learning-path.md`: start here to read the code without an IDE; links the architecture, game-flow, types, testing, decision-log and build pages, all with diagrams.
+- `docs/catch-five-rules.md`: confirmed house rules.
 - `docs/engine-plan.md`: initial implementation milestone.
 - `docs/code-map.md`: plain-language architecture and source-to-test connections.
 
@@ -54,6 +57,6 @@ Team-indexed inputs use `[team0, team1]`. Team 0 seats are 0/2, team 1 seats are
 
 ## Next
 
-Add a SwiftUI interface with a thin view model and refine computer strategy through playtesting. Special-bid auction precedence remains unresolved.
+Refine computer strategy through playtesting. Build the simulator app with `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer python3 scripts/build-simulator.py` when Xcode's iOS platform is unavailable.
 
-Development branch: `feature/catch-five-engine`. Use tested milestone commits to track progress.
+Use tested milestone commits on short-lived branches off `main` to track progress.

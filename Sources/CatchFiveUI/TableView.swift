@@ -63,8 +63,13 @@ public struct TableView: View {
         HStack {
             score("YOU + PARTNER", value: model.match.scores[0])
             Spacer()
-            Text(model.match.hand.trump.map { "\($0.glyph)\nTRUMP" } ?? "—\nTRUMP")
-                .font(.caption.monospaced()).multilineTextAlignment(.center).foregroundStyle(.gold)
+            VStack(spacing: 4) {
+                Text(model.match.hand.trump.map { "\($0.glyph) TRUMP" } ?? "— TRUMP")
+                    .font(.caption.monospaced())
+                if let contract = model.contract {
+                    Text(contract).font(.system(size: 9, design: .monospaced)).opacity(0.8)
+                }
+            }.multilineTextAlignment(.center).foregroundStyle(.gold)
             Spacer()
             score("WEST + EAST", value: model.match.scores[1])
         }.padding(16).background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 16))
@@ -80,10 +85,17 @@ public struct TableView: View {
     private func opponent(_ seat: Int, name: String) -> some View {
         VStack(spacing: 6) {
             Text(name).font(.subheadline.weight(.semibold))
-            Text("\(model.match.hand.hands[seat].count) cards").font(.caption2).opacity(0.65)
+            Text(seatDetail(seat)).font(.caption2).opacity(0.65)
             if model.match.hand.auction.dealer == seat { Text("DEALER").font(.system(size: 8, design: .monospaced)).foregroundStyle(.gold) }
         }.padding(12)
             .background(model.match.hand.nextSeat == seat ? .white.opacity(0.14) : .white.opacity(0.04), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    /// During the auction each seat shows its call; afterwards the bidder is marked and others show card counts.
+    private func seatDetail(_ seat: Int) -> String {
+        if model.match.hand.phase == .bidding { return model.latestCall(for: seat) ?? "Waiting" }
+        if model.match.hand.auction.winner == seat { return "Bidder" }
+        return "\(model.match.hand.hands[seat].count) cards"
     }
 
     private var status: String {
@@ -112,17 +124,33 @@ public struct TableView: View {
                     .font(.footnote).foregroundStyle(.gold)
             }
             HStack(spacing: 12) {
-                ForEach(plays, id: \.seat) { play in
+                // Cards are unique within a hand, so keying by card lets a new trick replace the last one.
+                ForEach(plays, id: \.card) { play in
                     VStack(spacing: 8) {
                         CardView(card: play.card)
-                        Text(["You", "West", "Partner", "East"][play.seat]).font(.caption2)
+                            .overlay(RoundedRectangle(cornerRadius: 8)
+                                .stroke(.gold, lineWidth: showingLast && last?.winner == play.seat ? 3 : 0))
+                        Text(names[play.seat]).font(.caption2)
                     }
+                    .transition(.asymmetric(insertion: .move(edge: Self.edge(for: play.seat)).combined(with: .opacity),
+                                            removal: .opacity))
                 }
                 if plays.isEmpty { Text("Waiting for the first card").font(.footnote).opacity(0.45).frame(height: 96) }
             }.frame(minHeight: 96)
+            .animation(.spring(duration: 0.45), value: model.revision)
         }.frame(maxWidth: .infinity).padding(.vertical, 20)
             .background(.white.opacity(0.025), in: RoundedRectangle(cornerRadius: 24))
             .overlay(RoundedRectangle(cornerRadius: 24).stroke(.white.opacity(0.08)))
+    }
+
+    /// Played cards enter from the side of the table their seat occupies.
+    private static func edge(for seat: Int) -> Edge {
+        switch seat {
+        case 1: .leading
+        case 2: .top
+        case 3: .trailing
+        default: .bottom
+        }
     }
 
     @ViewBuilder private var controls: some View {
@@ -155,17 +183,24 @@ public struct TableView: View {
             HStack {
                 Text("YOUR HAND").font(.caption.monospaced()).tracking(1)
                 Spacer()
+                if model.match.hand.phase == .bidding, let call = model.latestCall(for: 0) {
+                    Text(call.uppercased()).font(.caption2.monospaced()).opacity(0.65)
+                }
                 if model.match.hand.auction.dealer == 0 { Text("DEALER").font(.caption2.monospaced()).foregroundStyle(.gold) }
             }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(model.humanCards, id: \.self) { card in
+                        // Hit testing rather than .disabled keeps the hand readable while bidding.
+                        let playable = model.allows(.play(card))
                         Button { model.send(.play(card)) } label: { CardView(card: card) }
                             .buttonStyle(.plain)
-                            .disabled(!model.allows(.play(card)))
-                            .opacity(model.match.hand.phase == .playing && !model.allows(.play(card)) ? 0.5 : 1)
+                            .allowsHitTesting(playable)
+                            .opacity(model.match.hand.phase == .playing && !playable ? 0.5 : 1)
+                            .transition(.asymmetric(insertion: .opacity, removal: .move(edge: .top).combined(with: .opacity)))
                     }
                 }.padding(.bottom, 8)
+                .animation(.spring(duration: 0.45), value: model.revision)
             }
         }
     }

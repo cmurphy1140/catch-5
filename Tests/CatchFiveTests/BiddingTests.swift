@@ -59,3 +59,19 @@ import Testing
     #expect(auction.winner == 3)
     #expect(auction.isNineAndOut)
 }
+
+@Test func auctionRecordsEverySeatCallInOrder() throws {
+    var auction = try Auction(dealer: 3)
+    try auction.act(seat: 0, bid: nil)
+    try auction.act(seat: 1, bid: 3)
+    #expect(throws: RuleError.invalidBid) { try auction.act(seat: 2, bid: 3) }
+    try auction.act(seat: 2, bid: 9, nineAndOut: true)
+    try auction.act(seat: 3, bid: nil)
+    #expect(auction.calls == [
+        AuctionCall(seat: 0, bid: nil),
+        AuctionCall(seat: 1, bid: .points(3)),
+        AuctionCall(seat: 2, bid: .nineAndOut),
+        AuctionCall(seat: 3, bid: nil),
+    ])
+    #expect(auction.calls.first { $0.seat == 1 }?.bid == .points(3))
+}
