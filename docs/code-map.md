@@ -4,7 +4,7 @@
 
 ```mermaid
 flowchart TD
-    Demo[Text demo now / SwiftUI screen later] --> Match[Match: whole game and scores]
+    Demo[SwiftUI table or text demo] --> Match[Match: whole game and scores]
     Match --> Hand[Hand: one deal and whose turn]
     Hand --> Bidding[Bidding: who wins the auction]
     Hand --> Tricks[Tricks: legal cards and trick winner]
@@ -26,6 +26,8 @@ The screen sends an action, such as “Seat 0 plays the queen of clubs.” Match
 | `Sources/CatchFive/Match.swift` | `Tests/CatchFiveTests/MatchTests.swift` | Five full hands ending 26–16, then reject further play |
 | `Sources/CatchFive/MatchSave.swift` | `Tests/CatchFiveTests/SaveTests.swift` | Resume during bidding, trump selection, a trick, or between hands |
 | `Sources/CatchFive/ComputerPlayer.swift` | `Tests/CatchFiveTests/ComputerPlayerTests.swift` | 24 shuffled matches using only restricted observations, then save/load |
+| `Sources/CatchFive/EasyPlayer.swift` | `Tests/CatchFiveTests/StrategyBenchmark.swift` | the frozen opponent the standard player must beat |
+| `Sources/CatchFive/HandReview.swift` | `Tests/CatchFiveTests/ReviewTests.swift` | every play of a finished hand explained by rebuilding its view |
 | `Sources/CatchFiveDemo/main.swift` | Run `swift run catch-five-demo` | Calls Match; does not maintain a separate score implementation |
 
 ## Follow One Test
@@ -40,9 +42,9 @@ The screen sends an action, such as “Seat 0 plays the queen of clubs.” Match
 
 A fixed deck makes a failure repeatable. Small rule tests explain exactly which behavior broke; full-game tests catch pieces that work separately but are connected incorrectly.
 
-## What Is Not Built Yet
+## Where the rest lives
 
-Stronger computer strategy. Baseline heuristic players work and the SwiftUI table in `Sources/CatchFiveUI` (view model tested in `Tests/CatchFiveUITests`) plays full matches with automatic saving. 9-and-out is wired through Match: it outranks a normal 9 and the dealer may match it to take the bid.
+The SwiftUI table in `Sources/CatchFiveUI` (view model tested in `Tests/CatchFiveUITests`) plays full matches with automatic saving; [types-and-functions.md](types-and-functions.md) lists every type it adds. 9-and-out is wired through Match: it outranks a normal 9 and the dealer may match it to take the bid.
 
 
 ## Following Functions Without Xcode

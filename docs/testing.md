@@ -43,14 +43,15 @@ flowchart BT
     L2["Hand lifecycle (7 tests)<br/>HandTests<br/>208 deterministic complete hands, card conservation after every move"]
     L3["Match coordinator (8 tests)<br/>MatchTests<br/>five-hand fixture with hand-checked scores 2–7, 10–5, 12–12, 19–14, 26–16"]
     L4["Persistence (7 tests)<br/>SaveTests<br/>resume in every phase, corrupt files, disk errors"]
-    L5["Computer players (15 tests)<br/>ComputerPlayerTests<br/>single decisions + 24 shuffled matches + 200-match bidding calibration"]
+    L5["Computer players (19 tests)<br/>ComputerPlayerTests<br/>single decisions, advice wording, 24 shuffled matches, 200-match bidding calibration"]
     L5b["Strategy benchmark (2 tests)<br/>StrategyBenchmark + EasyPlayer<br/>600 mirrored matches against the frozen PR #2 player"]
-    L6["View model (3 tests)<br/>GameModelTests<br/>human/computer handoff, save on success, error on illegal move"]
-    L7["Manual: simulator<br/>screenshots of bidding, trump choice, play, hand summary"]
-    L1 --> L2 --> L3 --> L4 --> L5 --> L5b --> L6 --> L7
+    L5c["Review and undo (6 tests)<br/>ReviewTests, UndoTests<br/>replayed views explain every play; rewinding the action log"]
+    L6["View model and tutorial (28 tests)<br/>GameModelTests, TutorialModelTests<br/>hints, explanations, settings, history, accessibility wording, tutorial fixtures vs the engine"]
+    L7["Manual: simulator<br/>screenshots of each screen and sheet"]
+    L1 --> L2 --> L3 --> L4 --> L5 --> L5b --> L5c --> L6 --> L7
 ```
 
-Total: 61 automated tests, about 3 s (the strategy benchmark is most of that). Every layer above the first uses the real code beneath it; nothing is mocked. If `trickWinner` broke, the failure would show up in one small trick test *and* in the 208-hand simulation, and the small one tells you exactly what changed.
+Total: 96 automated tests, about 3.5 s (the strategy benchmark is most of that). Every layer above the first uses the real code beneath it; nothing is mocked. If `trickWinner` broke, the failure would show up in one small trick test *and* in the 208-hand simulation, and the small one tells you exactly what changed.
 
 ## Two kinds of test, deliberately
 
@@ -97,8 +98,9 @@ The same harness is how strategy ideas are judged during development: freeze the
 
 ## What is not automated
 
-- Visual layout and animation. Checked by building with `scripts/build-simulator.py`, launching on the "Catch 5 iPhone" simulator and taking screenshots at each phase.
+- Visual layout and animation. Checked by building with `scripts/build-simulator.py`, launching on the "Catch 5 iPhone" simulator and taking screenshots of each screen and sheet.
 - Save/restore across app relaunch. Verified manually by killing and relaunching the app mid-trick; the engine side of the same path is covered by `SaveTests`.
+- VoiceOver and Dynamic Type at the largest sizes, and haptics: the wording is unit-tested, the experience is checked by hand.
 
 ## Reading a failure
 

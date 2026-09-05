@@ -15,9 +15,3 @@ Successful normal bidders add every point collected; unsuccessful bidders subtra
 A special 9 and out bid is forbidden below zero. At zero or above, collecting all nine points wins the match; collecting fewer loses the match regardless of normal scores.
 
 A 9 and out declaration outranks a normal 9. The dealer may match a 9 and out declaration, and matching overrides it: the dealer becomes the bidder (confirmed 2026-09-04).
-
-## Pending rare-case clarification
-None outstanding.
-
-## Delivery
-Approved direction: pure Swift engine and tests first, then offline SwiftUI play with one human and three computer players, save/resume and hand scoring explanations. No multiplayer in the initial playable version.

@@ -26,7 +26,7 @@ flowchart LR
 
 | Command | What it does | When to use |
 |---|---|---|
-| `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test` | Compiles every target and runs all tests (57 as of this page) | After every change |
+| `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test` | Compiles every target and runs all tests (96 as of this page) | After every change |
 | `... swift test --filter <name>` | Runs one test by function name | While working on one rule |
 | `... swift run catch-five-demo` | Plays a fixed five-hand match in the terminal and prints every trick | To watch the engine without the app. Add `--computer` for shuffled computer play, `--save-roundtrip` to see save/restore mid-trick |
 | `... python3 scripts/build-simulator.py` | Produces `work/simulator-build/CatchFive.app` for the iOS simulator | To run the real app |
