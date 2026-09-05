@@ -13,6 +13,7 @@ struct TableSurface: View {
     /// The human's latest action while its undo toast is showing.
     let toast: PlayerAction?
     let onReopenTrick: () -> Void
+    let onCloseTrick: () -> Void
     let onReview: () -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -158,6 +159,9 @@ struct TableSurface: View {
             // Left: reopen the last trick when the pile is clear. Right: the hint on your turn.
             if pile.plays.isEmpty, hand.completedTricks.last != nil, hand.phase == .playing, reopenedTrick == nil {
                 smallButton("rectangle.stack", label: "Show the last trick", action: onReopenTrick)
+            } else if reopenedTrick != nil {
+                // Play waits while the trick is open, so there must be a way to put it down again.
+                smallButton("xmark", label: "Hide the last trick", action: onCloseTrick)
             } else {
                 Spacer().frame(width: Theme.Table.statusButtonHitSize, height: Theme.Table.statusButtonHitSize)
             }

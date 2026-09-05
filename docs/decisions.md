@@ -318,3 +318,11 @@ D36 is taken by the cast, login and menu work on the parallel branch.
 
 **Why:** Standard game onboarding is a short, skippable intro with a clear door to the full lessons, and returning players expect to be at the table one launch away. A card over the table keeps the two things a returning player actually wants in reach without a page between them.
 
+## D40. Play pauses under any cover, and a failed save is not a refused move (PR #24, 2026-09-05)
+
+**Chosen:** `TablePause` gathers every reason the computers must wait: the scene is not active, the welcome card is up, any sheet is open, a confirmation or alert is showing, or the player has reopened the last trick. `TableView` keys its scheduler task on the revision and that one flag, so a cover cancels the task and lifting the last cover starts one fresh task that applies at most one computer action. Because the reopened trick now pauses play, the status line gains a Hide control beside Show. In `GameModel`, `perform` returns whether the engine accepted the action; the human's toast and haptic follow that answer, not the absence of an error message. Write failures for the game, settings and history land in `saveError`, shown as a "Could not save" alert with Retry, and `retrySave()` writes the state already in memory, never replaying a move.
+
+**Over:** Checking each overlay flag inside `advance()` (misses the cancellation, so a sleep started before the cover could still act after it); folding save failures into `errorMessage` (a successful bid then looked refused and lost its toast); retrying by re-sending the action.
+
+**Why:** The roadmap's first task. Task ids are how SwiftUI cancels work, so the pause belongs in the id. Stacked covers stay paused because the flag is computed from all of them at once. Separating acceptance from persistence keeps the replay log the only record of what happened; a save is a copy of it, and a retry copies again.
+
