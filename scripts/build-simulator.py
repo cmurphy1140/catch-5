@@ -25,9 +25,20 @@ run(base + ['-module-name', 'CatchFiveApp', '-parse-as-library', str(root / 'App
             '-lCatchFiveUI', '-lCatchFive', '-o', str(app / 'CatchFive')])
 info = dict(CFBundleIdentifier='com.cardgame.catchfive', CFBundleName='CatchFive',
             CFBundleDisplayName='Catch 5', CFBundleExecutable='CatchFive', CFBundlePackageType='APPL',
-            CFBundleShortVersionString='0.1', CFBundleVersion='1', MinimumOSVersion='17.0',
+            CFBundleShortVersionString='1.0', CFBundleVersion='1', MinimumOSVersion='17.0',
             LSRequiresIPhoneOS=True, UIDeviceFamily=[1, 2], UILaunchScreen={},
+            LSApplicationCategoryType='public.app-category.card-games',
             UISupportedInterfaceOrientations=['UIInterfaceOrientationPortrait'])
+# The icon the simulator shows on the home screen, scaled from the App Store master.
+icon = root / 'App' / 'Assets.xcassets' / 'AppIcon.appiconset' / 'icon-1024.png'
+if icon.exists():
+    for scale, pixels in (('@2x', 120), ('@3x', 180)):
+        subprocess.run(['sips', '-z', str(pixels), str(pixels), str(icon), '--out', str(app / f'AppIcon60x60{scale}.png')],
+                       check=True, capture_output=True)
+    info['CFBundleIcons'] = {'CFBundlePrimaryIcon': {'CFBundleIconFiles': ['AppIcon60x60'], 'CFBundleIconName': 'AppIcon'}}
+privacy = root / 'App' / 'PrivacyInfo.xcprivacy'
+if privacy.exists():
+    (app / 'PrivacyInfo.xcprivacy').write_bytes(privacy.read_bytes())
 with (app / 'Info.plist').open('wb') as file:
     plistlib.dump(info, file)
 run(['codesign', '--force', '--sign', '-', str(app)])

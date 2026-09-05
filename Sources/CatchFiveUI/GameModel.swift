@@ -16,6 +16,8 @@ public final class GameModel: ObservableObject {
     @Published public var settings: Settings { didSet { persistSettings() } }
     /// Every finished match, oldest first.
     @Published public private(set) var records: [MatchRecord]
+    /// The human's record for a finished match, computed once when it is recorded or restored.
+    @Published public private(set) var finalPerformance: SeatPerformance?
     private let saveURL: URL?
     private let settingsURL: URL?
     private let historyURL: URL?
@@ -33,6 +35,7 @@ public final class GameModel: ObservableObject {
         self.records = records
         self.historyURL = historyURL
         recordedCurrentMatch = match.winner != nil
+        if match.winner != nil { finalPerformance = try? match.performance(forSeat: 0) }
     }
 
     public var statistics: Statistics { Statistics(records) }
@@ -43,13 +46,11 @@ public final class GameModel: ObservableObject {
         return try? HandReview(match: match)
     }
 
-    /// The human's record in the current match so far.
-    public func performance() -> SeatPerformance? { try? match.performance(forSeat: 0) }
-
     private func recordMatchIfFinished() {
         guard match.winner != nil, !recordedCurrentMatch else { return }
         recordedCurrentMatch = true
         let performance = (try? match.performance(forSeat: 0)) ?? SeatPerformance(plays: 0, playsAgreed: 0, bids: 0, bidsMade: 0)
+        finalPerformance = performance
         records.append(MatchRecord(date: now(), scores: match.scores, winner: match.winner ?? 0, hands: match.history.count,
                                    difficulty: settings.difficulty, humanBids: performance.bids, humanBidsMade: performance.bidsMade,
                                    humanPlays: performance.plays, humanPlaysAgreed: performance.playsAgreed))
@@ -114,6 +115,23 @@ public final class GameModel: ObservableObject {
         return "\(seatNames[bidder]) bid \(auction.isNineAndOut ? "9 and out" : String(bid))"
     }
 
+    /// VoiceOver wording for a played card: "West played the ten of hearts".
+    public func spokenDescription(of play: Play, winner: Int? = nil) -> String {
+        let base = "\(seatNames[play.seat]) played the \(play.card.name)"
+        return winner == play.seat ? base + " and took the trick" : base
+    }
+
+    /// VoiceOver value for a card in the human's hand.
+    public func accessibilityValue(for card: Card) -> String {
+        switch match.hand.phase {
+        case .bidding, .choosingTrump: return "waiting for the auction to finish"
+        case .finished: return "hand complete"
+        case .playing:
+            guard isHumanTurn else { return "waiting for your turn" }
+            return allows(.play(card)) ? "playable" : "not legal now"
+        }
+    }
+
     /// Whether the human's latest action in this hand can be taken back.
     public var canUndo: Bool { match.undoPoint(forSeat: 0) != nil }
 
@@ -134,10 +152,17 @@ public final class GameModel: ObservableObject {
     }
 
     /// Plain words for why `play` happened, from the strategy's point of view at that moment.
-    public func explanation(for play: Play, inLastTrick: Bool) -> String? {
-        let index = inLastTrick ? match.hand.completedTricks.count - 1 : nil
+    /// `trickIndex` names a completed trick; nil means the card is still on the table.
+    public func explanation(for play: Play, inLastTrick: Bool, trickIndex: Int? = nil) -> String? {
+        let index = trickIndex ?? (inLastTrick ? match.hand.completedTricks.count - 1 : nil)
         guard let view = try? PlayerView(match: match, replaying: play, inCompletedTrick: index),
               let advice = ComputerPlayer.advise(view) else { return nil }
+        return describe(PlayReview(play: play, advice: advice))
+    }
+
+    /// One sentence for a reviewed play; the same wording serves tap-to-explain and the hand review.
+    public func describe(_ review: PlayReview) -> String {
+        let play = review.play, advice = review.advice
         // Advice reads "Play the X: reason"; keep only the reason after the colon.
         let reason = advice.reason.split(separator: ":", maxSplits: 1).last.map { $0.trimmingCharacters(in: .whitespaces) } ?? advice.reason
         let name = seatNames[play.seat]
@@ -148,7 +173,7 @@ public final class GameModel: ObservableObject {
             }
             return "\(name) (easy) played the \(play.card.name), as Standard would: \(reason)"
         }
-        if play.seat == 0, advice.action != .play(play.card), case let .play(preferred) = advice.action {
+        if play.seat == 0, !review.agreed, case let .play(preferred) = advice.action {
             return "You played the \(play.card.name). The strategy would have played the \(preferred.name): \(reason)"
         }
         return "\(name) played the \(play.card.name): \(reason)"
@@ -170,6 +195,7 @@ public final class GameModel: ObservableObject {
     public func newGame() {
         perform { match = try Match(deck: Self.deck(), dealer: 3) }
         recordedCurrentMatch = false
+        finalPerformance = nil
     }
 
     private func perform(_ action: () throws -> Void) {
@@ -219,14 +245,17 @@ public final class GameModel: ObservableObject {
     }
 
     public static func loadDefault() -> GameModel {
-        let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("CatchFive", isDirectory: true)
+        loadDefault(in: FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("CatchFive", isDirectory: true))
+    }
+
+    /// Loads the saved game, settings and history from `directory`, creating it if needed.
+    public static func loadDefault(in directory: URL) -> GameModel {
         let url = directory.appendingPathComponent("game.json")
         let settingsURL = directory.appendingPathComponent("settings.json")
         let settings = (try? SettingsStore.read(from: settingsURL)) ?? Settings()
         let historyURL = directory.appendingPathComponent("history.json")
-        // A corrupt history must never block play: it is set aside and a fresh one starts.
-        let records = (try? MatchHistoryStore.read(from: historyURL)) ?? []
+        let records = MatchHistoryStore.readSettingAsideCorruption(at: historyURL)
         // The generated deck is always a valid, unique 52-card deck.
         let fresh = GameModel(match: try! Match(deck: deck(), dealer: 3), saveURL: url, settings: settings, settingsURL: settingsURL,
                               records: records, historyURL: historyURL)

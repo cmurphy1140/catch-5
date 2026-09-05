@@ -5,6 +5,9 @@ import SwiftUI
 struct ReviewView: View {
     let review: HandReview
     let names: [String]
+    let difficulty: Difficulty
+    /// Words one reviewed play; shared with tap-to-explain so the two never differ.
+    let describe: (PlayReview) -> String
     let onDismiss: () -> Void
 
     var body: some View {
@@ -12,7 +15,7 @@ struct ReviewView: View {
             List {
                 let (agreed, total) = review.agreement(forSeat: 0)
                 Section {
-                    Text("You played the strategy's card \(agreed) of \(total) times. Rows in gold show where it would have played differently.")
+                    Text("You played the strategy's card \(agreed) of \(total) times. Rows in gold show where the standard strategy would have played differently\(difficulty == .easy ? "; the computers are on Easy, so their rows compare them to Standard too" : "").")
                         .font(.footnote)
                 }
                 ForEach(review.tricks, id: \.number) { trick in
@@ -36,14 +39,22 @@ struct ReviewView: View {
                     .foregroundStyle(review.agreed ? Color.secondary : Color.gold)
             }
             if !review.agreed {
-                Text("Standard: \(reason(review.advice))").font(.footnote).foregroundStyle(.gold)
+                Text(describe(review)).font(.footnote).foregroundStyle(.gold)
             }
         }
         .accessibilityElement(children: .combine)
     }
+}
 
-    private func reason(_ advice: Advice) -> String {
-        advice.reason.replacingOccurrences(of: "Play the ", with: "").replacingOccurrences(of: "Lead the ", with: "")
+/// Shown if a review could not be built, so the sheet always has content and a Done button.
+struct ReviewUnavailableView: View {
+    let onDismiss: () -> Void
+    var body: some View {
+        NavigationStack {
+            Text("Nothing to review yet.").foregroundStyle(.secondary)
+                .navigationTitle("Hand review")
+                .toolbar { Button("Done", action: onDismiss) }
+        }
     }
 }
 
@@ -61,7 +72,7 @@ struct ScoreboardView: View {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Hand \(hand.number)").font(.subheadline.weight(.semibold))
-                            Text("\(names[hand.bidder]) bid \(hand.isNineAndOut ? "9 and out" : String(hand.bid)) · points \(hand.result.points[0])–\(hand.result.points[1])")
+                            Text("\(names[hand.bidder]) bid \(hand.isNineAndOut ? "9 and out" : String(hand.bid)), \(hand.contractMade ? "made" : "set") · points \(hand.result.points[0])–\(hand.result.points[1])")
                                 .font(.footnote).foregroundStyle(.secondary)
                         }
                         Spacer()
@@ -77,11 +88,11 @@ struct ScoreboardView: View {
 
 /// Totals across recorded matches, newest first.
 struct StatisticsView: View {
+    let stats: Statistics
     let records: [MatchRecord]
     let onDismiss: () -> Void
 
     var body: some View {
-        let stats = Statistics(records)
         NavigationStack {
             List {
                 Section("All matches") {
@@ -93,7 +104,7 @@ struct StatisticsView: View {
                 }
                 Section("Recent") {
                     if records.isEmpty { Text("Finish a match to see it here.").foregroundStyle(.secondary) }
-                    ForEach(records.reversed(), id: \.date) { record in
+                    ForEach(records.reversed()) { record in
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(record.humanWon ? "Won" : "Lost").font(.subheadline.weight(.semibold))

@@ -1,8 +1,18 @@
+public enum ReviewError: Error, Equatable {
+    /// The strategy had no advice for a play, which cannot happen for a legal play in a playing phase.
+    case unexplainedPlay
+}
+
 /// One play of a finished hand alongside what the standard strategy would have done from the same view.
 public struct PlayReview: Equatable, Sendable {
     public let play: Play
     public let advice: Advice
     public var agreed: Bool { advice.action == .play(play.card) }
+
+    public init(play: Play, advice: Advice) {
+        self.play = play
+        self.advice = advice
+    }
 }
 
 public struct TrickReview: Equatable, Sendable {
@@ -20,7 +30,7 @@ public struct HandReview: Equatable, Sendable {
         for (index, trick) in match.hand.completedTricks.enumerated() {
             let plays = try trick.plays.map { play in
                 let view = try PlayerView(match: match, replaying: play, inCompletedTrick: index)
-                guard let advice = ComputerPlayer.advise(view) else { throw HandError.wrongPhase }
+                guard let advice = ComputerPlayer.advise(view) else { throw ReviewError.unexplainedPlay }
                 return PlayReview(play: play, advice: advice)
             }
             tricks.append(TrickReview(number: index + 1, winner: trick.winner, plays: plays))
@@ -58,13 +68,14 @@ extension Match {
         var boundaries = actions.indices.filter { if case .nextHand = actions[$0] { true } else { false } }
         if hand.phase == .finished { boundaries.append(actions.count) }
         for boundary in boundaries {
-            let review = try HandReview(match: rewound(toActionCount: boundary))
+            // The current finished hand is this match already; earlier hands are rebuilt by replay.
+            let review = try HandReview(match: boundary == actions.count ? self : rewound(toActionCount: boundary))
             let (handAgreed, handPlays) = review.agreement(forSeat: seat)
             plays += handPlays
             agreed += handAgreed
         }
         let contracts = history.filter { $0.bidder == seat }
-        let made = contracts.filter { $0.isNineAndOut ? $0.result.points[seat % 2] == 9 : $0.result.points[seat % 2] >= $0.bid }.count
+        let made = contracts.filter(\.contractMade).count
         return SeatPerformance(plays: plays, playsAgreed: agreed, bids: contracts.count, bidsMade: made)
     }
 }

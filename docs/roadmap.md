@@ -79,7 +79,7 @@ flowchart LR
 **Tests first:** `reviewReconstructsEveryPlayWithAdvice`, `reviewAgreementMatchesHintAtEachTurn` (reuse the D24 whole-match test), `finishedMatchIsRecordedExactlyOnce`, `statisticsAggregateAcrossRecords`, `corruptHistoryDoesNotBlockPlay`.
 **Risks:** Review prose can get long; cap to one sentence per play. Consolidate with the tap-to-explain code rather than keeping two reconstruction paths.
 
-## M6. Accessibility, Dynamic Type and App Store readiness (M, external blocker)
+## M6. Accessibility, Dynamic Type and App Store readiness (M, external blocker) — done in PR #13 except archiving and TestFlight
 
 **Goal:** Pass App Review on iPhone with a first-class accessible table.
 

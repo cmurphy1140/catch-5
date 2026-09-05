@@ -42,3 +42,18 @@ import Testing
     #expect(performance.bidsMade <= performance.bids)
     #expect(humanPlays == match.history.count * 6)
 }
+
+@Test func handSummaryKnowsWhetherTheContractWasMade() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    var random = RepeatableRandom(state: 8)
+    var match = try Match(deck: deck.shuffled(using: &random), dealer: 1)
+    while match.history.count < 4, match.winner == nil {
+        if match.hand.phase == .finished { try match.startNextHand(deck: deck.shuffled(using: &random)); continue }
+        let seat = try #require(match.hand.nextSeat)
+        try match.apply(try #require(ComputerPlayer.decide(PlayerView(match: match, seat: seat))), seat: seat)
+    }
+    #expect(!match.history.isEmpty)
+    for summary in match.history {
+        #expect(summary.contractMade == (summary.result.points[summary.bidder % 2] >= summary.bid))
+    }
+}
