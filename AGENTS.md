@@ -1,0 +1,16 @@
+# CardGame.io
+
+## Current Status
+Greenfield SwiftUI iOS app. Rules and complete hand lifecycle implemented: deal/refill, normal auction, legal moves, trick capture, scoring and match settlement. 46 tests pass, including 208 deterministic hands and a five-hand match. Match owns automatic scoring, summaries, dealer rotation and victory enforcement; terminal demo uses it. Versioned replay-based save/resume and atomic disk APIs are implemented; baseline computer players use restricted PlayerView, with 24 shuffled match simulations. No automatic app lifecycle saving or app UI yet.
+
+## Architecture
+Use Swift Testing and a dependency-free Swift package for rules. SwiftUI and a thin view model will consume it. Team 0 seats are 0/2, team 1 seats are 1/3; turns advance in ascending seat order modulo four.
+
+## Aesthetic North Star
+A readable, welcoming card table with large cards and understated controls. Final visual design awaits the playable engine.
+
+## Verification
+Run `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test`.
+
+## Rules
+The user's house rules in `docs/catch-five-rules.md` take precedence over published Pitch rules.

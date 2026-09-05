@@ -1,0 +1,33 @@
+name: CatchFive
+options:
+  bundleIdPrefix: com.cardgame
+  deploymentTarget:
+    iOS: "17.0"
+packages:
+  CatchFivePackage:
+    path: .
+targets:
+  CatchFiveApp:
+    type: application
+    platform: iOS
+    sources: [App]
+    dependencies:
+      - package: CatchFivePackage
+        product: CatchFiveUI
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.cardgame.catchfive
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Catch 5
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        SWIFT_VERSION: "6.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        CODE_SIGN_STYLE: Automatic
+schemes:
+  CatchFiveApp:
+    build:
+      targets:
+        CatchFiveApp: all
+    run:
+      config: Debug
