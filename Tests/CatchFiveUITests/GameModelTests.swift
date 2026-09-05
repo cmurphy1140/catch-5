@@ -568,3 +568,36 @@ import Testing
     #expect(model.match.actionCount == 1)
     #expect(try MatchSave.read(from: url).actionCount == 1)
 }
+
+@Test func handLayoutFansOnlyWhenEveryStripIsThumbSized() {
+    // Six 64 pt cards on the iPhone 16 (393 − 32 padding − 16 inset): a fan with the full overlap.
+    #expect(HandLayout.arrange(count: 6, cardWidth: 64, available: 345) == .fan(strip: 48))
+    // Cards grown by Dynamic Type still fan while every strip stays at 44 or more.
+    #expect(HandLayout.arrange(count: 6, cardWidth: 120, available: 345) == .fan(strip: 45))
+    // Any wider and the fan would hide part of a thumb target: two rows of three instead.
+    let rows = HandLayout.arrange(count: 6, cardWidth: 130, available: 345)
+    #expect(rows == .rows(perRow: 3, strip: 107.5))
+    // Rows keep the invariant too, and never overlap more than the fan would.
+    if case let .rows(perRow, strip) = rows { #expect(strip >= Theme.Card.minimumTouchStrip && perRow == 3) }
+    // Fewer cards fan at any size; a single card needs no strip at all.
+    #expect(HandLayout.arrange(count: 3, cardWidth: 100, available: 345) == .fan(strip: 84))
+    #expect(HandLayout.arrange(count: 1, cardWidth: 100, available: 200) == .fan(strip: 84))
+    // Height follows the arrangement so the hand never clips.
+    #expect(HandLayout.height(of: .fan(strip: 48), cardWidth: 64) == 64 * Theme.Card.ratio + 16 + Theme.Card.fanDrop)
+    #expect(HandLayout.height(of: .rows(perRow: 3, strip: 84), cardWidth: 100) == 2 * 100 * Theme.Card.ratio + 8 + 16)
+}
+
+@Test func seatRowLeavesRoomForThePileOnEveryVerifiedWidth() {
+    // The pile's footprint: a card nudged toward either side seat, plus breathing room.
+    let pile = TableLayout.pileReservation
+    #expect(pile == Theme.Card.pileWidth + 2 * Theme.Table.sideNudge + 8)
+    // iPhone 16 (393 − 32) and SE (375 − 32): the tiles give way before the pile can touch them.
+    for available in [361.0, 343.0] {
+        let tile = TableLayout.sideSeatWidth(available: available)
+        #expect(tile <= Theme.Table.seatTileWidth)
+        #expect(tile >= TableLayout.minimumSeatWidth)
+        #expect(2 * tile + pile + 2 * TableLayout.seatGap <= available)
+    }
+    // Plenty of room: the tile keeps its full width.
+    #expect(TableLayout.sideSeatWidth(available: 600) == Theme.Table.seatTileWidth)
+}

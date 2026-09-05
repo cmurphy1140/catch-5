@@ -326,3 +326,11 @@ D36 is taken by the cast, login and menu work on the parallel branch.
 
 **Why:** The roadmap's first task. Task ids are how SwiftUI cancels work, so the pause belongs in the id. Stacked covers stay paused because the flag is computed from all of them at once. Separating acceptance from persistence keeps the replay log the only record of what happened; a save is a copy of it, and a retry copies again.
 
+## D41. The hand and the seat row are laid out from measurements, with a two-row fallback (PR #25, 2026-09-05)
+
+**Chosen:** `HandFanView` measures the width it is given and asks `HandLayout.arrange` how to use it. The fan keeps its overlap while every card's exposed strip is at least 44 pt; when scaled cards or a narrow width would push a strip under that, the hand becomes two flat rows, each still meeting the bound, and the hand's height follows. The seat row does the same through `TableLayout`: the pile reserves a nudged card plus air, and the side tiles take what is left down to an 84 pt floor, so a played card never sits on a seat tile.
+
+**Over:** Trusting the theme constants (the old metric test checked 60 and 64 pt cards against a 375 pt phone and nothing else, while the runtime fitting could shrink a strip below 44 with no fallback); hard-coding a 126 pt pile footprint that was narrower than two nudged cards.
+
+**Why:** Task 2 of the roadmap. A touch target the user cannot see is a mis-tap waiting to happen, and Apple's 44 pt minimum applies to every essential control. Deciding from a measurement makes the invariant true on every width and text size rather than on the ones somebody screenshotted, and a pure function is the only way to test that without a device matrix.
+

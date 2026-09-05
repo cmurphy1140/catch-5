@@ -11,44 +11,35 @@ struct HandFanView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .title2) private var scaledStandard = Theme.Card.handWidth
     @ScaledMetric(relativeTo: .title2) private var scaledWide = Theme.Card.handWidthWide
+    /// The width the hand was actually given, so the arrangement is decided from a measurement.
+    @State private var measuredWidth = 0.0
+
+    private var wide: Bool { measuredWidth + 32 >= Theme.Card.wideScreenWidth }
+    private var cardWidth: Double { wide ? Theme.Card.handWidthWide : Theme.Card.handWidth }
+    private var scaledWidth: Double { wide ? scaledWide : scaledStandard }
+    /// Fan or two rows: whichever keeps every card's exposed strip at least 44 pt (`HandLayout`).
+    private var arrangement: HandLayout.Arrangement {
+        HandLayout.arrange(count: model.humanCards.count, cardWidth: scaledWidth, available: max(measuredWidth - 16, 0))
+    }
 
     var body: some View {
         let cards = model.humanCards
-        let playing = model.match.hand.phase == .playing
+        let arrangement = arrangement
         VStack(spacing: 6) {
-            // The fan fits the available width: the overlap tightens when Dynamic Type grows the cards.
-            GeometryReader { geometry in
-                let wide = geometry.size.width + 32 >= Theme.Card.wideScreenWidth
-                let width = wide ? Theme.Card.handWidthWide : Theme.Card.handWidth
-                let scaled = wide ? scaledWide : scaledStandard
-                let strip = min(scaled + Theme.Card.handOverlap, (geometry.size.width - 16 - scaled) / Double(max(cards.count - 1, 1)))
-                HStack(spacing: strip - scaled) {
-                ForEach(Array(cards.enumerated()), id: \.element) { index, card in
-                    let playable = model.allows(.play(card))
-                    let style: CardStyle = playing && model.isHumanTurn ? (playable ? .playable : .dimmed) : .rest
-                    Button {
-                        if playable { model.send(.play(card)) } else { onIllegal(card) }
-                    } label: {
-                        CardView(card: card, width: width, style: style)
-                            .overlay(RoundedRectangle(cornerRadius: Theme.Card.radius(width: width), style: .continuous)
-                                .strokeBorder(.ivory.opacity(0.9), style: StrokeStyle(lineWidth: 2, dash: [4, 3]))
-                                .opacity(model.hint?.action == .play(card) ? 1 : 0))
+            Group {
+                switch arrangement {
+                case let .fan(strip):
+                    row(cards, indices: Array(cards.indices), strip: strip, fanned: true)
+                case let .rows(perRow, strip):
+                    VStack(spacing: HandLayout.rowGap) {
+                        row(cards, indices: Array(0..<min(perRow, cards.count)), strip: strip, fanned: false)
+                        if cards.count > perRow { row(cards, indices: Array(perRow..<cards.count), strip: strip, fanned: false) }
                     }
-                    .buttonStyle(CardPressStyle(enabled: playable))
-                    .modifier(ShakeEffect(trigger: shakes[card, default: 0]))
-                    .rotationEffect(.degrees(reduceMotion ? 0 : fanAngle(index, of: cards.count)), anchor: .bottom)
-                    .offset(y: reduceMotion ? 0 : fanDrop(index, of: cards.count))
-                    .allowsHitTesting(playing)
-                    .accessibilityValue(model.accessibilityValue(for: card))
-                    .modifier(MatchedCard(card: card, namespace: namespace, enabled: !reduceMotion))
-                    .transition(handTransition(index: index, width: geometry.size.width))
-                    .zIndex(Double(index))
                 }
-                }
-                .frame(width: geometry.size.width, height: geometry.size.height, alignment: .bottom)
             }
-            // Sized for the standard card; on the rare wider phone the wide card overhangs by a few points.
-            .frame(height: scaledStandard * Theme.Card.ratio + 16 + Theme.Card.fanDrop)
+            .frame(maxWidth: .infinity, alignment: .bottom)
+            .frame(height: HandLayout.height(of: arrangement, cardWidth: scaledStandard))
+            .onGeometryChange(for: Double.self) { $0.size.width } action: { measuredWidth = $0 }
             if !cards.isEmpty {
                 HStack(spacing: 8) {
                     Text("YOUR HAND").opacity(0.55)
@@ -62,6 +53,37 @@ struct HandFanView: View {
             }
         }
         .frame(maxWidth: .infinity)
+    }
+
+    /// One row of cards. Fanned rows rotate and dip; the two-row fallback lays cards flat so nothing
+    /// overlaps a neighbour's touch strip.
+    private func row(_ cards: [Card], indices: [Int], strip: Double, fanned: Bool) -> some View {
+        let playing = model.match.hand.phase == .playing
+        let fanCount = fanned ? cards.count : 1
+        return HStack(spacing: strip - scaledWidth) {
+            ForEach(indices, id: \.self) { index in
+                let card = cards[index]
+                let playable = model.allows(.play(card))
+                let style: CardStyle = playing && model.isHumanTurn ? (playable ? .playable : .dimmed) : .rest
+                Button {
+                    if playable { model.send(.play(card)) } else { onIllegal(card) }
+                } label: {
+                    CardView(card: card, width: cardWidth, style: style)
+                        .overlay(RoundedRectangle(cornerRadius: Theme.Card.radius(width: cardWidth), style: .continuous)
+                            .strokeBorder(.ivory.opacity(0.9), style: StrokeStyle(lineWidth: 2, dash: [4, 3]))
+                            .opacity(model.hint?.action == .play(card) ? 1 : 0))
+                }
+                .buttonStyle(CardPressStyle(enabled: playable))
+                .modifier(ShakeEffect(trigger: shakes[card, default: 0]))
+                .rotationEffect(.degrees(reduceMotion || !fanned ? 0 : fanAngle(index, of: fanCount)), anchor: .bottom)
+                .offset(y: reduceMotion || !fanned ? 0 : fanDrop(index, of: fanCount))
+                .allowsHitTesting(playing)
+                .accessibilityValue(model.accessibilityValue(for: card))
+                .modifier(MatchedCard(card: card, namespace: namespace, enabled: !reduceMotion))
+                .transition(handTransition(index: index, width: measuredWidth))
+                .zIndex(Double(index))
+            }
+        }
     }
 
     /// How a card enters or leaves the fan. A played card leaves by `matchedGeometryEffect` (identity

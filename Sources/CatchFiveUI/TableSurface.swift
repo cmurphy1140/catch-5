@@ -41,12 +41,14 @@ struct TableSurface: View {
                     HStack { contractPill.accessibilitySortPriority(25); Spacer(minLength: 0) }
                     Spacer(minLength: 4)
                     SeatView(model: model, seat: 2).accessibilitySortPriority(20)
+                    // The side tiles give way before the pile can touch them (`TableLayout`).
+                    let sideWidth = TableLayout.sideSeatWidth(available: geometry.size.width)
                     HStack(alignment: .center) {
-                        SeatView(model: model, seat: 1).accessibilitySortPriority(30)
-                        Spacer(minLength: 4)
+                        SeatView(model: model, seat: 1, width: sideWidth).accessibilitySortPriority(30)
+                        Spacer(minLength: TableLayout.seatGap)
                         if !inAuction { centre(reach: reach) }
-                        Spacer(minLength: 4)
-                        SeatView(model: model, seat: 3).accessibilitySortPriority(10)
+                        Spacer(minLength: TableLayout.seatGap)
+                        SeatView(model: model, seat: 3, width: sideWidth).accessibilitySortPriority(10)
                     }
                     Spacer(minLength: 4)
                     statusLine.accessibilitySortPriority(4)
@@ -74,7 +76,7 @@ struct TableSurface: View {
         let pile = pile
         ZStack {
             // Reserve the pile's footprint so the layout does not jump between phases.
-            Color.clear.frame(width: Theme.Card.pileWidth + 64, height: Theme.Card.pileWidth * Theme.Card.ratio + 48)
+            Color.clear.frame(width: TableLayout.pileReservation, height: Theme.Card.pileWidth * Theme.Card.ratio + 48)
             ForEach(pile.plays, id: \.card) { play in
                 Button { model.explain(play, inLastTrick: pile.isLast) } label: {
                     CardView(card: play.card, width: Theme.Card.pileWidth, style: .pile)
@@ -327,6 +329,8 @@ struct TableSurface: View {
 struct SeatView: View {
     @ObservedObject var model: GameModel
     let seat: Int
+    /// Side tiles take the width the row can spare; the partner's tile keeps the full width.
+    var width: Double = Theme.Table.seatTileWidth
 
     private var hand: Hand { model.match.hand }
     private var active: Bool { hand.nextSeat == seat && model.match.winner == nil }
@@ -361,7 +365,7 @@ struct SeatView: View {
             .frame(height: 15)
         }
         .padding(.horizontal, 10).padding(.vertical, 6)
-        .frame(width: Theme.Table.seatTileWidth)
+        .frame(width: width)
         // No fill: the name, backs and badges sit straight on the felt; only the seat to act gets a ring.
         .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(.gold, lineWidth: active ? 2 : 0))
         .accessibilityElement(children: .ignore)
