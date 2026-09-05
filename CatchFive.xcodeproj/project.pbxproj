@@ -7,17 +7,39 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		12908FAF1D2D4258F5C94C8A /* Architecture.dc.html in Resources */ = {isa = PBXBuildFile; fileRef = 98CFDCA65E6195B76B88774D /* Architecture.dc.html */; };
 		196ACFD1BDF12D1C68EB2805 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 9B3E579D68599CFF3F7B4383 /* PrivacyInfo.xcprivacy */; };
+		24153E3D2B95829748E586EE /* Code-Map.dc.html in Resources */ = {isa = PBXBuildFile; fileRef = 2DC470ABDFC9C4590E184C91 /* Code-Map.dc.html */; };
+		28A34A643669FC840F51FF58 /* Types-and-Functions.dc.html in Resources */ = {isa = PBXBuildFile; fileRef = E31A3484B0F7EB7903C9420A /* Types-and-Functions.dc.html */; };
+		29F1DCF74EC44C2DE2084AF2 /* Explainer in Resources */ = {isa = PBXBuildFile; fileRef = EFB3FB1A3FFAB76602EA056B /* Explainer */; };
 		2B0BD89E9D1950AD6CE9D931 /* CatchFiveUI in Frameworks */ = {isa = PBXBuildFile; productRef = 8C3AEDE87BDF11591300F118 /* CatchFiveUI */; };
+		481360737135910F7ADF272D /* Build-and-Run.dc.html in Resources */ = {isa = PBXBuildFile; fileRef = 695DE31686F3F460BFDF4E3F /* Build-and-Run.dc.html */; };
+		52E080244D523C1E3A11E772 /* Game-Flow.dc.html in Resources */ = {isa = PBXBuildFile; fileRef = BB7FD2ED15316879E54E582A /* Game-Flow.dc.html */; };
+		5942C6719FA51DCA8FB6E4A1 /* Decisions.dc.html in Resources */ = {isa = PBXBuildFile; fileRef = 1999DADBE795A305CC992342 /* Decisions.dc.html */; };
+		6007E672DB871AE60EFCF69B /* Index.dc.html in Resources */ = {isa = PBXBuildFile; fileRef = 380F910757F3E46F93822B8F /* Index.dc.html */; };
 		65AD9165C27E75A83C624D4B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C30CE2B9240F2C4094DBAFAB /* Assets.xcassets */; };
 		8389536425FF69B74BBC1DE5 /* CatchFiveApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0A21C058444C61FC449F3F4 /* CatchFiveApp.swift */; };
+		8D17A774D9EA0592E159EAC0 /* Tutorial.dc.html in Resources */ = {isa = PBXBuildFile; fileRef = D1C4F198E60E300326E4C508 /* Tutorial.dc.html */; };
+		B9C7BB906A01CD4A02939B92 /* Tutorial-Spec.dc.html in Resources */ = {isa = PBXBuildFile; fileRef = A3B830B23B588B60B75B6A15 /* Tutorial-Spec.dc.html */; };
+		E065B0D28742A174D5BA6181 /* Testing.dc.html in Resources */ = {isa = PBXBuildFile; fileRef = E9D1DD345B411D815EB8549C /* Testing.dc.html */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		09661FAA1C3506ADA3F2A835 /* catch-5-app-2985e8 */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "catch-5-app-2985e8"; path = .; sourceTree = SOURCE_ROOT; };
+		1999DADBE795A305CC992342 /* Decisions.dc.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = Decisions.dc.html; sourceTree = "<group>"; };
+		2DC470ABDFC9C4590E184C91 /* Code-Map.dc.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "Code-Map.dc.html"; sourceTree = "<group>"; };
+		380F910757F3E46F93822B8F /* Index.dc.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = Index.dc.html; sourceTree = "<group>"; };
+		695DE31686F3F460BFDF4E3F /* Build-and-Run.dc.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "Build-and-Run.dc.html"; sourceTree = "<group>"; };
+		98CFDCA65E6195B76B88774D /* Architecture.dc.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = Architecture.dc.html; sourceTree = "<group>"; };
 		9B3E579D68599CFF3F7B4383 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		A0A21C058444C61FC449F3F4 /* CatchFiveApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatchFiveApp.swift; sourceTree = "<group>"; };
+		A3B830B23B588B60B75B6A15 /* Tutorial-Spec.dc.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "Tutorial-Spec.dc.html"; sourceTree = "<group>"; };
+		BB7FD2ED15316879E54E582A /* Game-Flow.dc.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "Game-Flow.dc.html"; sourceTree = "<group>"; };
 		C30CE2B9240F2C4094DBAFAB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D1C4F198E60E300326E4C508 /* Tutorial.dc.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = Tutorial.dc.html; sourceTree = "<group>"; };
+		E31A3484B0F7EB7903C9420A /* Types-and-Functions.dc.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "Types-and-Functions.dc.html"; sourceTree = "<group>"; };
+		E9D1DD345B411D815EB8549C /* Testing.dc.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = Testing.dc.html; sourceTree = "<group>"; };
+		EFB3FB1A3FFAB76602EA056B /* Explainer */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Explainer; path = App/Explainer; sourceTree = SOURCE_ROOT; };
 		F01AF627757685E129B9142A /* CatchFiveApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = CatchFiveApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -39,6 +61,7 @@
 				C30CE2B9240F2C4094DBAFAB /* Assets.xcassets */,
 				A0A21C058444C61FC449F3F4 /* CatchFiveApp.swift */,
 				9B3E579D68599CFF3F7B4383 /* PrivacyInfo.xcprivacy */,
+				ECF4402922F72D896EEE0FE1 /* Explainer */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -46,6 +69,7 @@
 		69E681B29B00FBD4B2B35C3C = {
 			isa = PBXGroup;
 			children = (
+				EFB3FB1A3FFAB76602EA056B /* Explainer */,
 				1F25F5D57E87C593555967D5 /* App */,
 				9E1D7A103B7DCEF4FA33CF7B /* Packages */,
 				FC6EF619BD462ADC93332AA9 /* Products */,
@@ -58,6 +82,23 @@
 				09661FAA1C3506ADA3F2A835 /* catch-5-app-2985e8 */,
 			);
 			name = Packages;
+			sourceTree = "<group>";
+		};
+		ECF4402922F72D896EEE0FE1 /* Explainer */ = {
+			isa = PBXGroup;
+			children = (
+				98CFDCA65E6195B76B88774D /* Architecture.dc.html */,
+				695DE31686F3F460BFDF4E3F /* Build-and-Run.dc.html */,
+				2DC470ABDFC9C4590E184C91 /* Code-Map.dc.html */,
+				1999DADBE795A305CC992342 /* Decisions.dc.html */,
+				BB7FD2ED15316879E54E582A /* Game-Flow.dc.html */,
+				380F910757F3E46F93822B8F /* Index.dc.html */,
+				E9D1DD345B411D815EB8549C /* Testing.dc.html */,
+				A3B830B23B588B60B75B6A15 /* Tutorial-Spec.dc.html */,
+				D1C4F198E60E300326E4C508 /* Tutorial.dc.html */,
+				E31A3484B0F7EB7903C9420A /* Types-and-Functions.dc.html */,
+			);
+			path = Explainer;
 			sourceTree = "<group>";
 		};
 		FC6EF619BD462ADC93332AA9 /* Products */ = {
@@ -101,6 +142,7 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					75BFDC222C4BB0762654E5A7 = {
+						DevelopmentTeam = 9LDVUD49X7;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -132,8 +174,19 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				12908FAF1D2D4258F5C94C8A /* Architecture.dc.html in Resources */,
 				65AD9165C27E75A83C624D4B /* Assets.xcassets in Resources */,
+				481360737135910F7ADF272D /* Build-and-Run.dc.html in Resources */,
+				24153E3D2B95829748E586EE /* Code-Map.dc.html in Resources */,
+				5942C6719FA51DCA8FB6E4A1 /* Decisions.dc.html in Resources */,
+				29F1DCF74EC44C2DE2084AF2 /* Explainer in Resources */,
+				52E080244D523C1E3A11E772 /* Game-Flow.dc.html in Resources */,
+				6007E672DB871AE60EFCF69B /* Index.dc.html in Resources */,
 				196ACFD1BDF12D1C68EB2805 /* PrivacyInfo.xcprivacy in Resources */,
+				E065B0D28742A174D5BA6181 /* Testing.dc.html in Resources */,
+				B9C7BB906A01CD4A02939B92 /* Tutorial-Spec.dc.html in Resources */,
+				8D17A774D9EA0592E159EAC0 /* Tutorial.dc.html in Resources */,
+				28A34A643669FC840F51FF58 /* Types-and-Functions.dc.html in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -277,6 +330,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9LDVUD49X7;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Catch 5";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.card-games";
@@ -301,6 +355,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9LDVUD49X7;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Catch 5";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.card-games";

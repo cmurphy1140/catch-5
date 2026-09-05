@@ -28,13 +28,13 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project Cat
 
 2. **Add your Apple ID to Xcode** (Settings, then Accounts). A free Apple ID gives a Personal Team, which can sign apps for your own devices; they expire after seven days and Apple limits a free team to three installed apps at a time. The paid Developer Program (US$99 a year) removes those limits and unlocks TestFlight.
 
-3. **Put your team in the project** so `xcodegen` keeps the setting. Find the ten-character team id in Xcode under Accounts, then add it under `settings.base` in `project.yml`:
+3. **Put your team in the project** so `xcodegen` keeps the setting. The ten-character team id is the `OU` field of your Apple Development certificate (not the value in parentheses in its name, which identifies the certificate itself). From the terminal:
 
-```yaml
-        DEVELOPMENT_TEAM: ABCDE12345
+```bash
+security find-certificate -c "Apple Development" -p | openssl x509 -noout -subject
 ```
 
-   Then regenerate: `xcodegen generate`. `CODE_SIGN_STYLE: Automatic` is already set, so Xcode creates the certificate and profile the first time you build.
+   It is set in `project.yml` under `settings.base` as `DEVELOPMENT_TEAM` (done on 2026-09-05 for Connor's personal team, `9LDVUD49X7`) and the project regenerated with `xcodegen generate`. `CODE_SIGN_STYLE: Automatic` lets Xcode create the provisioning profile the first time you build.
 
 4. **Prepare the phone.** Settings, then Privacy & Security, then Developer Mode, switch it on and restart. Connect the phone by cable the first time and tap Trust. It then appears in:
 
