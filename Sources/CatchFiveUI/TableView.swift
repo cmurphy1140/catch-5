@@ -41,22 +41,20 @@ public struct TableView: View {
                          onScores: { showScoreboard = true }, onSettings: { showSettings = true },
                          onStatistics: { showStatistics = true }, onTutorial: { showTutorial = true },
                          onNewGame: { confirmNewGame = true })
-                .padding(.horizontal, 16).padding(.top, 4).padding(.bottom, 12)
-                // A solid header band: runs up behind the status bar and curves off at the bottom, so the
-                // scores sit on one colour and the wood starts beneath it.
+                .padding(.horizontal, 16).padding(.top, 4).padding(.bottom, 14)
+                // A solid header band: runs up behind the status bar and ends in a frown, the corners
+                // hanging lower than the middle, so the scores sit on one colour and the wood starts beneath.
                 .background {
-                    UnevenRoundedRectangle(bottomLeadingRadius: Theme.Table.headerCornerRadius,
-                                           bottomTrailingRadius: Theme.Table.headerCornerRadius, style: .continuous)
-                        .fill(Theme.Wood.inlay)
-                        .shadow(color: .black.opacity(0.35), radius: 10, y: 4)
+                    WoodGrainView()
+                        .clipShape(HeaderBandShape(dip: Theme.Table.headerDip))
+                        .shadow(color: .black.opacity(0.45), radius: 10, y: 4)
                         .ignoresSafeArea(edges: .top)
                 }
-            TableSurface(model: model, namespace: cards, collapsedTricks: collapsedTricks, reopenedTrick: reopenedTrick,
+            TableSurface(model: model, namespace: cards, collapsedTricks: collapsedTricks, reopenedTrick: reopenedTrick, toast: toast,
                          onReopenTrick: { withAnimation(motion(Theme.Motion.collapse)) { reopenedTrick = model.match.hand.completedTricks.count } },
                          onReview: { showReview = true })
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.horizontal, 16)
-            toastSlot
             // Cards stop growing at XXXL so the fan keeps six cards on screen; the cap must sit above the
             // fan's own scaled metrics, which read it from the environment.
             HandFanView(model: model, namespace: cards, onIllegal: shake, shakes: $shakes)
@@ -68,7 +66,7 @@ public struct TableView: View {
         .frame(maxWidth: 640)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .foregroundStyle(.ivory)
-        .background(WoodGrainView())
+        .background(FeltView().ignoresSafeArea())
         .preferredColorScheme(.dark)
     }
 
@@ -162,42 +160,43 @@ public struct TableView: View {
             guard !Task.isCancelled else { return }
             withAnimation(motion(Theme.Motion.collapse)) { collapsedTricks = hand.completedTricks.count }
         }
+        if step.dealing {
+            try? await Task.sleep(for: Theme.Motion.dealHold)
+            guard !Task.isCancelled else { return }
+        }
         guard !model.isHumanTurn, hand.nextSeat != nil, model.match.winner == nil else { return }
         try? await Task.sleep(for: model.settings.delay(leadingTrick: step.leading))
         guard !Task.isCancelled else { return }
         model.stepComputer()
     }
 
-    /// Between the table and the hand: the undo toast after your play (with any notice), a notice on its
-    /// own, or your standing call during the auction.
-    @ViewBuilder private var toastSlot: some View {
-        ZStack {
-            if let toast, model.canUndo {
-                HStack(spacing: 12) {
-                    Text([model.describe(toast), model.notice].compactMap { $0 }.joined(separator: " · ")).font(.footnote).lineLimit(1)
-                    Button("Undo") { model.undo() }.font(.footnote.weight(.semibold)).tint(.ivory)
-                        .accessibilityHint("Takes back your last action and the replies after it")
-                }
-                .padding(.horizontal, 14).padding(.vertical, 6)
-                .background(.ivory.opacity(0.12), in: Capsule())
-                .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
-            } else if let notice = model.notice {
-                Text(notice).font(.caption).opacity(0.8)
-            } else if model.match.hand.phase == .bidding, let call = model.latestCall(for: 0) {
-                Text("You: \(call)").font(.caption).opacity(0.8)
-            }
-        }
-        .frame(height: 28)
-        .animation(motion(Theme.Motion.overlay), value: toast)
+}
+
+enum TableScheduler {
+    /// Whether a finished trick still needs its hold before collapsing, whether the coming computer
+    /// play is a lead (which gets the longer pause) rather than a follow, and whether the hand has
+    /// just been refilled after trump (so the deal animation gets its own pause first).
+    static func plan(hand: Hand, collapsedTricks: Int) -> (hold: Bool, leading: Bool, dealing: Bool) {
+        let hold = hand.phase == .playing && hand.currentTrick.isEmpty && hand.completedTricks.count > collapsedTricks
+        let dealing = hand.phase == .playing && hand.currentTrick.isEmpty && hand.completedTricks.isEmpty
+        return (hold, hand.currentTrick.isEmpty && !hold, dealing)
     }
 }
 
-/// The scheduler's decisions, kept pure so they can be tested without a view.
-enum TableScheduler {
-    /// Whether a finished trick still needs its hold before collapsing, and whether the coming
-    /// computer play is a lead (which gets the longer pause) rather than a follow.
-    static func plan(hand: Hand, collapsedTricks: Int) -> (hold: Bool, leading: Bool) {
-        let hold = hand.phase == .playing && hand.currentTrick.isEmpty && hand.completedTricks.count > collapsedTricks
-        return (hold, hand.currentTrick.isEmpty && !hold)
+/// The header band: square at the top, and along the bottom a frown, an arc whose ends hang `dip`
+/// points lower than its middle.
+struct HeaderBandShape: Shape {
+    var dip: Double
+    var animatableData: Double { get { dip } set { dip = newValue } }
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+        // A quadratic curve peaks halfway between its ends and its control point.
+        path.addQuadCurve(to: CGPoint(x: rect.minX, y: rect.maxY),
+                          control: CGPoint(x: rect.midX, y: rect.maxY - 2 * dip))
+        path.closeSubpath()
+        return path
     }
 }

@@ -20,6 +20,7 @@ struct RulesView: View {
                 }
                 .padding(20)
             }
+            .background(WoodGrainView().ignoresSafeArea())
             .navigationTitle("How to play Catch 5")
             .toolbar { Button("Done", action: onDismiss) }
         }

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// An oak table top drawn once from a fixed seed: a warm base, tonal bands, several hundred wavy
+/// An oak surface drawn once from a fixed seed: a warm base, tonal bands, several hundred wavy
 /// grain lines and a vignette. No image asset, so the hand-built simulator bundle needs nothing extra.
 /// `Theme.Wood.grainRunsHorizontally` picks the grain's direction; everything below is written in
 /// terms of "along" the grain and "across" it.
@@ -60,8 +60,16 @@ struct WoodGrainView: View {
                 center: CGPoint(x: size.width / 2, y: size.height * 0.45),
                 startRadius: size.width * 0.35, endRadius: size.height * 0.8))
         }
-        .ignoresSafeArea()
         .accessibilityHidden(true)
+    }
+}
+
+/// The felt of the playing area: the lighter felt in the middle, falling to a darker green at the edges.
+struct FeltView: View {
+    var body: some View {
+        RadialGradient(colors: [Theme.Wood.feltEdge, Theme.Wood.felt, Theme.Wood.feltDark],
+                       center: UnitPoint(x: 0.5, y: 0.45), startRadius: 40, endRadius: 720)
+            .accessibilityHidden(true)
     }
 }
 

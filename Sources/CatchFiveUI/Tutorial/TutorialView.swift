@@ -22,7 +22,7 @@ struct TutorialView: View {
                 .padding(20).frame(maxWidth: 640).frame(maxWidth: .infinity)
             }
             .foregroundStyle(.ivory)
-            .background(WoodGrainView())
+            .background(WoodGrainView().ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Menu("More") {

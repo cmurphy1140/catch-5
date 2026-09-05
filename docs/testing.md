@@ -46,12 +46,12 @@ flowchart BT
     L5["Computer players (19 tests)<br/>ComputerPlayerTests<br/>single decisions, advice wording, 24 shuffled matches, 200-match bidding calibration"]
     L5b["Strategy benchmark (2 tests)<br/>StrategyBenchmark + EasyPlayer<br/>600 mirrored matches against the frozen PR #2 player"]
     L5c["Review and undo (6 tests)<br/>ReviewTests, UndoTests<br/>replayed views explain every play; rewinding the action log"]
-    L6["View model and tutorial (34 tests)<br/>GameModelTests, TutorialModelTests<br/>hints, explanations, settings, history, accessibility wording, the toast and notice, the scheduler's decisions, theme metrics, tutorial fixtures vs the engine"]
+    L6["View model and tutorial (35 tests)<br/>GameModelTests, TutorialModelTests<br/>hints, explanations, settings, history, accessibility wording, the toast and notice, the scheduler's decisions, theme metrics, tutorial fixtures vs the engine"]
     L7["Manual: simulator<br/>screenshots of each screen and sheet"]
     L1 --> L2 --> L3 --> L4 --> L5 --> L5b --> L5c --> L6 --> L7
 ```
 
-Total: 102 automated tests, about 3.5 s (the strategy benchmark is most of that). Every layer above the first uses the real code beneath it; nothing is mocked. If `trickWinner` broke, the failure would show up in one small trick test *and* in the 208-hand simulation, and the small one tells you exactly what changed.
+Total: 103 automated tests, about 3.5 s (the strategy benchmark is most of that). Every layer above the first uses the real code beneath it; nothing is mocked. If `trickWinner` broke, the failure would show up in one small trick test *and* in the 208-hand simulation, and the small one tells you exactly what changed.
 
 ## Two kinds of test, deliberately
 
