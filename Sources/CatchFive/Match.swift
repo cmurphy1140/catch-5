@@ -18,24 +18,32 @@ public struct Match: Sendable {
     public private(set) var winner: Int?
     public private(set) var history: [HandSummary] = []
     public private(set) var handNumber = 1
+    let initialDeck: [Card]
+    let initialDealer: Int
+    private(set) var actions: [SavedAction] = []
 
     public init(deck: [Card], dealer: Int) throws {
         hand = try Hand(deck: deck, dealer: dealer)
+        initialDeck = deck
+        initialDealer = dealer
     }
 
     public mutating func bid(seat: Int, amount: Int?) throws {
         guard winner == nil else { throw MatchError.matchFinished }
         try hand.bid(seat: seat, amount: amount)
+        actions.append(.bid(seat: seat, amount: amount))
     }
     public mutating func chooseTrump(seat: Int, suit: Suit) throws {
         guard winner == nil else { throw MatchError.matchFinished }
         try hand.chooseTrump(seat: seat, suit: suit)
+        actions.append(.trump(seat: seat, suit: suit))
     }
     public mutating func play(seat: Int, card: Card) throws {
         guard winner == nil else { throw MatchError.matchFinished }
         var updated = self
         try updated.hand.play(seat: seat, card: card)
         if updated.hand.phase == .finished { try updated.recordHand() }
+        updated.actions.append(.play(seat: seat, card: card))
         self = updated
     }
 
@@ -55,5 +63,6 @@ public struct Match: Sendable {
         let next = try Hand(deck: deck, dealer: (hand.auction.dealer + 1) % 4)
         hand = next
         handNumber += 1
+        actions.append(.nextHand(deck: deck))
     }
 }

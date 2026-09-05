@@ -38,6 +38,12 @@ func runHand(in match: inout Match) throws {
     while let seat = match.hand.nextSeat {
         guard let card = match.hand.legalMoves(seat: seat).first else { throw DemoError.noLegalMove }
         try match.play(seat: seat, card: card)
+        if CommandLine.arguments.contains("--save-roundtrip"), number == 1,
+           match.hand.completedTricks.isEmpty, match.hand.currentTrick.count == 3 {
+            let data = try MatchSave.encode(match)
+            match = try MatchSave.decode(data)
+            print("SAVE/RESUME: restored three cards on the table; Seat \(match.hand.nextSeat!) acts next.")
+        }
         if match.hand.currentTrick.isEmpty, let trick = match.hand.completedTricks.last {
             let plays = trick.plays.map { "Seat \($0.seat): \(label($0.card))" }.joined(separator: " | ")
             print("Trick \(match.hand.completedTricks.count): \(plays) -> Seat \(trick.winner)")

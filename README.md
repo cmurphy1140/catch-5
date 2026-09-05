@@ -12,7 +12,8 @@ The pure Swift engine now runs complete hands and a repeatable text demonstratio
 - Normal bid settlement, 25-point wins, and 9-and-out settlement.
 - Full deal, discard/refill, bidding-to-play transitions, turn enforcement and six-trick completion.
 - Match coordinator with automatic scoring, hand history, dealer rotation and victory enforcement.
-- 30 Swift Testing tests, including 208 deterministic hands and a complete five-hand match.
+- Versioned save/resume with validated action replay and atomic file writes.
+- 37 Swift Testing tests, including 208 deterministic hands and a complete five-hand match.
 
 `Auction` currently accepts normal integer bids only. Special bid precedence awaits a house-rule clarification; 9-and-out win/loss settlement is already tested separately.
 
@@ -34,6 +35,8 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift run catch-five-de
 
 This prints a deterministic five-hand match, ending Team 0: 26, Team 1: 16. It uses deliberately simple legal moves and ordered deck rotations for inspection, not a production shuffle or strategic opponents. No Xcode editor is needed.
 
+Add `--save-roundtrip` to the demo command to see it save and restore mid-trick. Engine APIs support disk saves; automatic saving when the app closes will be connected with the UI.
+
 Initial dealing uses two packets of three starting left of dealer. Refill gives each player their replacements clockwise, starting left of dealer. These are provisional packet-order defaults.
 
 ## Structure
@@ -48,6 +51,6 @@ Team-indexed inputs use `[team0, team1]`. Team 0 seats are 0/2, team 1 seats are
 
 ## Next
 
-Add computer-player strategy, save/resume, and a SwiftUI interface with a thin view model. Special-bid auction precedence remains unresolved.
+Add computer-player strategy and a SwiftUI interface with a thin view model. Special-bid auction precedence remains unresolved.
 
 Development branch: `feature/catch-five-engine`. Use tested milestone commits to track progress.
