@@ -57,4 +57,38 @@ public enum Theme {
         public static let shakeAmplitude = 6.0
         public static let toastSeconds = 4.0
     }
+
+    /// Colours for drawn faces, chosen to sit with felt and ivory. No gold here (D33).
+    public enum Portrait {
+        public static func color(_ skin: CatchFiveUI.Portrait.Skin) -> Color {
+            switch skin {
+            case .light: Color(red: 0.96, green: 0.85, blue: 0.74)
+            case .tan: Color(red: 0.85, green: 0.68, blue: 0.52)
+            case .brown: Color(red: 0.62, green: 0.44, blue: 0.30)
+            case .deep: Color(red: 0.38, green: 0.25, blue: 0.17)
+            }
+        }
+        public static func color(_ hair: CatchFiveUI.Portrait.HairColor) -> Color {
+            switch hair {
+            case .black: Color(red: 0.12, green: 0.10, blue: 0.10)
+            case .brown: Color(red: 0.40, green: 0.26, blue: 0.16)
+            case .blond: Color(red: 0.88, green: 0.76, blue: 0.50)
+            case .silver: Color(red: 0.80, green: 0.80, blue: 0.82)
+            case .red: Color(red: 0.70, green: 0.30, blue: 0.16)
+            }
+        }
+        public static func color(_ shirt: CatchFiveUI.Portrait.Shirt) -> Color {
+            switch shirt {
+            case .plum: Color(red: 0.42, green: 0.20, blue: 0.36)
+            case .olive: Color(red: 0.40, green: 0.44, blue: 0.22)
+            case .teal: Color(red: 0.16, green: 0.42, blue: 0.44)
+            case .rust: Color(red: 0.62, green: 0.30, blue: 0.18)
+            case .navy: Color(red: 0.16, green: 0.22, blue: 0.40)
+            case .mustard: Color(red: 0.72, green: 0.58, blue: 0.22)
+            }
+        }
+        /// Hats and glasses frames.
+        public static let accessory = Color(red: 0.20, green: 0.20, blue: 0.22)
+        public static let disc = Color(red: 0.10, green: 0.24, blue: 0.20)
+    }
 }
