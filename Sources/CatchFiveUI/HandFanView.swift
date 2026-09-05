@@ -10,13 +10,22 @@ struct HandFanView: View {
     @Binding var shakes: [Card: Int]
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @ScaledMetric(relativeTo: .title2) private var scaledStandard = Theme.Card.handWidth
+    @ScaledMetric(relativeTo: .title2) private var scaledWide = Theme.Card.handWidthWide
+
+    /// The card width after Dynamic Type scaling, matching what `CardView` draws.
+    private var scaledWidth: Double { sizeClass == .regular ? scaledWide : scaledStandard }
 
     var body: some View {
         let cards = model.humanCards
         let playing = model.match.hand.phase == .playing
         let width = sizeClass == .regular ? Theme.Card.handWidthWide : Theme.Card.handWidth
         VStack(spacing: 6) {
-            HStack(spacing: Theme.Card.handOverlap) {
+            // The fan fits the available width: the overlap tightens when Dynamic Type grows the cards.
+            GeometryReader { geometry in
+                let scaled = scaledWidth
+                let strip = min(scaled + Theme.Card.handOverlap, (geometry.size.width - 16 - scaled) / Double(max(cards.count - 1, 1)))
+                HStack(spacing: strip - scaled) {
                 ForEach(Array(cards.enumerated()), id: \.element) { index, card in
                     let playable = model.allows(.play(card))
                     let style: CardStyle = playing && model.isHumanTurn ? (playable ? .playable : .dimmed) : .rest
@@ -39,9 +48,10 @@ struct HandFanView: View {
                     .transition(.identity)
                     .zIndex(Double(index))
                 }
+                }
+                .frame(width: geometry.size.width, height: geometry.size.height, alignment: .bottom)
             }
-            .padding(.top, 16)   // room for the lift
-            .padding(.horizontal, 8)
+            .frame(height: scaledWidth * Theme.Card.ratio + 16 + Theme.Card.fanDrop)
             if !cards.isEmpty {
                 Text("YOUR HAND").font(.caption2.monospaced()).tracking(1).opacity(0.55)
             }

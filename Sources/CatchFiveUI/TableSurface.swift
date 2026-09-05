@@ -257,12 +257,12 @@ struct SeatView: View {
                         .padding(.horizontal, 5).padding(.vertical, 1)
                         .background(.black.opacity(0.55), in: Capsule())
                         .offset(x: 14, y: 12)
-                }.frame(height: 36)
+                }.frame(height: 40)
             }
-            HStack(spacing: 4) {
+            VStack(spacing: 0) {
                 if hand.auction.dealer == seat { Text("DEALER").font(.system(.caption2, design: .monospaced)).foregroundStyle(.gold) }
                 if hand.auction.winner == seat, hand.phase != .bidding { Text("BIDDER").font(.system(.caption2, design: .monospaced)).opacity(0.7) }
-            }.frame(height: 14)
+            }.frame(minHeight: 14)
         }
         .padding(.horizontal, 10).padding(.vertical, 8)
         .frame(minWidth: 84)
