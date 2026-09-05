@@ -47,6 +47,14 @@ public final class GameModel: ObservableObject {
 
     public var statistics: Statistics { Statistics(records) }
 
+    /// The finished hand's outcome in the player's order: contract, arithmetic, defenders, deciding rules.
+    var lastHandOutcome: HandOutcome? {
+        let history = match.history
+        guard let last = history.last else { return nil }
+        let before = history.count > 1 ? history[history.count - 2].scores : [0, 0]
+        return HandOutcome(summary: last, before: before, names: seatNames)
+    }
+
     /// Every play of the finished hand alongside the standard strategy's choice; nil before the hand is scored.
     public func handReview() -> HandReview? {
         guard match.hand.phase == .finished else { return nil }

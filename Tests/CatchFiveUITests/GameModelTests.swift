@@ -668,3 +668,55 @@ import Testing
     #expect(model.match.actionCount == count)
     #expect(model.auctionContext == nil)
 }
+
+@Test func handOutcomeLeadsWithTheContractAndTheArithmetic() {
+    let names = ["Connor", "Hazel", "Otto", "Rue"]
+    // Made: you bid 4 and took 6, so 2 becomes 8; the defenders took 3, so 5 becomes 8.
+    let made = HandOutcome(bidderTeam: 0, bid: 4, isNineAndOut: false, points: [6, 3], gameValues: [30, 20],
+                           fiveTeam: 0, jackTeam: 1, before: [2, 5], after: [8, 8], names: names)
+    #expect(made.headline == "Contract made")
+    #expect(made.bidderLine == "Connor + Otto bid 4 · captured 6 · score 2 → 8")
+    #expect(made.defenderLine == "Hazel + Rue captured 3 · score 5 → 8")
+    #expect(made.notes.isEmpty)
+    // Set: they bid 5 and took 3, so they lose the 5; you add your 6 as defenders.
+    let set = HandOutcome(bidderTeam: 1, bid: 5, isNineAndOut: false, points: [6, 3], gameValues: [30, 20],
+                          fiveTeam: 0, jackTeam: 0, before: [4, 10], after: [10, 5], names: names)
+    #expect(set.headline == "Contract set")
+    #expect(set.bidderLine == "Hazel + Rue bid 5 · captured 3 · score 10 → 5")
+    #expect(set.defenderLine == "Connor + Otto captured 6 · score 4 → 10")
+}
+
+@Test func handOutcomeExplainsTheEdgeCases() {
+    let names = ["Connor", "Hazel", "Otto", "Rue"]
+    // A Game tie, the Five and Jack out of play, and both teams crossing 25 on the same hand.
+    let tie = HandOutcome(bidderTeam: 0, bid: 3, isNineAndOut: false, points: [3, 1], gameValues: [14, 14],
+                          fiveTeam: nil, jackTeam: nil, before: [23, 24], after: [26, 25], names: names)
+    #expect(tie.notes == [
+        "Game tied 14–14: the tie goes to the bidding team.",
+        "The trump Five was not dealt, so its 5 points were out of play.",
+        "The trump Jack was not dealt, so its point was out of play.",
+        "Both teams reached 25: the bidding team wins the match.",
+    ])
+    // Nine and out, made and failed: the scores do not move, the match simply ends.
+    let won = HandOutcome(bidderTeam: 1, bid: 9, isNineAndOut: true, points: [0, 9], gameValues: [0, 40],
+                          fiveTeam: 1, jackTeam: 1, before: [10, 12], after: [10, 12], names: names)
+    #expect(won.headline == "9 and out made")
+    #expect(won.bidderLine == "Hazel + Rue bid 9 and out · captured all 9 · match won")
+    #expect(won.defenderLine == "Connor + Otto captured 0 · scores unchanged")
+    let lost = HandOutcome(bidderTeam: 0, bid: 9, isNineAndOut: true, points: [8, 1], gameValues: [40, 4],
+                           fiveTeam: 0, jackTeam: 0, before: [10, 12], after: [10, 12], names: names)
+    #expect(lost.headline == "9 and out failed")
+    #expect(lost.bidderLine == "Connor + Otto bid 9 and out · captured 8 of 9 · match lost")
+}
+
+@MainActor @Test func lastHandOutcomeIsBuiltFromTheMatchHistory() throws {
+    let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3))
+    #expect(model.lastHandOutcome == nil)
+    try finishMatch(model)
+    let outcome = try #require(model.lastHandOutcome)
+    let last = try #require(model.match.history.last)
+    #expect(outcome.headline == (last.contractMade ? (last.isNineAndOut ? "9 and out made" : "Contract made")
+                                                   : (last.isNineAndOut ? "9 and out failed" : "Contract set")))
+    let before = model.match.history.count > 1 ? model.match.history[model.match.history.count - 2].scores : [0, 0]
+    #expect(outcome.bidderLine.contains("score \(before[last.bidder % 2]) → \(last.scores[last.bidder % 2])") || last.isNineAndOut)
+}
