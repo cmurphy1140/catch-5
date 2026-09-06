@@ -1069,3 +1069,9 @@ import Testing
     #expect(TableSurface.hintParts("Pass").recommendation == "Pass" && TableSurface.hintParts("Pass").detail.isEmpty)
 }
 
+
+@Test func deckThicknessFollowsTheStockWithoutShowingANumber() {
+    #expect(DeckView.thickness(0) == 1 && DeckView.thickness(6) == 1)
+    #expect(DeckView.thickness(7) == 2 && DeckView.thickness(18) == 3)
+    #expect(DeckView.thickness(28) == 5 && DeckView.thickness(52) == 5)
+}

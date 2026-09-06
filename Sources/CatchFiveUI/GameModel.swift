@@ -117,8 +117,7 @@ public final class GameModel: ObservableObject {
         var parts = [seatNames[seat]]
         if seat != 0 { parts.append(Cast.seatWords[seat]) }
         if hand.phase == .bidding { parts.append(latestCall(for: seat) ?? "waiting") }
-        else if hand.auction.winner == seat { parts.append("bidder, \(hand.hands[seat].count) cards") }
-        else { parts.append("\(hand.hands[seat].count) cards") }
+        else if hand.auction.winner == seat { parts.append("bidder") }
         if hand.auction.dealer == seat { parts.append("dealer") }
         if hand.nextSeat == seat, match.winner == nil { parts.append("to act") }
         return parts.joined(separator: ", ")

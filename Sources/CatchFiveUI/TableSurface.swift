@@ -446,15 +446,12 @@ struct SeatView: View {
                 if hand.phase == .bidding {
                     Text(model.latestCall(for: seat) ?? "Waiting").font(.caption).opacity(0.75).lineLimit(1).minimumScaleFactor(0.8)
                 } else {
+                    // The stack's thickness says roughly how many cards are left; there is no number (spec R20).
                     ZStack(alignment: .leading) {
                         ForEach(0..<min(3, max(1, hand.hands[seat].count)), id: \.self) { index in
                             CardBackView(width: Theme.Table.seatBackWidth)
                                 .offset(x: Double(index) * 4)
                         }
-                        Text(hand.hands[seat].count, format: .number).font(.caption.weight(.bold).monospacedDigit())
-                            .padding(.horizontal, 5).padding(.vertical, 1)
-                            .background(.black.opacity(0.55), in: Capsule())
-                            .offset(x: Theme.Table.seatBackWidth * 0.9, y: Theme.Table.seatBackWidth * 0.55)
                     }
                     .frame(height: Theme.Table.seatBackWidth * Theme.Card.ratio + 4)
                     .dynamicTypeSize(...Theme.Card.maximumTypeSize)
@@ -510,48 +507,44 @@ struct PillButtonStyle: ButtonStyle {
     }
 }
 
-/// The undealt stock: a small stack of card backs with the count, in the table's top-right corner.
+/// The undealt stock in the table's top-right corner. Its thickness says roughly how much is left;
+/// there is no number, because counting is the player's skill, not the app's (spec R20).
 struct DeckView: View {
     let remaining: Int
 
+    /// One back per six cards or part of one, so a full stock reads as five and a near-empty one as one.
+    nonisolated static func thickness(_ count: Int) -> Int { max(1, min(5, (count + 5) / 6)) }
+
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            ForEach(0..<3, id: \.self) { index in
+            ForEach(0..<Self.thickness(remaining), id: \.self) { index in
                 CardBackView(width: Theme.Table.deckWidth)
                     .offset(x: Double(index) * -2, y: Double(index) * -2)
             }
-            Text(remaining, format: .number).font(.caption2.weight(.bold).monospacedDigit())
-                .padding(.horizontal, 5).padding(.vertical, 1)
-                .background(.black.opacity(0.6), in: Capsule())
-                .offset(x: 6, y: 6)
         }
         .dynamicTypeSize(...Theme.Card.maximumTypeSize)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(remaining) cards in the deck")
+        .accessibilityLabel("Deck")
     }
 }
 
-/// The discards, face down under the deck, with their count: nothing about them is a secret worth
-/// keeping (the rules put them out of play), but nothing about them needs showing either.
+/// The discards, face down under the deck: nothing about them is a secret worth keeping (the rules put
+/// them out of play), but nothing about them needs showing either, so no number here (spec R20).
 struct DiscardPileView: View {
     let count: Int
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            ForEach(0..<min(3, count), id: \.self) { index in
+            ForEach(0..<min(3, DeckView.thickness(count)), id: \.self) { index in
                 CardBackView(width: Theme.Table.deckWidth * 0.85)
                     .rotationEffect(.degrees(Double(index) * 5 - 5))
                     .offset(x: Double(index) * -1.5, y: Double(index) * -1.5)
             }
-            Text(count, format: .number).font(.caption2.weight(.bold).monospacedDigit())
-                .padding(.horizontal, 5).padding(.vertical, 1)
-                .background(.black.opacity(0.6), in: Capsule())
-                .offset(x: 6, y: 6)
         }
         .opacity(0.8)
         .dynamicTypeSize(...Theme.Card.maximumTypeSize)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(count) cards discarded")
+        .accessibilityLabel("Discard pile")
     }
 }
 
