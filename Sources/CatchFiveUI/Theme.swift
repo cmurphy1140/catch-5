@@ -122,6 +122,8 @@ public enum Theme {
         public static let dealStagger = 0.09
         /// The scheduler waits this long after trump is named before the first lead, so the deal finishes.
         public static let dealHold: Duration = .milliseconds(1400)
+        /// How long the draw for dealer stays on the table before it puts itself away.
+        public static let dealerDrawHold: Duration = .seconds(4)
     }
 
     /// Colours for drawn faces, chosen to sit with felt and ivory. No gold here (D33).

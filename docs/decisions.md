@@ -414,3 +414,11 @@ D36 is taken by the cast, login and menu work on the parallel branch.
 
 **Why:** A discard pile gives the refill a source and a sink at the same corner: cards leave to the pile, replacements come from the deck above it. The count also answers a question the rules raise, since undealt and discarded cards are out of play, scoring cards included.
 
+## D55. The first dealer is drawn for (PR #38, 2026-09-05)
+
+**Chosen:** A new match, and a fresh install's first match, begin with a draw: each seat takes one card from a shuffled deck, the highest deals, and equal ranks go by suit with clubs lowest and spades highest, so one draw always settles it. The draw is shown over the table (`DealerDrawView`) with the dealer's card ringed and a sentence, puts itself away after four seconds or at the first action, and pauses play while it shows. The match itself starts from a fresh shuffle with that dealer; the draw is not in the replay log, so a restored game shows no draw. The house rules gain the sentence, in `docs/catch-five-rules.md` and `RulesText` together. After the first hand the deal passes to the left, as before.
+
+**Over:** Dealer 3 every time (Connor asked for a draw); redrawing ties (a suit order makes the draw a single step and matches how the cards rank elsewhere in the game); recording the draw as an action (it decides the dealer and nothing else, and the engine already takes the dealer as an input).
+
+**Why:** Drawing for the deal is how a table starts, and it puts the cast's faces to work before the first bid. The draw stays a presentation of a decision the engine receives, not a rule the engine has to learn.
+

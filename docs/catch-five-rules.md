@@ -2,6 +2,8 @@
 
 Four players, two partnerships seated opposite; standard 52-card deck. First team to 25 wins. If both reach 25 on the same hand, the bidding team wins.
 
+Before the first hand each player draws a card and the highest deals; equal ranks go by suit, clubs lowest and spades highest. After that the deal passes to the left.
+
 Deal six cards each. Bidding starts left of dealer and ends with dealer. Minimum 2, maximum normal bid 9. Non-dealers must raise; dealer may match the highest bid and must bid 2 if everyone passes. Bid winner chooses trump. Discard all non-trumps and replenish each hand to six. Undealt cards remain out of play, including scoring cards.
 
 Bid winner leads any suit. Players must follow suit if able; otherwise any card is legal. Highest trump wins, otherwise highest card of the led suit. Trick winner leads next.

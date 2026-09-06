@@ -47,8 +47,12 @@ public struct TableView: View {
                    welcomeShown: covered,
                    sheetShown: showSettings || showTutorial || showReview || showScoreboard || showStatistics,
                    dialogShown: confirmNewGame || confirmNineAndOut || model.errorMessage != nil || model.saveError != nil,
-                   inspectingTrick: reopenedTrick != nil)
+                   inspectingTrick: reopenedTrick != nil,
+                   drawShown: drawShown)
     }
+
+    /// The draw for dealer is showing: a fresh match, not yet covered, with its draw still on the table.
+    private var drawShown: Bool { model.dealerDraw != nil && model.match.actionCount == 0 && !covered }
 
     /// The scheduler restarts whenever an action lands or the pause lifts, and cancels when a pause begins.
     private struct SchedulerKey: Hashable {
@@ -57,7 +61,20 @@ public struct TableView: View {
     }
 
     public var body: some View {
-        withSheets.transformEnvironment(\.dynamicTypeSize) { $0 = $0.boosted(by: Theme.textBoostSteps) }
+        withSheets
+            .overlay {
+                if drawShown, let draw = model.dealerDraw {
+                    DealerDrawView(draw: draw, names: model.seatNames, portraits: portraits) {
+                        withAnimation(motion(Theme.Motion.overlay)) { model.dismissDealerDraw() }
+                    }
+                    .transition(.opacity)
+                }
+            }
+            .transformEnvironment(\.dynamicTypeSize) { $0 = $0.boosted(by: Theme.textBoostSteps) }
+    }
+
+    private var portraits: [Portrait] {
+        [model.settings.playerPortrait] + Cast.opponents.map(\.portrait)
     }
 
     /// Score bar, table and hand in one non-scrolling column.

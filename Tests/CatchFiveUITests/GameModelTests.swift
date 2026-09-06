@@ -323,6 +323,8 @@ import Testing
     #expect(model.records.isEmpty)
     #expect(FileManager.default.fileExists(atPath: directory.appendingPathComponent("history-corrupt.json").path))
     #expect(!FileManager.default.fileExists(atPath: directory.appendingPathComponent("history.json").path))
+    // The drawn dealer may put a computer first; play stays usable either way.
+    while !model.isHumanTurn { model.stepComputer() }
     model.showHint()
     model.send(try #require(model.hint).action)
     #expect(model.errorMessage == nil)
@@ -547,6 +549,9 @@ import Testing
     #expect(pause.isPaused)
     pause.dialogShown = false
     pause.inspectingTrick = true
+    #expect(pause.isPaused)
+    pause.inspectingTrick = false
+    pause.drawShown = true
     #expect(pause.isPaused)
 }
 
@@ -945,4 +950,36 @@ import Testing
         #expect(discard.height < 0 && discard.height > deal.height)   // upward, but not as far
     }
     #expect(Theme.Table.discardDrop > Theme.Table.deckWidth * Theme.Card.ratio)   // clear of the deck itself
+}
+
+@Test func dealerDrawPicksTheHighestCardWithSuitsBreakingTies() {
+    // Seats 0 to 3 draw the first four cards; the highest rank deals, and equal ranks go by suit.
+    let draw = DealerDraw.draw(from: [Card(.hearts, .nine), Card(.spades, .king), Card(.clubs, .king), Card(.diamonds, .two)] + [])
+    #expect(draw.cards.count == 4 && draw.dealer == 1)   // king of spades beats king of clubs
+    #expect(DealerDraw.draw(from: [Card(.clubs, .ace), Card(.spades, .king), Card(.hearts, .queen), Card(.diamonds, .jack)]).dealer == 0)
+    #expect(DealerDraw.draw(from: [Card(.clubs, .five), Card(.diamonds, .five), Card(.hearts, .five), Card(.spades, .five)]).dealer == 3)
+    #expect(DealerDraw.ranking(Card(.spades, .two)) > DealerDraw.ranking(Card(.clubs, .two)))
+    #expect(DealerDraw.ranking(Card(.clubs, .three)) > DealerDraw.ranking(Card(.spades, .two)))
+}
+
+@MainActor @Test func newGameDrawsForDealerAndTheMatchUsesIt() throws {
+    let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3))
+    #expect(model.dealerDraw == nil)
+    model.newGame()
+    let draw = try #require(model.dealerDraw)
+    #expect(model.match.hand.auction.dealer == draw.dealer)
+    #expect(Set(draw.cards).count == 4)
+    // The draw is a picture of how the deal was decided; the first action puts it away.
+    #expect(model.match.actionCount == 0)
+    model.dismissDealerDraw()
+    #expect(model.dealerDraw == nil)
+    model.newGame()
+    let seat = try #require(model.match.hand.nextSeat)
+    if seat == 0 { model.send(.bid(nil)) } else { model.stepComputer() }
+    #expect(model.dealerDraw == nil)
+}
+
+@Test func theRulesSayHowTheFirstDealerIsChosen() {
+    #expect(RulesText.sections[0].paragraphs.count == 2)
+    #expect(RulesText.sections[0].paragraphs[1].contains("highest deals"))
 }
