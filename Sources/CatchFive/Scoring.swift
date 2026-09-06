@@ -39,20 +39,30 @@ public func scoreHand(captured: [[Card]], trump: Suit, bidder: Int) throws -> Ha
                      lowTeam: lowTeam, jackTeam: jackTeam, fiveTeam: fiveTeam, gameTeam: gameTeam)
 }
 
+/// The house numbers the rules are built on, named once so the auction and the rules sheet quote the engine.
+public enum HouseRules {
+    /// First partnership to reach this many points wins the match.
+    public static let matchTarget = 25
+    /// A normal bid promises this many of the hand's points.
+    public static let bidRange = 2...9
+    /// High, Low, Jack, Game and the Five: the most a hand can hold.
+    public static let handPoints = 9
+}
+
 public func settle(scores: [Int], points: [Int], bidder: Int, bid: Bid) throws -> Settlement {
     guard scores.count == 2, points.count == 2, (0..<2).contains(bidder),
-          points.allSatisfy({ (0...9).contains($0) }), points.reduce(0, +) <= 9 else {
+          points.allSatisfy({ (0...HouseRules.handPoints).contains($0) }), points.reduce(0, +) <= HouseRules.handPoints else {
         throw RuleError.invalidScoring
     }
     if bid == .nineAndOut {
         guard scores[bidder] >= 0 else { throw RuleError.forbiddenNineAndOut }
         // Match ends immediately; retain pre-hand scores rather than invent a special numeric bonus.
-        return Settlement(scores: scores, winner: points[bidder] == 9 ? bidder : 1 - bidder)
+        return Settlement(scores: scores, winner: points[bidder] == HouseRules.handPoints ? bidder : 1 - bidder)
     }
-    guard case let .points(amount) = bid, (2...9).contains(amount) else { throw RuleError.invalidBid }
+    guard case let .points(amount) = bid, HouseRules.bidRange.contains(amount) else { throw RuleError.invalidBid }
     var updated = scores
     updated[bidder] += points[bidder] >= amount ? points[bidder] : -amount
     updated[1 - bidder] += points[1 - bidder]
-    let winner = updated[bidder] >= 25 ? bidder : (updated[1 - bidder] >= 25 ? 1 - bidder : nil)
+    let winner = updated[bidder] >= HouseRules.matchTarget ? bidder : (updated[1 - bidder] >= HouseRules.matchTarget ? 1 - bidder : nil)
     return Settlement(scores: updated, winner: winner)
 }

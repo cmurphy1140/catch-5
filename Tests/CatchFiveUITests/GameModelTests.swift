@@ -983,3 +983,97 @@ import Testing
     #expect(RulesText.sections[0].paragraphs.count == 2)
     #expect(RulesText.sections[0].paragraphs[1].contains("highest deals"))
 }
+
+@Test func rulesFiguresMatchTheEngine() throws {
+    // The scoring tiles add up to the nine points a hand can hold, and the Game ledger quotes the engine's values.
+    #expect(RulesFigures.pointTiles.map(\.points).reduce(0, +) == 9)
+    #expect(RulesFigures.pointTiles.map(\.name) == ["High", "Low", "Jack", "Five", "Game"])
+    for entry in RulesFigures.gameValues { #expect(entry.value == entry.rank.gameValue) }
+    #expect(RulesFigures.gameValues.map(\.rank) == [.ten, .ace, .king, .queen, .jack])
+    // The two example tricks are judged by the real rule, not drawn by hand.
+    #expect(try trickWinner(RulesFigures.followedTrick, trump: RulesFigures.trump) == RulesFigures.followedWinner)
+    #expect(try trickWinner(RulesFigures.trumpedTrick, trump: RulesFigures.trump) == RulesFigures.trumpedWinner)
+    #expect(RulesFigures.followedWinner != RulesFigures.trumpedWinner)
+    // The ladder and the target quote the engine's named house numbers, not literals of their own.
+    #expect(RulesFigures.bidLadder == Array(HouseRules.bidRange))
+    #expect(RulesFigures.matchTarget == HouseRules.matchTarget)
+    #expect(RulesFigures.nineAndOutPoints == HouseRules.handPoints)
+    // The captions are built from the drawn cards, so they can never disagree with the figure.
+    #expect(RulesFigures.caption(trumped: false).contains("king of hearts"))
+    #expect(RulesFigures.caption(trumped: false).contains("two of clubs"))
+    #expect(RulesFigures.caption(trumped: true).contains("four of spades"))
+}
+
+@Test func rulesChaptersMatchTheRuleSectionsByTitle() {
+    // Every rule section has a chapter of the same title, in order; the last chapter is the screen notes.
+    let chapters = RulesView.Chapter.allCases
+    #expect(chapters.dropLast().map(\.title) == RulesText.sections.map(\.title))
+    for chapter in chapters.dropLast() {
+        #expect(chapter.paragraphs == RulesText.sections.first { $0.title == chapter.title }?.paragraphs)
+    }
+    #expect(chapters.last?.paragraphs == RulesText.readingTheTable)
+    #expect(Set(chapters.map(\.numeral)).count == chapters.count)
+}
+
+@Test func houseRuleNumbersAreTheOnesTheEngineEnforces() throws {
+    // settle() and the auction use the named constants; a change there must show here.
+    #expect(HouseRules.matchTarget == 25 && HouseRules.bidRange == 2...9 && HouseRules.handPoints == 9)
+    let reached = try settle(scores: [HouseRules.matchTarget - 1, 0], points: [HouseRules.bidRange.lowerBound, 0], bidder: 0, bid: .points(HouseRules.bidRange.lowerBound))
+    #expect(reached.winner == 0)
+    #expect(throws: RuleError.invalidBid) { try settle(scores: [0, 0], points: [1, 0], bidder: 0, bid: .points(HouseRules.bidRange.upperBound + 1)) }
+}
+
+@Test func ruleTrialsAreJudgedByTheEngine() throws {
+    // Follow suit: hearts led, you hold hearts, spades are trump.
+    var follow = RuleTrial.make(.followSuit)
+    let hand = follow.offeredCards
+    #expect(hand.count == 6 && hand.filter { $0.suit == .hearts }.count == 2 && hand.filter { $0.suit == .spades }.count == 2)
+    #expect(follow.match.hand.currentTrick.first?.card.suit == .hearts && follow.match.hand.trump == .spades)
+    let offSuit = try #require(hand.first { $0.suit == .clubs })
+    let trump = try #require(hand.first { $0.suit == .spades })
+    let heart = try #require(hand.first { $0.suit == .hearts })
+    #expect(follow.attempt(.play(offSuit)) == .refused("Follow hearts; you still have hearts."))
+    #expect(follow.attempt(.play(trump)) == .refused("Follow hearts; you still have hearts."))
+    guard case let .accepted(text) = follow.attempt(.play(heart)) else { Issue.record("a heart is legal"); return }
+    #expect(text.contains("the trick with the"))
+    // Refusals never moved the position; an acceptance plays the trick out; reset brings it back.
+    #expect(follow.match.hand.completedTricks.count == 1)
+    follow.reset()
+    #expect(follow.match.hand.completedTricks.isEmpty && follow.match.hand.currentTrick.count == 3)
+
+    // The dealer may match: Hazel bid 3, you are dealer.
+    var dealer = RuleTrial.make(.dealerMatch)
+    #expect(dealer.match.hand.auction.highestBid == 3 && dealer.match.hand.nextSeat == 0)
+    #expect(dealer.offeredActions == [.bid(nil), .bid(2), .bid(3), .bid(4)])
+    if case .refused = dealer.attempt(.bid(2)) {} else { Issue.record("2 cannot beat 3") }
+    guard case let .accepted(matched) = dealer.attempt(.bid(3)) else { Issue.record("the dealer may match"); return }
+    #expect(matched.contains("match"))
+    dealer.reset()
+    guard case let .accepted(passed) = dealer.attempt(.bid(nil)) else { Issue.record("passing is legal"); return }
+    #expect(passed.contains("Hazel"))
+
+    // 9 and out below zero: a failed 9 last hand left you at -9.
+    var nine = RuleTrial.make(.nineAndOutBelowZero)
+    #expect(nine.match.scores[0] < 0 && nine.match.hand.nextSeat == 0)
+    #expect(nine.attempt(.nineAndOut) == .refused(GameModel.message(for: RuleError.forbiddenNineAndOut)))
+    if case .accepted = nine.attempt(.bid(2)) {} else { Issue.record("a normal bid is still allowed") }
+}
+
+@MainActor @Test func ruleTrialsLeaveTheOngoingMatchAndItsSaveAlone() throws {
+    // A practice position is its own Match: entering, playing, resetting and leaving it must not touch
+    // the live game, its replay log on disk, its scores or its history.
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: url) }
+    let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3), saveURL: url)
+    model.send(.bid(nil))
+    let before = (model.match.actionCount, model.match.scores, model.match.history.count, model.revision, try Data(contentsOf: url))
+    for kind in RuleTrial.Kind.allCases {
+        var trial = RuleTrial.make(kind)
+        for card in trial.offeredCards { trial.attempt(.play(card)) }
+        for action in trial.offeredActions { trial.attempt(action) }
+        trial.reset()
+    }
+    #expect(model.match.actionCount == before.0 && model.match.scores == before.1 && model.match.history.count == before.2)
+    #expect(model.revision == before.3)
+    #expect(try Data(contentsOf: url) == before.4)
+}

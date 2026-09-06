@@ -366,6 +366,14 @@ D36 is taken by the cast, login and menu work on the parallel branch.
 
 **Why:** Task 6 of the roadmap, which asked for measurement before machinery. Keeping the corrupt file costs nothing and leaves a path to recovery. The card's context line answers "where was I" before the player commits to Continue.
 
+## D46. The rules sheet shows each rule before it states it (PR #30, 2026-09-05)
+
+**Chosen:** `RulesView` is six chapters on the felt, each an inlay panel with a gold numeral: a figure first, built from the table's own pieces (portraits, card backs, `CardView`, the cast's names), then the rule as written from `RulesText`, always visible under a thin gold rule. A chapter rail of chips under the title scrolls to a chapter (`scrollPosition`) and lights the chapter at the top. Interaction is spent only where it adds understanding: a Following suit / Trumped toggle on the example trick, tappable point tiles that explain how each point is won. `RulesFigures` holds every number a figure draws and a test checks them against the engine, including the two example tricks through `trickWinner`. Reduce Motion drops the springs.
+
+**Over:** The previous list of headings and paragraphs on wood; showing the player's own name and face on the seating figure (the sheet is reachable without a model, and the fixed cast is the point of the picture); hiding the verbatim text behind disclosures (the standard for a rules screen is summary first, exact text visible beneath, so a dispute mid-game is settled in one glance and VoiceOver reads it in one pass); numbers typed into the figures by hand.
+
+**Why:** Connor asked for a much better layout with an interactive flow and its own colour scheme, distinct from the tutorial. The tutorial is wood, pills and exercises; the rules are felt, panels and figures, so the two read as different rooms. Building figures from the real components keeps them in the app's language, and checking their numbers against the engine keeps them true. A review of the first cut moved the house numbers into `HouseRules` so the ladder and the target quote the engine rather than repeat it, built the trick captions and VoiceOver labels from the same data as the figures, capped the card-sized parts at XXXL, and gave the rail chips 44 pt targets.
+
 ## D47. Suit pills are named and say what they keep (PR #31, 2026-09-05)
 
 **Chosen:** While the human chooses trump, each suit pill carries the suit's name beneath its glyph and a preview from `GameModel.trumpPreview(for:)`: "keep 4 · draw 2", counted from the human's own hand only. The VoiceOver label carries the same words. Nothing about the stock or other hands is revealed; the engine still does the discarding.
@@ -381,6 +389,14 @@ D36 is taken by the cast, login and menu work on the parallel branch.
 **Over:** Merging the stack and fixing forward; leaving the review's cleanup items (duplicate gold-button and portrait-picker code, the docs export swept into main) for later, which they are.
 
 **Why:** Two of the ten would have cost real players their saved match on the first launch after updating. The rest are the difference between a feature that works in the fixture and one that works on a phone.
+
+## D50. Rules you can try, judged by the engine (PR #30, 2026-09-05)
+
+**Chosen:** Three chapters of the rules sheet end with a "Try it" panel: follow suit (hearts led, spades trump, six cards in your hand), the dealer's right to match (you are dealer facing a bid of 3), and 9 and out below zero (a failed 9 last hand left you at −9). Each `RuleTrial` is a real `Match` built through the engine from a crafted deck, so the position is exactly what the game would deal, and `attempt(_:)` hands whatever the reader tries to the engine on a copy: a refusal comes back in the words the table uses, an acceptance is played out with the standard strategy and described. Reset restores the position. A test drives all three through the engine.
+
+**Over:** A scripted quiz with authored right answers (that is the tutorial's job); a second rules implementation inside the sheet; a "Try it" that only animates.
+
+**Why:** From the research brief's "rulebook you can demonstrate": a rule is learned by being refused once, safely. Building the positions with the engine and judging with the engine means the sheet can never teach a move the game rejects, which is the brief's one hard requirement.
 
 ## D51. Opponents wear a mood, drawn from public events only (PR #34, 2026-09-05)
 
@@ -421,4 +437,5 @@ D36 is taken by the cast, login and menu work on the parallel branch.
 **Over:** Dealer 3 every time (Connor asked for a draw); redrawing ties (a suit order makes the draw a single step and matches how the cards rank elsewhere in the game); recording the draw as an action (it decides the dealer and nothing else, and the engine already takes the dealer as an input).
 
 **Why:** Drawing for the deal is how a table starts, and it puts the cast's faces to work before the first bid. The draw stays a presentation of a decision the engine receives, not a rule the engine has to learn.
+
 

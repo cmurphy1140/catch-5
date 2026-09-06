@@ -13,16 +13,21 @@ extension Suit {
     var ink: Color { self == .hearts || self == .diamonds ? Color(red: 0.7, green: 0.12, blue: 0.18) : .black }
 }
 
-extension Card {
+extension Rank {
+    /// The corner-index letter or number: A, K, Q, J, else the pip count.
     var label: String {
-        switch rank {
+        switch self {
         case .ace: "A"
         case .king: "K"
         case .queen: "Q"
         case .jack: "J"
-        default: String(rank.rawValue)
+        default: String(rawValue)
         }
     }
+}
+
+extension Card {
+    var label: String { rank.label }
     var spoken: String { name }
 }
 
