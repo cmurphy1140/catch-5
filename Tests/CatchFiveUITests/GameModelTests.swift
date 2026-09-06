@@ -589,6 +589,17 @@ import Testing
     #expect(TableLayout.sideSeatWidth(available: 600) == Theme.Table.seatTileWidth)
 }
 
+@Test func seatTilesHoldTheLargerFaceAndItsHaloOnEveryVerifiedWidth() {
+    // Faces grew to at least 1.6× their first size (spec R2) and, with the halo at full breath, still fit
+    // inside the narrowest tile the pile row can hand a side seat.
+    #expect(Theme.Table.portraitSize >= 36 * 1.6)
+    let halo = Theme.Table.portraitSize * Theme.Table.activePulseScale + 2 * Theme.Table.activeRingGap
+    for available in [361.0, 343.0] {
+        #expect(TableLayout.sideSeatWidth(available: available) >= halo + 8)
+    }
+    #expect(TableLayout.minimumSeatWidth >= halo + 8)
+}
+
 @MainActor @Test func validationMessagesExplainRefusalsWithoutChangingTheMatch() throws {
     let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
     let model = GameModel(match: try Match(deck: deck, dealer: 3))
@@ -725,7 +736,9 @@ import Testing
     defer { try? FileManager.default.removeItem(at: url) }
     let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3))
     try finishMatch(model)
-    #expect(model.match.actionCount > 100)
+    // A finished match is at least two full hands of bids, trump and plays; the deck is shuffled, so the
+    // exact length varies and a short match must not fail the timing check it exists for.
+    #expect(model.match.actionCount >= 58)
     try MatchSave.write(model.match, to: url)
     let clock = ContinuousClock()
     let elapsed = try clock.measure { _ = try MatchSave.read(from: url) }
@@ -923,15 +936,17 @@ import Testing
     #expect(model.match.hand.legalMoves(seat: 0).allSatisfy { $0.suit == led })
 }
 
-@Test func discardsFlyToThePileUnderTheDeck() {
-    // Discards head for the top-right corner like the deal, but land lower: under the deck, not on it.
+@Test func discardsFlyToThePileOnTheLeft() {
+    // Discards head for the top-left corner, level with the deck in the top-right; the two never share a corner.
     for index in 0..<6 {
         let deal = HandFanView.dealOrigin(index: index, count: 6, width: 360)
         let discard = HandFanView.discardTarget(index: index, count: 6, width: 360)
-        #expect(discard.width == deal.width)             // same corner
-        #expect(discard.height < 0 && discard.height > deal.height)   // upward, but not as far
+        #expect(discard.width < deal.width)              // the other side of the table
+        #expect(discard.height == deal.height)           // the same height, the top of the table
     }
-    #expect(Theme.Table.discardDrop > Theme.Table.deckWidth * Theme.Card.ratio)   // clear of the deck itself
+    // The leftmost card barely moves sideways; the rightmost crosses most of the table.
+    #expect(HandFanView.discardTarget(index: 0, count: 6, width: 360).width > -40)
+    #expect(HandFanView.discardTarget(index: 5, count: 6, width: 360).width < -300)
 }
 
 @Test func dealerDrawPicksTheHighestCardWithSuitsBreakingTies() {
@@ -1058,4 +1073,24 @@ import Testing
     #expect(model.match.actionCount == before.0 && model.match.scores == before.1 && model.match.history.count == before.2)
     #expect(model.revision == before.3)
     #expect(try Data(contentsOf: url) == before.4)
+}
+
+@Test func hintSplitsIntoARecommendationAndItsReason() {
+    let parts = TableSurface.hintParts("Play the six of clubs: partner's queen of clubs holds the trick, so the most valuable card goes to it.")
+    #expect(parts.recommendation == "Play the six of clubs")
+    #expect(parts.detail == "Partner's queen of clubs holds the trick, so the most valuable card goes to it.")
+    #expect(TableSurface.hintParts("Pass").recommendation == "Pass" && TableSurface.hintParts("Pass").detail.isEmpty)
+}
+
+
+@Test func deckThicknessFollowsTheStockWithoutShowingANumber() {
+    #expect(DeckView.thickness(0) == 1 && DeckView.thickness(6) == 1)
+    #expect(DeckView.thickness(7) == 2 && DeckView.thickness(18) == 3)
+    #expect(DeckView.thickness(28) == 5 && DeckView.thickness(52) == 5)
+}
+
+@Test func trumpChoicesAlternateRedAndBlack() {
+    let order = TableSurface.trumpOrder
+    #expect(Set(order) == Set(Suit.allCases) && order.count == 4)
+    for pair in zip(order, order.dropFirst()) { #expect(pair.0.isRed != pair.1.isRed) }
 }

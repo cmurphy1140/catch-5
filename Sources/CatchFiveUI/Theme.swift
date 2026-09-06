@@ -73,34 +73,42 @@ public enum Theme {
 
     public enum Table {
         /// How far a played card is nudged from the pile's centre toward its seat.
-        public static let sideNudge = 38.0
-        public static let partnerNudge = 28.0
-        public static let ownNudge = 30.0
+        public static let sideNudge = 48.0
+        public static let partnerNudge = 42.0
+        public static let ownNudge = 42.0
         /// The pile's reserved footprint around a card, so the table does not jump between tricks.
         public static let pileMarginX = 64.0
         public static let pileMarginY = 48.0
-        public static let seatBackWidth = 30.0
-        public static let portraitSize = 36.0
+        /// The little stack of backs under a seat's name in play: a hint of a hand, not a count (spec R20).
+        public static let seatBackWidth = 14.0
+        /// Faces around the table read at a glance from arm's length: 1.67× the 36 pt they started at (spec R2).
+        public static let portraitSize = 60.0
+        /// The tutorial's lesson tiles keep the smaller face so three of them still share a row.
+        public static let tutorialPortraitSize = 36.0
+        /// The seat to act wears a gold halo: a ring this wide, this far outside the portrait, that pulses
+        /// gently to `activePulseScale` unless motion is reduced (spec R2).
+        public static let activeRingWidth = 3.0
+        public static let activeRingGap = 4.0
+        public static let activePulseScale = 1.05
         /// A played card lands with its own small turn and drift, like a card tossed in by hand.
         public static let tossRotationDegrees = 11.0
-        public static let tossDrift = 9.0
+        public static let tossDrift = 6.0
         /// Seat tiles share one width; their height follows the phase (call text in the auction, backs in play).
         public static let seatTileWidth = 116.0
-        /// The round status-line buttons (last trick, hint): visible disc and hit area.
-        public static let statusButtonSize = 38.0
+        /// Air between the header's edge and the partner's halo; the seats hold the top of the table (spec R25).
+        public static let seatInset = 10.0
+        /// The status-line glyph buttons (last trick, hint): hit area; the glyph itself has no plate.
         public static let statusButtonHitSize = 48.0
         /// The deck in the table's top-right corner.
         public static let deckWidth = 38.0
         /// How far above the fan the deck sits, for the deal-in flight.
         public static let deckRise = 520.0
-        /// The discard pile sits this far below the deck; discards fly there when trump is named.
-        public static let discardDrop = 72.0
         /// Bid, pass and suit pills: full column width, solid, well above the 44 pt minimum.
         public static let auctionButtonHeight = 64.0
         public static let auctionButtonSpacing = 6.0
         public static let auctionButtonRadius = 14.0
         /// The header band's bottom edge is a frown: the corners hang this much lower than the middle.
-        public static let headerDip = 26.0
+        public static let headerDip = 18.0
     }
 
     public enum Motion {
@@ -110,6 +118,8 @@ public enum Theme {
         public static let overlay = Animation.spring(duration: 0.35, bounce: 0)
         /// Reduce Motion replaces every flight with this crossfade.
         public static let reduced = Animation.easeInOut(duration: 0.2)
+        /// The halo on the seat to act breathes in and out for as long as that seat is deciding.
+        public static let pulse = Animation.easeInOut(duration: 1.2).repeatForever(autoreverses: true)
         /// How long a finished trick stays on the table, winner ringed, before it collapses.
         public static let trickHold: Duration = .milliseconds(900)
         public static let shakeAmplitude = 6.0
