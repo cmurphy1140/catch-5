@@ -768,3 +768,21 @@ import Testing
     try finishMatch(model)
     #expect(model.resumeContext == nil)   // a finished match is not something to resume
 }
+
+@MainActor @Test func trumpPreviewCountsWhatEachSuitKeepsAndDraws() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    let model = GameModel(match: try Match(deck: deck, dealer: 3))
+    #expect(model.trumpPreview(for: .hearts) == nil)   // only while you are choosing trump
+    model.send(.bid(9))
+    for _ in 0..<3 { model.stepComputer() }
+    #expect(model.match.hand.phase == .choosingTrump && model.isHumanTurn)
+    for suit in Suit.allCases {
+        let held = model.humanCards.filter { $0.suit == suit }.count
+        #expect(model.trumpPreview(for: suit) == "keep \(held) · draw \(6 - held)")
+    }
+    // The previews are honest: choosing a suit discards exactly what the preview said.
+    let suit = try #require(Suit.allCases.max { a, b in model.humanCards.filter { $0.suit == a }.count < model.humanCards.filter { $0.suit == b }.count })
+    let kept = model.humanCards.filter { $0.suit == suit }.count
+    model.send(.chooseTrump(suit))
+    #expect(model.notice == (kept == 6 ? "You kept all six cards." : "You discarded \(6 - kept) and drew \(6 - kept)."))
+}

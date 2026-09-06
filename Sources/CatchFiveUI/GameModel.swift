@@ -289,6 +289,14 @@ public final class GameModel: ObservableObject {
         refusal = validationMessage(for: action)
     }
 
+    /// What naming `suit` as trump would do to the hand: "keep 4 · draw 2". Only while the human is
+    /// choosing trump; it counts the human's own cards and reveals nothing about the stock.
+    public func trumpPreview(for suit: Suit) -> String? {
+        guard match.hand.phase == .choosingTrump, isHumanTurn else { return nil }
+        let kept = match.hand.hands[0].filter { $0.suit == suit }.count
+        return "keep \(kept) · draw \(min(6 - kept, match.hand.stock.count))"
+    }
+
     /// The dealer's special bidding rights, shown only when it is the human's turn to bid as dealer.
     public var auctionContext: String? {
         let auction = match.hand.auction

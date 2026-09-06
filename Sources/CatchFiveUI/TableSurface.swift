@@ -275,11 +275,20 @@ struct TableSurface: View {
         }
     }
 
+    /// Four suit pills, each named for newcomers and captioned with what choosing it keeps and draws.
     private var trumpChoice: some View {
-        HStack(spacing: Theme.Table.auctionButtonSpacing) {
+        HStack(alignment: .top, spacing: Theme.Table.auctionButtonSpacing) {
             ForEach(Suit.allCases, id: \.self) { suit in
-                actionButton(suit.glyph, action: .chooseTrump(suit), fill: suit.pillFill, font: .largeTitle.weight(.bold))
-                    .accessibilityLabel(suit.rawValue)
+                VStack(spacing: 2) {
+                    actionButton(suit.glyph, action: .chooseTrump(suit), fill: suit.pillFill, font: .largeTitle.weight(.bold))
+                        .accessibilityLabel("\(suit.rawValue), \(model.trumpPreview(for: suit) ?? "")")
+                    // One short caption line so the auction still fits without scrolling (D34): the suit and
+                    // what it keeps; the draw count is implied and VoiceOver reads the full preview.
+                    Text(model.trumpPreview(for: suit).flatMap { $0.split(separator: " · ").first }.map { "\(suit.rawValue) · \($0)" } ?? suit.rawValue)
+                        .font(.caption2.weight(.semibold)).opacity(0.8)
+                        .lineLimit(1).minimumScaleFactor(0.6)
+                }
+                .accessibilityElement(children: .contain)
             }
         }
     }
