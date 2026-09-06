@@ -9,6 +9,7 @@ struct WelcomeCard: View {
     let onPlay: () -> Void
     @State private var confirmNewMatch = false
     @State private var showSettings = false
+    @State private var showExplainer = false
 
     var body: some View {
         VStack(spacing: 20) {
@@ -38,6 +39,7 @@ struct WelcomeCard: View {
                     prominent("New match") { model.newGame(); onPlay() }
                 }
                 plain("Settings") { showSettings = true }
+                plain("How Catch 5 is built") { showExplainer = true }
             }
         }
         .padding(22)
@@ -48,6 +50,7 @@ struct WelcomeCard: View {
         .foregroundStyle(.ivory)
         .padding(24)
         .sheet(isPresented: $showSettings) { SettingsView(settings: $model.settings) }
+        .fullScreenCoverOrSheet(isPresented: $showExplainer) { ExplainerView { showExplainer = false } }
         .confirmationDialog("Start over? This replaces your saved game.", isPresented: $confirmNewMatch) {
             Button("Start new match", role: .destructive) { model.newGame(); onPlay() }
         }
@@ -61,5 +64,16 @@ struct WelcomeCard: View {
     private func plain(_ label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) { Text(label).frame(maxWidth: .infinity).frame(minHeight: 44) }
             .buttonStyle(.bordered).tint(.ivory.opacity(0.8))
+    }
+}
+
+extension View {
+    /// Full screen on the phone, where the reader wants the whole display; a sheet on the macOS test build.
+    func fullScreenCoverOrSheet<Content: View>(isPresented: Binding<Bool>, @ViewBuilder content: @escaping () -> Content) -> some View {
+        #if os(iOS)
+        return fullScreenCover(isPresented: isPresented, content: content)
+        #else
+        return sheet(isPresented: isPresented, content: content)
+        #endif
     }
 }

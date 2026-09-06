@@ -204,13 +204,43 @@ def write_readme(out, pages, diagrams):
     (out / 'README.md').write_text('\n'.join(lines))
 
 
+def export_app(docs, pages):
+    """Fill App/Explainer with the bundle the in-app reader uses: docs/<page>.md (verbatim) and
+    diagrams/<page>-<n>.png, one per Mermaid fence. Anything else in the folder is removed."""
+    explainer = root / 'App' / 'Explainer'
+    for stale in explainer.glob('*.dc.html'):
+        stale.unlink()
+    app_docs, app_diagrams = explainer / 'docs', explainer / 'diagrams'
+    for folder in (app_docs, app_diagrams):
+        shutil.rmtree(folder, ignore_errors=True)
+        folder.mkdir(parents=True)
+    build = root / 'work' / 'docs-export' / 'app-build'
+    shutil.rmtree(build, ignore_errors=True)
+    build.mkdir(parents=True)
+    total = 0
+    for page in pages:
+        source = docs / f'{page}.md'
+        (app_docs / f'{page}.md').write_text(source.read_text())
+        if count_fences(source.read_text()):
+            _, pngs = render_page(page, docs, build, build)
+            for png in pngs:
+                shutil.copy(png, app_diagrams / png.name)
+            total += len(pngs)
+    print(f'App/Explainer: {plural(len(pages), "chapter")}, {plural(total, "diagram")}')
+
+
 def main():
     started = time.monotonic()
     docs = root / 'docs'
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('pages', nargs='*', help='page names under docs/ (default: the learning-path order)')
     parser.add_argument('--out', type=Path, default=root / 'work' / 'docs-export', help='output folder')
+    parser.add_argument('--app', action='store_true', help='fill App/Explainer for the in-app reader instead of exporting PDFs')
     args = parser.parse_args()
+    docs = root / 'docs'
+    if args.app:
+        export_app(docs, default_pages(docs))
+        return
     pages = [re.sub(r'\.md$', '', Path(p).name) for p in args.pages] or default_pages(docs)
 
     if shutil.which('npx') is None:
