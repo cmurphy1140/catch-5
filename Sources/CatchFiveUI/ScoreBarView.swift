@@ -21,16 +21,14 @@ struct ScoreBarView: View {
     var body: some View {
         VStack(spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
-                // A labelled pill, not a bare chevron: the way back to the welcome card should read as a button.
+                // Chevron and word, no plate (spec R16): the way back to the welcome card reads as a button
+                // because it says where it goes, not because it is boxed.
                 Button(action: onLeave) {
                     HStack(spacing: 4) {
-                        Image(systemName: "chevron.left")
-                        Text("Home")
+                        Image(systemName: "chevron.left").font(.subheadline.weight(.bold))
+                        Text("Home").font(.subheadline.weight(.semibold))
                     }
-                    .font(.subheadline.weight(.semibold))
-                    .padding(.horizontal, 10).padding(.vertical, 6)
-                    .background(Theme.Wood.inlay.opacity(0.7), in: Capsule())
-                    .overlay(Capsule().stroke(.ivory.opacity(0.18), lineWidth: 1))
+                    .shadow(color: .black.opacity(0.35), radius: 1, y: 1)
                     .frame(minHeight: 44)
                     .contentShape(Rectangle())
                 }
