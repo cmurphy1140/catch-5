@@ -3,8 +3,9 @@ import SwiftUI
 
 /// The main menu (spec R31): who is playing, where the saved match stands, and every destination that is
 /// not the table itself. Continue game leads back to the match untouched; New match replaces it after a
-/// word of warning; Settings, How to play, Statistics and the build explainer open as sheets, the last of
-/// them one tap from here in every mode (spec R29).
+/// word of warning; How to play opens the lessons. Settings, Statistics and the build explainer wait in a
+/// hamburger menu in the top-right corner, one tap from here in every mode (spec R29), as a bare glyph
+/// with no plate (spec R19).
 struct MainMenuView: View {
     @ObservedObject var model: GameModel
     @ObservedObject var tutorial: TutorialModel
@@ -51,13 +52,25 @@ struct MainMenuView: View {
                     } else {
                         MenuButtons.prominent("New match") { model.newGame(); onPlay() }
                     }
-                    MenuButtons.plain("Settings") { showSettings = true }
                     MenuButtons.plain("How to play") { showTutorial = true }
-                    MenuButtons.plain("Statistics") { showStatistics = true }
-                    MenuButtons.plain("How Catch 5 is built") { showExplainer = true }
                 }
             }
             .padding(24).frame(maxWidth: 480).frame(maxWidth: .infinity)
+        }
+        .overlay(alignment: .topTrailing) {
+            Menu {
+                Button("Settings", systemImage: "gearshape") { showSettings = true }
+                Button("Statistics", systemImage: "chart.bar") { showStatistics = true }
+                Button("How Catch 5 is built", systemImage: "doc.text.magnifyingglass") { showExplainer = true }
+            } label: {
+                Image(systemName: "line.3.horizontal").font(.title2.weight(.medium))
+                    .shadow(color: .black.opacity(0.45), radius: 1.5, y: 1)
+                    .frame(width: Theme.Table.statusButtonHitSize, height: Theme.Table.statusButtonHitSize)
+                    .contentShape(Rectangle())
+            }
+            .tint(.ivory)
+            .accessibilityLabel("Menu")
+            .padding(.trailing, 12).padding(.top, 4)
         }
         .foregroundStyle(.ivory)
         .background(LinearGradient(colors: [.felt, .black], startPoint: .topLeading, endPoint: .bottomTrailing).ignoresSafeArea())

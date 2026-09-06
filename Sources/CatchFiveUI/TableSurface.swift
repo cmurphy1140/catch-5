@@ -327,7 +327,7 @@ struct TableSurface: View {
 
     /// Four suit pills, each named for newcomers and captioned with what choosing it keeps and draws.
     /// Suits alternate red and black, ♥ ♠ ♦ ♣, so the two red suits never sit side by side (spec R13).
-    static let trumpOrder: [Suit] = [.hearts, .spades, .diamonds, .clubs]
+    nonisolated static let trumpOrder: [Suit] = [.hearts, .spades, .diamonds, .clubs]
 
     private var trumpChoice: some View {
         HStack(alignment: .top, spacing: Theme.Table.auctionButtonSpacing) {
