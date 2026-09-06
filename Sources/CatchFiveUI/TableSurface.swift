@@ -13,7 +13,12 @@ struct TableSurface: View {
     /// The human's latest action while its undo toast is showing.
     let toast: PlayerAction?
     let onReopenTrick: () -> Void
+    let onCloseTrick: () -> Void
     let onReview: () -> Void
+    /// The 9-and-out pill asks the table to confirm before the bid is sent.
+    let onNineAndOut: () -> Void
+    /// VoiceOver focus lands on the status line when a cover lifts or the turn changes.
+    let statusFocus: AccessibilityFocusState<Bool>.Binding
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var hand: Hand { model.match.hand }
@@ -40,12 +45,14 @@ struct TableSurface: View {
                     HStack { contractPill.accessibilitySortPriority(25); Spacer(minLength: 0) }
                     Spacer(minLength: 4)
                     SeatView(model: model, seat: 2).accessibilitySortPriority(20)
+                    // The side tiles give way before the pile can touch them (`TableLayout`).
+                    let sideWidth = TableLayout.sideSeatWidth(available: geometry.size.width)
                     HStack(alignment: .center) {
-                        SeatView(model: model, seat: 1).accessibilitySortPriority(30)
-                        Spacer(minLength: 4)
+                        SeatView(model: model, seat: 1, width: sideWidth).accessibilitySortPriority(30)
+                        Spacer(minLength: TableLayout.seatGap)
                         if !inAuction { centre(reach: reach) }
-                        Spacer(minLength: 4)
-                        SeatView(model: model, seat: 3).accessibilitySortPriority(10)
+                        Spacer(minLength: TableLayout.seatGap)
+                        SeatView(model: model, seat: 3, width: sideWidth).accessibilitySortPriority(10)
                     }
                     Spacer(minLength: 4)
                     statusLine.accessibilitySortPriority(4)
@@ -59,9 +66,20 @@ struct TableSurface: View {
             .scrollBounceBehavior(.basedOnSize)
             .frame(width: geometry.size.width, height: geometry.size.height)
             // The stock sits in the top-right corner of the table; refills deal in from here.
-            .overlay(alignment: .topTrailing) { DeckView(remaining: hand.stock.count).padding(.top, 6) }
-            // The finished hand's card takes over the table; what is underneath fades back.
+            .overlay(alignment: .topTrailing) {
+                // The stock, and beneath it the discards: the cards that left every hand when trump was named.
+                VStack(spacing: 10) {
+                    DeckView(remaining: hand.stock.count)
+                    if !hand.discarded.isEmpty {
+                        DiscardPileView(count: hand.discarded.count).transition(.opacity)
+                    }
+                }
+                .padding(.top, 6)
+            }
+            // The finished hand's card takes over the table; what is underneath fades back and leaves the
+            // accessibility tree, so VoiceOver meets the card and nothing behind it.
             .opacity(hand.phase == .finished ? 0.12 : 1)
+            .accessibilityHidden(hand.phase == .finished)
             .overlay { if hand.phase == .finished { finishedCard } }
         }
         .accessibilityElement(children: .contain)
@@ -73,7 +91,7 @@ struct TableSurface: View {
         let pile = pile
         ZStack {
             // Reserve the pile's footprint so the layout does not jump between phases.
-            Color.clear.frame(width: Theme.Card.pileWidth + 64, height: Theme.Card.pileWidth * Theme.Card.ratio + 48)
+            Color.clear.frame(width: TableLayout.pileReservation, height: Theme.Card.pileWidth * Theme.Card.ratio + 48)
             ForEach(pile.plays, id: \.card) { play in
                 Button { model.explain(play, inLastTrick: pile.isLast) } label: {
                     CardView(card: play.card, width: Theme.Card.pileWidth, style: .pile)
@@ -83,7 +101,8 @@ struct TableSurface: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(model.spokenDescription(of: play, winner: pile.winner))
                 .accessibilityHint("Explains why this card was played")
-                .offset(Self.pileOffset(for: play.seat))
+                .rotationEffect(.degrees(toss(for: play).rotation))
+                .offset(Self.pileOffset(for: play.seat) + toss(for: play).offset)
                 .matchedGeometryEffect(id: play.card, in: namespace)
                 .transition(transition(for: play, winner: pile.winner, reach: reach))
                 .zIndex(Double(pile.plays.firstIndex(where: { $0.card == play.card }) ?? 0))
@@ -94,6 +113,11 @@ struct TableSurface: View {
         }
         .accessibilitySortPriority(5)
         .dynamicTypeSize(...Theme.Card.maximumTypeSize)
+    }
+
+    /// The card's own turn and drift on the pile, fixed for as long as this trick lies there.
+    private func toss(for play: Play) -> CardToss.Pose {
+        CardToss.pose(for: play.card, hand: model.match.handNumber, trick: hand.completedTricks.count)
     }
 
     /// Where each seat's card rests on the pile: nudged toward the seat that played it.
@@ -158,10 +182,15 @@ struct TableSurface: View {
             // Left: reopen the last trick when the pile is clear. Right: the hint on your turn.
             if pile.plays.isEmpty, hand.completedTricks.last != nil, hand.phase == .playing, reopenedTrick == nil {
                 smallButton("rectangle.stack", label: "Show the last trick", action: onReopenTrick)
+            } else if reopenedTrick != nil {
+                // Play waits while the trick is open, so there must be a way to put it down again.
+                smallButton("xmark", label: "Hide the last trick", action: onCloseTrick)
             } else {
                 Spacer().frame(width: Theme.Table.statusButtonHitSize, height: Theme.Table.statusButtonHitSize)
             }
             statusText.font(.title3.weight(.medium)).multilineTextAlignment(.center).frame(maxWidth: .infinity)
+                .lineLimit(1).minimumScaleFactor(0.7)
+                .accessibilityFocused(statusFocus)
             if model.isHumanTurn, hand.phase != .finished {
                 smallButton("lightbulb", label: "Hint") { model.showHint() }
             } else {
@@ -197,6 +226,10 @@ struct TableSurface: View {
         case .choosingTrump:
             return model.isHumanTurn ? Text("Choose trump").foregroundStyle(.gold) : Text("\(actor) is choosing trump")
         case .playing:
+            if model.isHumanTurn, let suit = model.suitToFollow {
+                // The shaded cards are the ones that cannot follow; say why in the same breath.
+                return Text("Your turn").foregroundStyle(.gold) + Text(" · follow \(suit.rawValue)")
+            }
             return model.isHumanTurn ? Text("Your turn").foregroundStyle(.gold) : Text("\(actor) is thinking")
         case .finished:
             return Text("Hand complete")
@@ -208,7 +241,11 @@ struct TableSurface: View {
     /// placeholder in play. Reserves no space in the auction while the controls need it.
     @ViewBuilder private var commentary: some View {
         ZStack {
-            if let toast, model.canUndo {
+            if let refusal = model.refusal {
+                // A refused tap answers first: it is the freshest thing the player did.
+                Text(refusal).font(.footnote).multilineTextAlignment(.center).foregroundStyle(.ivory.opacity(0.9))
+                    .padding(.horizontal, 8)
+            } else if let toast, model.canUndo {
                 HStack(spacing: 12) {
                     Text([model.describe(toast), model.notice].compactMap { $0 }.joined(separator: " · ")).font(.footnote).lineLimit(1)
                     Button("Undo") { model.undo() }.font(.footnote.weight(.semibold)).tint(.ivory)
@@ -241,23 +278,38 @@ struct TableSurface: View {
 
     private var bidding: some View {
         VStack(spacing: Theme.Table.auctionButtonSpacing) {
+            if let context = model.auctionContext {
+                Text(context).font(.footnote).opacity(0.85).multilineTextAlignment(.center).padding(.bottom, 2)
+            }
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Theme.Table.auctionButtonSpacing), count: 4),
                       spacing: Theme.Table.auctionButtonSpacing) {
-                ForEach(2...9, id: \.self) { bid in actionButton(String(bid), action: .bid(bid)) }
+                ForEach(HouseRules.bidRange, id: \.self) { bid in actionButton(String(bid), action: .bid(bid)) }
             }
             HStack(spacing: Theme.Table.auctionButtonSpacing) {
                 actionButton("Pass", action: .bid(nil), font: .body.weight(.semibold))
-                actionButton("9 and out", action: .nineAndOut, font: .body.weight(.semibold))
-                    .accessibilityHint("Take all nine points or lose the game")
+                Button { onNineAndOut() } label: { Text("9 and out").font(.body.weight(.semibold)) }
+                    .buttonStyle(PillButtonStyle(fill: Theme.Wood.inlay))
+                    .disabled(!model.allows(.nineAndOut))
+                    .accessibilityHint(model.allows(.nineAndOut) ? "Take all nine points or lose the match; asks you to confirm"
+                                       : model.validationMessage(for: .nineAndOut) ?? "")
             }
         }
     }
 
+    /// Four suit pills, each named for newcomers and captioned with what choosing it keeps and draws.
     private var trumpChoice: some View {
-        HStack(spacing: Theme.Table.auctionButtonSpacing) {
+        HStack(alignment: .top, spacing: Theme.Table.auctionButtonSpacing) {
             ForEach(Suit.allCases, id: \.self) { suit in
-                actionButton(suit.glyph, action: .chooseTrump(suit), fill: suit.pillFill, font: .largeTitle.weight(.bold))
-                    .accessibilityLabel(suit.rawValue)
+                VStack(spacing: 2) {
+                    actionButton(suit.glyph, action: .chooseTrump(suit), fill: suit.pillFill, font: .largeTitle.weight(.bold))
+                        .accessibilityLabel("\(suit.rawValue), \(model.trumpPreview(for: suit) ?? "")")
+                    // One short caption line so the auction still fits without scrolling (D34): the suit and
+                    // what it keeps; the draw count is implied and VoiceOver reads the full preview.
+                    Text(model.trumpPreview(for: suit).flatMap { $0.split(separator: " · ").first }.map { "\(suit.rawValue) · \($0)" } ?? suit.rawValue)
+                        .font(.caption2.weight(.semibold)).opacity(0.8)
+                        .lineLimit(1).minimumScaleFactor(0.6)
+                }
+                .accessibilityElement(children: .contain)
             }
         }
     }
@@ -265,9 +317,13 @@ struct TableSurface: View {
     /// Pills fill their column so neighbours almost touch: solid, tall, with a large label.
     private func actionButton(_ label: String, action: PlayerAction, fill: Color = Theme.Wood.inlay,
                               font: Font = .title3.weight(.semibold)) -> some View {
-        Button { model.send(action) } label: { Text(label).font(font) }
+        // One dry run per pill: the reason, when there is one, is also why the pill is greyed.
+        let reason = model.validationMessage(for: action)
+        return Button { model.send(action) } label: { Text(label).font(font) }
             .buttonStyle(PillButtonStyle(fill: fill))
-            .disabled(!model.allows(action))
+            .disabled(reason != nil)
+            // A greyed pill still says why it is greyed to assistive technology.
+            .accessibilityHint(reason ?? "")
     }
 
     // MARK: Hand end
@@ -276,7 +332,7 @@ struct TableSurface: View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 12) {
                 if let winner = model.match.winner { matchOver(winner) }
-                HandSummaryView(match: model.match, names: model.seatNames)
+                HandSummaryView(match: model.match, names: model.seatNames, outcome: model.lastHandOutcome)
                 // Side by side when they fit, stacked at accessibility text sizes.
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 12) { reviewButton; dealButton }
@@ -323,6 +379,8 @@ struct TableSurface: View {
 struct SeatView: View {
     @ObservedObject var model: GameModel
     let seat: Int
+    /// Side tiles take the width the row can spare; the partner's tile keeps the full width.
+    var width: Double = Theme.Table.seatTileWidth
 
     private var hand: Hand { model.match.hand }
     private var active: Bool { hand.nextSeat == seat && model.match.winner == nil }
@@ -331,7 +389,7 @@ struct SeatView: View {
     /// badge line that is always reserved, so tiles never grow or shrink as the hand moves on.
     var body: some View {
         VStack(spacing: 4) {
-            PortraitView(portrait: portrait, size: Theme.Table.portraitSize)
+            PortraitView(portrait: portrait, size: Theme.Table.portraitSize, expression: SeatMood.expression(for: seat, in: model.match))
             Text(model.seatNames[seat]).font(.headline).lineLimit(1).minimumScaleFactor(0.7)
             ZStack {
                 if hand.phase == .bidding {
@@ -357,7 +415,7 @@ struct SeatView: View {
             .frame(height: 15)
         }
         .padding(.horizontal, 10).padding(.vertical, 6)
-        .frame(width: Theme.Table.seatTileWidth)
+        .frame(width: width)
         // No fill: the name, backs and badges sit straight on the felt; only the seat to act gets a ring.
         .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(.gold, lineWidth: active ? 2 : 0))
         .accessibilityElement(children: .ignore)
@@ -416,4 +474,32 @@ struct DeckView: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(remaining) cards in the deck")
     }
+}
+
+/// The discards, face down under the deck, with their count: nothing about them is a secret worth
+/// keeping (the rules put them out of play), but nothing about them needs showing either.
+struct DiscardPileView: View {
+    let count: Int
+
+    var body: some View {
+        ZStack(alignment: .bottomTrailing) {
+            ForEach(0..<min(3, count), id: \.self) { index in
+                CardBackView(width: Theme.Table.deckWidth * 0.85)
+                    .rotationEffect(.degrees(Double(index) * 5 - 5))
+                    .offset(x: Double(index) * -1.5, y: Double(index) * -1.5)
+            }
+            Text(count, format: .number).font(.caption2.weight(.bold).monospacedDigit())
+                .padding(.horizontal, 5).padding(.vertical, 1)
+                .background(.black.opacity(0.6), in: Capsule())
+                .offset(x: 6, y: 6)
+        }
+        .opacity(0.8)
+        .dynamicTypeSize(...Theme.Card.maximumTypeSize)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(count) cards discarded")
+    }
+}
+
+private func + (lhs: CGSize, rhs: CGSize) -> CGSize {
+    CGSize(width: lhs.width + rhs.width, height: lhs.height + rhs.height)
 }

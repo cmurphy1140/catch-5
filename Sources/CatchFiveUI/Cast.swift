@@ -8,6 +8,8 @@ public struct Portrait: Codable, Equatable, Hashable, Sendable {
     public enum Feature: String, Codable, CaseIterable, Sendable { case none, glasses, moustache, freckles }
     public enum Hat: String, Codable, CaseIterable, Sendable { case none, beanie, cap, flower }
     public enum Shirt: String, Codable, CaseIterable, Sendable { case plum, olive, teal, rust, navy, mustard }
+    /// A passing mood drawn on the face: not part of the recipe, never saved.
+    public enum Expression: Sendable { case neutral, thinking, pleased, rueful, triumphant, dismayed }
 
     public var skin: Skin
     public var hair: Hair

@@ -323,6 +323,8 @@ import Testing
     #expect(model.records.isEmpty)
     #expect(FileManager.default.fileExists(atPath: directory.appendingPathComponent("history-corrupt.json").path))
     #expect(!FileManager.default.fileExists(atPath: directory.appendingPathComponent("history.json").path))
+    // The drawn dealer may put a computer first; play stays usable either way.
+    while !model.isHumanTurn { model.stepComputer() }
     model.showHint()
     model.send(try #require(model.hint).action)
     #expect(model.errorMessage == nil)
@@ -507,6 +509,553 @@ import Testing
 
 @MainActor @Test func rootOpensOnLoginUntilSignedInThenOnTheTable() {
     #expect(RootView.initialScreen(for: Settings()) == .login)
-    #expect(RootView.initialScreen(for: Settings(playerName: "Connor")) == .table)
+    #expect(RootView.initialScreen(for: Settings(hasSeenRules: true, playerName: "Connor")) == .table)
 }
 
+
+@Test func tablePauseHoldsWhileAnyCoverRemains() {
+    var pause = TablePause()
+    #expect(!pause.isPaused)
+    pause.welcomeShown = true
+    #expect(pause.isPaused)
+    // A sheet opened over the welcome card: closing the sheet alone must not resume play.
+    pause.sheetShown = true
+    pause.sheetShown = false
+    #expect(pause.isPaused)
+    pause.welcomeShown = false
+    #expect(!pause.isPaused)
+    pause.sceneActive = false
+    #expect(pause.isPaused)
+    pause.sceneActive = true
+    pause.dialogShown = true
+    #expect(pause.isPaused)
+    pause.dialogShown = false
+    pause.inspectingTrick = true
+    #expect(pause.isPaused)
+    pause.inspectingTrick = false
+    pause.drawShown = true
+    #expect(pause.isPaused)
+}
+
+@MainActor @Test func saveFailureKeepsTheAcceptedMoveAndRetryWritesTheSameState() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    // The directory does not exist yet, so the first save fails.
+    let url = directory.appendingPathComponent("game.json")
+    let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3), saveURL: url)
+    model.send(.bid(nil))
+    #expect(model.match.actionCount == 1)
+    #expect(model.lastHumanAction == .bid(nil))
+    #expect(model.errorMessage == nil)
+    #expect(model.saveError != nil)
+    #expect(model.revision == 1)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    model.retrySave()
+    #expect(model.saveError == nil)
+    #expect(model.match.actionCount == 1)
+    #expect(try MatchSave.read(from: url).actionCount == 1)
+}
+
+@Test func handLayoutFansOnlyWhenEveryStripIsThumbSized() {
+    // Six 64 pt cards on the iPhone 16 (393 − 32 padding − 16 inset): a fan with the full overlap.
+    #expect(HandLayout.arrange(count: 6, cardWidth: 64, available: 345) == .fan(strip: Theme.Card.touchStrip(width: 64)))
+    // Cards grown by Dynamic Type still fan while every strip stays at 44 or more.
+    #expect(HandLayout.arrange(count: 6, cardWidth: 120, available: 345) == .fan(strip: 45))
+    // Any wider and the fan would hide part of a thumb target: two rows of three instead.
+    let rows = HandLayout.arrange(count: 6, cardWidth: 130, available: 345)
+    #expect(rows == .rows(perRow: 3, strip: 107.5))
+    // Rows keep the invariant too, and never overlap more than the fan would.
+    if case let .rows(perRow, strip) = rows { #expect(strip >= Theme.Card.minimumTouchStrip && perRow == 3) }
+    // Fewer cards fan at any size; a single card needs no strip at all.
+    #expect(HandLayout.arrange(count: 3, cardWidth: 100, available: 345) == .fan(strip: Theme.Card.touchStrip(width: 100)))
+    #expect(HandLayout.arrange(count: 1, cardWidth: 100, available: 200) == .fan(strip: Theme.Card.touchStrip(width: 100)))
+    // Height follows the arrangement so the hand never clips.
+    #expect(HandLayout.height(of: .fan(strip: 56), cardWidth: 64) == 64 * Theme.Card.ratio + 16 + Theme.Card.fanDrop)
+    #expect(HandLayout.height(of: .rows(perRow: 3, strip: 84), cardWidth: 100) == 2 * 100 * Theme.Card.ratio + 8 + 16)
+}
+
+@Test func seatRowLeavesRoomForThePileOnEveryVerifiedWidth() {
+    // The pile's footprint: a card nudged toward either side seat, plus breathing room.
+    let pile = TableLayout.pileReservation
+    #expect(pile == Theme.Card.pileWidth + 2 * Theme.Table.sideNudge + 8)
+    // iPhone 16 (393 − 32) and SE (375 − 32): the tiles give way before the pile can touch them.
+    for available in [361.0, 343.0] {
+        let tile = TableLayout.sideSeatWidth(available: available)
+        #expect(tile <= Theme.Table.seatTileWidth)
+        #expect(tile >= TableLayout.minimumSeatWidth)
+        #expect(2 * tile + pile + 2 * TableLayout.seatGap <= available)
+    }
+    // Plenty of room: the tile keeps its full width.
+    #expect(TableLayout.sideSeatWidth(available: 600) == Theme.Table.seatTileWidth)
+}
+
+@MainActor @Test func validationMessagesExplainRefusalsWithoutChangingTheMatch() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    let model = GameModel(match: try Match(deck: deck, dealer: 3))
+    // Your bid: a legal bid has no message; passing is legal too.
+    #expect(model.validationMessage(for: .bid(2)) == nil)
+    #expect(model.validationMessage(for: .bid(nil)) == nil)
+    model.send(.bid(nil))
+    let count = model.match.actionCount
+    // Hazel is bidding now: anything you try waits for her, and nothing is recorded.
+    #expect(model.validationMessage(for: .bid(3)) == "Wait for Hazel.")
+    model.refuse(.bid(3))
+    #expect(model.refusal == "Wait for Hazel.")
+    #expect(model.match.actionCount == count)
+    // Play until it is your turn to follow a computer's lead.
+    var followed = false
+    for _ in 0..<40 where !followed {
+        if model.isHumanTurn {
+            switch model.match.hand.phase {
+            case .choosingTrump: model.send(.chooseTrump(model.humanCards[0].suit))
+            case .playing:
+                if let led = model.match.hand.currentTrick.first?.card.suit,
+                   model.humanCards.contains(where: { $0.suit == led }),
+                   let offSuit = model.humanCards.first(where: { $0.suit != led }) {
+                    let before = model.match.actionCount
+                    #expect(model.validationMessage(for: .play(offSuit)) == "Follow \(led.rawValue); you still have \(led.rawValue).")
+                    #expect(model.match.actionCount == before)
+                    followed = true
+                } else {
+                    model.send(.play(try #require(model.match.hand.legalMoves(seat: 0).first)))
+                }
+            default: model.send(.bid(nil))
+            }
+        } else {
+            model.stepComputer()
+        }
+    }
+    #expect(followed, "the fixed deck should make you follow suit at least once")
+    // An accepted action clears the standing refusal.
+    #expect(model.refusal == nil)
+    #expect(model.validationMessage(for: .play(Card(.clubs, .two))) == nil || model.validationMessage(for: .play(Card(.clubs, .two))) == "That card is not in your hand.")
+}
+
+@MainActor @Test func dealerGetsBidContextAndNineAndOutStaysEngineChecked() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    // Dealer 3: you bid first and are not the dealer, so no context line.
+    let early = GameModel(match: try Match(deck: deck, dealer: 3))
+    #expect(early.auctionContext == nil)
+    // Dealer 0: the three computers bid before you; the line explains matching or the forced 2.
+    let model = GameModel(match: try Match(deck: deck, dealer: 0))
+    #expect(model.auctionContext == nil)   // not your turn yet
+    for _ in 0..<3 { model.stepComputer() }
+    #expect(model.isHumanTurn)
+    let context = try #require(model.auctionContext)
+    if let high = model.match.hand.auction.highestBid {
+        #expect(context == "As dealer you may match the high bid of \(high).")
+    } else {
+        #expect(context == "Everyone passed, so as dealer you must bid at least 2.")
+    }
+    // Confirming 9 and out still goes through the engine: after a pass it is refused, and nothing changes.
+    model.send(.bid(nil))
+    let count = model.match.actionCount
+    #expect(!model.allows(.nineAndOut))
+    model.send(.nineAndOut)
+    #expect(model.match.actionCount == count)
+    #expect(model.auctionContext == nil)
+}
+
+@Test func handOutcomeLeadsWithTheContractAndTheArithmetic() {
+    let names = ["Connor", "Hazel", "Otto", "Rue"]
+    // Made: you bid 4 and took 6, so 2 becomes 8; the defenders took 3, so 5 becomes 8.
+    let made = HandOutcome(bidderTeam: 0, bid: 4, isNineAndOut: false, points: [6, 3], gameValues: [30, 20],
+                           fiveTeam: 0, jackTeam: 1, before: [2, 5], after: [8, 8], names: names)
+    #expect(made.headline == "Contract made")
+    #expect(made.bidderLine == "Connor + Otto bid 4 · captured 6 · score 2 → 8")
+    #expect(made.defenderLine == "Hazel + Rue captured 3 · score 5 → 8")
+    #expect(made.notes.isEmpty)
+    // Set: they bid 5 and took 3, so they lose the 5; you add your 6 as defenders.
+    let set = HandOutcome(bidderTeam: 1, bid: 5, isNineAndOut: false, points: [6, 3], gameValues: [30, 20],
+                          fiveTeam: 0, jackTeam: 0, before: [4, 10], after: [10, 5], names: names)
+    #expect(set.headline == "Contract set")
+    #expect(set.bidderLine == "Hazel + Rue bid 5 · captured 3 · score 10 → 5")
+    #expect(set.defenderLine == "Connor + Otto captured 6 · score 4 → 10")
+}
+
+@Test func handOutcomeExplainsTheEdgeCases() {
+    let names = ["Connor", "Hazel", "Otto", "Rue"]
+    // A Game tie, the Five and Jack out of play, and both teams crossing 25 on the same hand.
+    let tie = HandOutcome(bidderTeam: 0, bid: 3, isNineAndOut: false, points: [3, 1], gameValues: [14, 14],
+                          fiveTeam: nil, jackTeam: nil, before: [23, 24], after: [26, 25], names: names)
+    #expect(tie.notes == [
+        "Game tied 14–14: the tie goes to the bidding team.",
+        "The trump Five was not dealt, so its 5 points were out of play.",
+        "The trump Jack was not dealt, so its point was out of play.",
+        "Both teams reached 25: the bidding team wins the match.",
+    ])
+    // Nine and out, made and failed: the scores do not move, the match simply ends.
+    let won = HandOutcome(bidderTeam: 1, bid: 9, isNineAndOut: true, points: [0, 9], gameValues: [0, 40],
+                          fiveTeam: 1, jackTeam: 1, before: [10, 12], after: [10, 12], names: names)
+    #expect(won.headline == "9 and out made")
+    #expect(won.bidderLine == "Hazel + Rue bid 9 and out · captured all 9 · match won")
+    #expect(won.defenderLine == "Connor + Otto captured 0 · scores unchanged")
+    let lost = HandOutcome(bidderTeam: 0, bid: 9, isNineAndOut: true, points: [8, 1], gameValues: [40, 4],
+                           fiveTeam: 0, jackTeam: 0, before: [10, 12], after: [10, 12], names: names)
+    #expect(lost.headline == "9 and out failed")
+    #expect(lost.bidderLine == "Connor + Otto bid 9 and out · captured 8 of 9 · match lost")
+}
+
+@MainActor @Test func lastHandOutcomeIsBuiltFromTheMatchHistory() throws {
+    let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3))
+    #expect(model.lastHandOutcome == nil)
+    try finishMatch(model)
+    let outcome = try #require(model.lastHandOutcome)
+    let last = try #require(model.match.history.last)
+    #expect(outcome.headline == (last.contractMade ? (last.isNineAndOut ? "9 and out made" : "Contract made")
+                                                   : (last.isNineAndOut ? "9 and out failed" : "Contract set")))
+    let before = model.match.history.count > 1 ? model.match.history[model.match.history.count - 2].scores : [0, 0]
+    #expect(outcome.bidderLine.contains("score \(before[last.bidder % 2]) → \(last.scores[last.bidder % 2])") || last.isNineAndOut)
+}
+
+@Test func oneFeedbackCuePerActionWithTheOutcomeThatMattersMost() {
+    // A single tap can play a card, take a trick, end the hand and win the match at once; only one cue plays.
+    #expect(TableFeedback.cue(action: .play, trickWinner: nil, handEnded: false, matchWinner: nil) == .play)
+    #expect(TableFeedback.cue(action: .call, trickWinner: nil, handEnded: false, matchWinner: nil) == .call)
+    #expect(TableFeedback.cue(action: .play, trickWinner: 0, handEnded: false, matchWinner: nil) == .trickWon)
+    #expect(TableFeedback.cue(action: nil, trickWinner: 1, handEnded: false, matchWinner: nil) == .trickLost)
+    #expect(TableFeedback.cue(action: .play, trickWinner: 2, handEnded: true, matchWinner: nil) == .handEnded)
+    #expect(TableFeedback.cue(action: .play, trickWinner: 0, handEnded: true, matchWinner: 0) == .matchWon)
+    #expect(TableFeedback.cue(action: .play, trickWinner: 1, handEnded: true, matchWinner: 1) == .matchLost)
+    #expect(TableFeedback.cue(action: nil, trickWinner: nil, handEnded: false, matchWinner: nil) == nil)
+}
+
+@MainActor @Test func restoringALongReplayIsFastEnoughToNeedNoLoadingState() throws {
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: url) }
+    let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3))
+    try finishMatch(model)
+    #expect(model.match.actionCount > 100)
+    try MatchSave.write(model.match, to: url)
+    let clock = ContinuousClock()
+    let elapsed = try clock.measure { _ = try MatchSave.read(from: url) }
+    // A whole match replays through the rules well inside the 300 ms the roadmap sets for showing a spinner.
+    #expect(elapsed < .milliseconds(300), "restore took \(elapsed)")
+}
+
+@MainActor @Test func corruptGameIsSetAsideAndTheFreshGameSaysSo() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    let game = directory.appendingPathComponent("game.json")
+    try Data("not a game".utf8).write(to: game)
+    let model = GameModel.loadDefault(in: directory)
+    #expect(model.match.actionCount == 0)
+    #expect(model.errorMessage?.contains("kept as game-corrupt.json") == true)
+    #expect(FileManager.default.fileExists(atPath: directory.appendingPathComponent("game-corrupt.json").path))
+    #expect(try String(contentsOf: directory.appendingPathComponent("game-corrupt.json"), encoding: .utf8) == "not a game")
+    #expect(!FileManager.default.fileExists(atPath: game.path))
+}
+
+@MainActor @Test func resumeContextDescribesTheSavedMatch() throws {
+    let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3))
+    #expect(model.resumeContext == nil)   // nothing has happened yet
+    model.send(.bid(nil))
+    #expect(model.resumeContext == "Hand 1 · Your team 0, their team 0 · bidding")
+    try finishMatch(model)
+    #expect(model.resumeContext == nil)   // a finished match is not something to resume
+}
+
+@MainActor @Test func trumpPreviewCountsWhatEachSuitKeepsAndDraws() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    let model = GameModel(match: try Match(deck: deck, dealer: 3))
+    #expect(model.trumpPreview(for: .hearts) == nil)   // only while you are choosing trump
+    model.send(.bid(9))
+    for _ in 0..<3 { model.stepComputer() }
+    #expect(model.match.hand.phase == .choosingTrump && model.isHumanTurn)
+    for suit in Suit.allCases {
+        let held = model.humanCards.filter { $0.suit == suit }.count
+        #expect(model.trumpPreview(for: suit) == "keep \(held) · draw \(6 - held)")
+    }
+    // The previews are honest: choosing a suit discards exactly what the preview said.
+    let suit = try #require(Suit.allCases.max { a, b in model.humanCards.filter { $0.suit == a }.count < model.humanCards.filter { $0.suit == b }.count })
+    let kept = model.humanCards.filter { $0.suit == suit }.count
+    model.send(.chooseTrump(suit))
+    #expect(model.notice == (kept == 6 ? "You kept all six cards." : "You discarded \(6 - kept) and drew \(6 - kept)."))
+}
+
+@Test func rootRoutesSignedInPlayersWhoSkippedTheIntroBackToIt() {
+    var settings = Settings(playerName: "Connor")
+    #expect(RootView.initialScreen(for: settings) == .intro)   // signed in, never saw the intro or rules
+    settings.hasSeenRules = true
+    #expect(RootView.initialScreen(for: settings) == .table)
+    #expect(RootView.initialScreen(for: Settings()) == .login)
+}
+
+@Test func signingInKeepsAMatchAnExistingInstallLeftInProgress() {
+    // An older install with a saved match reaches the welcome card, not a silent new deal.
+    #expect(RootView.destinationAfterSignIn(matchInProgress: true, hasSeenRules: true) == .welcome)
+    #expect(RootView.destinationAfterSignIn(matchInProgress: true, hasSeenRules: false) == .welcome)
+    #expect(RootView.destinationAfterSignIn(matchInProgress: false, hasSeenRules: false) == .intro)
+    #expect(RootView.destinationAfterSignIn(matchInProgress: false, hasSeenRules: true) == .table)
+}
+
+@Test func settingsToleratesValuesItDoesNotRecogniseAndMigratesOnlyPreCastFiles() throws {
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: url) }
+    // A portrait case from a newer build must not sign the player out.
+    try Data(#"{"playerName":"Connor","playerPortrait":{"skin":"violet","hair":"bob","hairColor":"silver","feature":"none","hat":"none","shirt":"plum"},"playSpeed":"warp","difficulty":"brutal"}"#.utf8).write(to: url)
+    let tolerant = try SettingsStore.read(from: url)
+    #expect(tolerant.playerName == "Connor" && tolerant.hasSignedIn)
+    #expect(tolerant.playerPortrait == Cast.defaultPlayerPortrait && tolerant.playSpeed == .normal && tolerant.difficulty == .standard)
+    // A file written after sign-in keeps a deliberately typed "West"; only pre-cast files migrate.
+    try Data(#"{"playerName":"Connor","seatNames":["Connor","West","Otto","Rue"]}"#.utf8).write(to: url)
+    #expect(try SettingsStore.read(from: url).seatNames == ["Connor", "West", "Otto", "Rue"])
+    try Data(#"{"seatNames":["You","West","Partner","East"]}"#.utf8).write(to: url)
+    #expect(try SettingsStore.read(from: url).seatNames == ["You", "Hazel", "Otto", "Rue"])
+    // One place writes the player's name, with one trim rule.
+    var settings = Settings()
+    settings.setPlayerName("  Mum ")
+    #expect(settings.playerName == "Mum" && settings.seatNames[0] == "Mum")
+    settings.setPlayerName("   ")
+    #expect(settings.playerName == "Mum" && settings.seatNames[0] == "Mum")
+}
+
+@MainActor @Test func corruptSettingsAreSetAsideAndReported() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    try Data("{not json".utf8).write(to: directory.appendingPathComponent("settings.json"))
+    let model = GameModel.loadDefault(in: directory)
+    #expect(!model.settings.hasSignedIn)
+    #expect(model.errorMessage?.contains("settings-corrupt.json") == true)
+    #expect(FileManager.default.fileExists(atPath: directory.appendingPathComponent("settings-corrupt.json").path))
+}
+
+@MainActor @Test func feedbackSnapshotOfARestoredMatchProducesNoCue() throws {
+    let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3))
+    try finishMatch(model)
+    model.newGame()
+    // Play into the second hand so history and tricks are non-zero, as a restored match would be.
+    for _ in 0..<60 where model.match.hand.completedTricks.count < 2 {
+        if model.isHumanTurn {
+            switch model.match.hand.phase {
+            case .bidding: model.send(.bid(model.allows(.bid(3)) ? 3 : nil))
+            case .choosingTrump: model.send(.chooseTrump(model.humanCards[0].suit))
+            case .playing: model.send(.play(try #require(model.match.hand.legalMoves(seat: 0).first)))
+            default: break
+            }
+        } else { model.stepComputer() }
+    }
+    let restored = TableFeedback.Snapshot(model)
+    #expect(TableFeedback.cue(from: restored, to: TableFeedback.Snapshot(model)) == nil)
+    // The next human play is a play, not a phantom hand end.
+    while !model.isHumanTurn || model.match.hand.phase != .playing { model.stepComputer() }
+    let before = TableFeedback.Snapshot(model)
+    model.send(.play(try #require(model.match.hand.legalMoves(seat: 0).first)))
+    let cue = TableFeedback.cue(from: before, to: TableFeedback.Snapshot(model))
+    #expect(cue == .play || cue == .trickWon || cue == .trickLost)
+}
+
+@Test func seatMoodsFollowPublicEventsOnly() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    var match = try Match(deck: deck, dealer: 3)
+    // Fresh hand: seat 0 is to bid, so seat 0 thinks and the others are neutral.
+    #expect(SeatMood.expression(for: 0, in: match) == .thinking)
+    #expect(SeatMood.expression(for: 1, in: match) == .neutral)
+    try match.bid(seat: 0, amount: 9)
+    #expect(SeatMood.expression(for: 1, in: match) == .thinking)
+    for seat in 1...3 { try match.bid(seat: seat, amount: nil) }
+    try match.chooseTrump(seat: 0, suit: .clubs)
+    // Play one trick out; the winning team is pleased and the other rueful until the next lead.
+    for _ in 0..<4 {
+        let seat = try #require(match.hand.nextSeat)
+        try match.play(seat: seat, card: try #require(match.hand.legalMoves(seat: seat).first))
+    }
+    let winner = try #require(match.hand.completedTricks.last?.winner)
+    for seat in 0..<4 where seat != match.hand.nextSeat {
+        #expect(SeatMood.expression(for: seat, in: match) == (seat % 2 == winner % 2 ? .pleased : .rueful))
+    }
+    #expect(SeatMood.expression(for: try #require(match.hand.nextSeat), in: match) == .thinking)
+    // Once the next trick starts, the reaction is over.
+    let leader = try #require(match.hand.nextSeat)
+    try match.play(seat: leader, card: try #require(match.hand.legalMoves(seat: leader).first))
+    for seat in 0..<4 where seat != match.hand.nextSeat { #expect(SeatMood.expression(for: seat, in: match) == .neutral) }
+    // The verdict on a finished match is the loudest expression of all.
+    #expect(SeatMood.expression(for: 1, in: match, matchWinner: 1) == .triumphant)
+    #expect(SeatMood.expression(for: 2, in: match, matchWinner: 1) == .dismayed)
+}
+
+@Test func tossedCardsLandDifferentlyButStayPut() {
+    // The same card in the same trick of the same hand always lands the same way, so a re-render never nudges it.
+    let ace = Card(.spades, .ace), five = Card(.hearts, .five)
+    let pose = CardToss.pose(for: ace, hand: 3, trick: 2)
+    #expect(pose == CardToss.pose(for: ace, hand: 3, trick: 2))
+    // Different cards, or the same card in another hand, land differently.
+    #expect(pose != CardToss.pose(for: five, hand: 3, trick: 2))
+    #expect(pose != CardToss.pose(for: ace, hand: 4, trick: 2))
+    // Every pose stays within a hand's-throw of the seat's spot and never turns a card past readable.
+    for hand in 1...12 {
+        for trick in 0...5 {
+            for suit in Suit.allCases {
+                for rank in Rank.allCases {
+                    let p = CardToss.pose(for: Card(suit, rank), hand: hand, trick: trick)
+                    #expect(abs(p.rotation) <= Theme.Table.tossRotationDegrees)
+                    #expect(abs(p.offset.width) <= Theme.Table.tossDrift && abs(p.offset.height) <= Theme.Table.tossDrift)
+                }
+            }
+        }
+    }
+    // The spread is real: over a hand's worth of cards the rotations are not all on one side.
+    let rotations = Rank.allCases.map { CardToss.pose(for: Card(.clubs, $0), hand: 1, trick: 0).rotation }
+    #expect(rotations.contains { $0 > 2 } && rotations.contains { $0 < -2 })
+}
+
+@MainActor @Test func statusSaysWhichSuitYouMustFollow() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    let model = GameModel(match: try Match(deck: deck, dealer: 3))
+    #expect(model.suitToFollow == nil)   // nothing led yet
+    model.send(.bid(nil))
+    for _ in 0..<40 where model.suitToFollow == nil {
+        if model.isHumanTurn {
+            switch model.match.hand.phase {
+            case .choosingTrump: model.send(.chooseTrump(model.humanCards[0].suit))
+            case .playing: model.send(.play(try #require(model.match.hand.legalMoves(seat: 0).first)))
+            default: model.send(.bid(nil))
+            }
+        } else { model.stepComputer() }
+    }
+    let led = try #require(model.suitToFollow)
+    #expect(model.match.hand.currentTrick.first?.card.suit == led)
+    #expect(model.humanCards.contains { $0.suit == led })
+    // Only your own turn, and only while you hold the led suit.
+    #expect(model.isHumanTurn)
+    #expect(model.match.hand.legalMoves(seat: 0).allSatisfy { $0.suit == led })
+}
+
+@Test func discardsFlyToThePileUnderTheDeck() {
+    // Discards head for the top-right corner like the deal, but land lower: under the deck, not on it.
+    for index in 0..<6 {
+        let deal = HandFanView.dealOrigin(index: index, count: 6, width: 360)
+        let discard = HandFanView.discardTarget(index: index, count: 6, width: 360)
+        #expect(discard.width == deal.width)             // same corner
+        #expect(discard.height < 0 && discard.height > deal.height)   // upward, but not as far
+    }
+    #expect(Theme.Table.discardDrop > Theme.Table.deckWidth * Theme.Card.ratio)   // clear of the deck itself
+}
+
+@Test func dealerDrawPicksTheHighestCardWithSuitsBreakingTies() {
+    // Seats 0 to 3 draw the first four cards; the highest rank deals, and equal ranks go by suit.
+    let draw = DealerDraw.draw(from: [Card(.hearts, .nine), Card(.spades, .king), Card(.clubs, .king), Card(.diamonds, .two)] + [])
+    #expect(draw.cards.count == 4 && draw.dealer == 1)   // king of spades beats king of clubs
+    #expect(DealerDraw.draw(from: [Card(.clubs, .ace), Card(.spades, .king), Card(.hearts, .queen), Card(.diamonds, .jack)]).dealer == 0)
+    #expect(DealerDraw.draw(from: [Card(.clubs, .five), Card(.diamonds, .five), Card(.hearts, .five), Card(.spades, .five)]).dealer == 3)
+    #expect(DealerDraw.ranking(Card(.spades, .two)) > DealerDraw.ranking(Card(.clubs, .two)))
+    #expect(DealerDraw.ranking(Card(.clubs, .three)) > DealerDraw.ranking(Card(.spades, .two)))
+}
+
+@MainActor @Test func newGameDrawsForDealerAndTheMatchUsesIt() throws {
+    let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3))
+    #expect(model.dealerDraw == nil)
+    model.newGame()
+    let draw = try #require(model.dealerDraw)
+    #expect(model.match.hand.auction.dealer == draw.dealer)
+    #expect(Set(draw.cards).count == 4)
+    // The draw is a picture of how the deal was decided; the first action puts it away.
+    #expect(model.match.actionCount == 0)
+    model.dismissDealerDraw()
+    #expect(model.dealerDraw == nil)
+    model.newGame()
+    let seat = try #require(model.match.hand.nextSeat)
+    if seat == 0 { model.send(.bid(nil)) } else { model.stepComputer() }
+    #expect(model.dealerDraw == nil)
+}
+
+@Test func theRulesSayHowTheFirstDealerIsChosen() {
+    #expect(RulesText.sections[0].paragraphs.count == 2)
+    #expect(RulesText.sections[0].paragraphs[1].contains("highest deals"))
+}
+
+@Test func rulesFiguresMatchTheEngine() throws {
+    // The scoring tiles add up to the nine points a hand can hold, and the Game ledger quotes the engine's values.
+    #expect(RulesFigures.pointTiles.map(\.points).reduce(0, +) == 9)
+    #expect(RulesFigures.pointTiles.map(\.name) == ["High", "Low", "Jack", "Five", "Game"])
+    for entry in RulesFigures.gameValues { #expect(entry.value == entry.rank.gameValue) }
+    #expect(RulesFigures.gameValues.map(\.rank) == [.ten, .ace, .king, .queen, .jack])
+    // The two example tricks are judged by the real rule, not drawn by hand.
+    #expect(try trickWinner(RulesFigures.followedTrick, trump: RulesFigures.trump) == RulesFigures.followedWinner)
+    #expect(try trickWinner(RulesFigures.trumpedTrick, trump: RulesFigures.trump) == RulesFigures.trumpedWinner)
+    #expect(RulesFigures.followedWinner != RulesFigures.trumpedWinner)
+    // The ladder and the target quote the engine's named house numbers, not literals of their own.
+    #expect(RulesFigures.bidLadder == Array(HouseRules.bidRange))
+    #expect(RulesFigures.matchTarget == HouseRules.matchTarget)
+    #expect(RulesFigures.nineAndOutPoints == HouseRules.handPoints)
+    // The captions are built from the drawn cards, so they can never disagree with the figure.
+    #expect(RulesFigures.caption(trumped: false).contains("king of hearts"))
+    #expect(RulesFigures.caption(trumped: false).contains("two of clubs"))
+    #expect(RulesFigures.caption(trumped: true).contains("four of spades"))
+}
+
+@Test func rulesChaptersMatchTheRuleSectionsByTitle() {
+    // Every rule section has a chapter of the same title, in order; the last chapter is the screen notes.
+    let chapters = RulesView.Chapter.allCases
+    #expect(chapters.dropLast().map(\.title) == RulesText.sections.map(\.title))
+    for chapter in chapters.dropLast() {
+        #expect(chapter.paragraphs == RulesText.sections.first { $0.title == chapter.title }?.paragraphs)
+    }
+    #expect(chapters.last?.paragraphs == RulesText.readingTheTable)
+    #expect(Set(chapters.map(\.numeral)).count == chapters.count)
+}
+
+@Test func houseRuleNumbersAreTheOnesTheEngineEnforces() throws {
+    // settle() and the auction use the named constants; a change there must show here.
+    #expect(HouseRules.matchTarget == 25 && HouseRules.bidRange == 2...9 && HouseRules.handPoints == 9)
+    let reached = try settle(scores: [HouseRules.matchTarget - 1, 0], points: [HouseRules.bidRange.lowerBound, 0], bidder: 0, bid: .points(HouseRules.bidRange.lowerBound))
+    #expect(reached.winner == 0)
+    #expect(throws: RuleError.invalidBid) { try settle(scores: [0, 0], points: [1, 0], bidder: 0, bid: .points(HouseRules.bidRange.upperBound + 1)) }
+}
+
+@Test func ruleTrialsAreJudgedByTheEngine() throws {
+    // Follow suit: hearts led, you hold hearts, spades are trump.
+    var follow = RuleTrial.make(.followSuit)
+    let hand = follow.offeredCards
+    #expect(hand.count == 6 && hand.filter { $0.suit == .hearts }.count == 2 && hand.filter { $0.suit == .spades }.count == 2)
+    #expect(follow.match.hand.currentTrick.first?.card.suit == .hearts && follow.match.hand.trump == .spades)
+    let offSuit = try #require(hand.first { $0.suit == .clubs })
+    let trump = try #require(hand.first { $0.suit == .spades })
+    let heart = try #require(hand.first { $0.suit == .hearts })
+    #expect(follow.attempt(.play(offSuit)) == .refused("Follow hearts; you still have hearts."))
+    #expect(follow.attempt(.play(trump)) == .refused("Follow hearts; you still have hearts."))
+    guard case let .accepted(text) = follow.attempt(.play(heart)) else { Issue.record("a heart is legal"); return }
+    #expect(text.contains("the trick with the"))
+    // Refusals never moved the position; an acceptance plays the trick out; reset brings it back.
+    #expect(follow.match.hand.completedTricks.count == 1)
+    follow.reset()
+    #expect(follow.match.hand.completedTricks.isEmpty && follow.match.hand.currentTrick.count == 3)
+
+    // The dealer may match: Hazel bid 3, you are dealer.
+    var dealer = RuleTrial.make(.dealerMatch)
+    #expect(dealer.match.hand.auction.highestBid == 3 && dealer.match.hand.nextSeat == 0)
+    #expect(dealer.offeredActions == [.bid(nil), .bid(2), .bid(3), .bid(4)])
+    if case .refused = dealer.attempt(.bid(2)) {} else { Issue.record("2 cannot beat 3") }
+    guard case let .accepted(matched) = dealer.attempt(.bid(3)) else { Issue.record("the dealer may match"); return }
+    #expect(matched.contains("match"))
+    dealer.reset()
+    guard case let .accepted(passed) = dealer.attempt(.bid(nil)) else { Issue.record("passing is legal"); return }
+    #expect(passed.contains("Hazel"))
+
+    // 9 and out below zero: a failed 9 last hand left you at -9.
+    var nine = RuleTrial.make(.nineAndOutBelowZero)
+    #expect(nine.match.scores[0] < 0 && nine.match.hand.nextSeat == 0)
+    #expect(nine.attempt(.nineAndOut) == .refused(GameModel.message(for: RuleError.forbiddenNineAndOut)))
+    if case .accepted = nine.attempt(.bid(2)) {} else { Issue.record("a normal bid is still allowed") }
+}
+
+@MainActor @Test func ruleTrialsLeaveTheOngoingMatchAndItsSaveAlone() throws {
+    // A practice position is its own Match: entering, playing, resetting and leaving it must not touch
+    // the live game, its replay log on disk, its scores or its history.
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: url) }
+    let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3), saveURL: url)
+    model.send(.bid(nil))
+    let before = (model.match.actionCount, model.match.scores, model.match.history.count, model.revision, try Data(contentsOf: url))
+    for kind in RuleTrial.Kind.allCases {
+        var trial = RuleTrial.make(kind)
+        for card in trial.offeredCards { trial.attempt(.play(card)) }
+        for action in trial.offeredActions { trial.attempt(action) }
+        trial.reset()
+    }
+    #expect(model.match.actionCount == before.0 && model.match.scores == before.1 && model.match.history.count == before.2)
+    #expect(model.revision == before.3)
+    #expect(try Data(contentsOf: url) == before.4)
+}

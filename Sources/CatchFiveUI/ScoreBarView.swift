@@ -26,7 +26,7 @@ struct ScoreBarView: View {
                 }
                 .tint(.ivory.opacity(0.7))
                 .accessibilityLabel("Back to menu")
-                Text("CATCH 5").font(.system(.title3, design: .serif).weight(.bold))
+                Text("CATCH 5").font(.system(.title3, design: .serif).weight(.bold)).lineLimit(1).minimumScaleFactor(0.7)
                 Text("HAND \(handNumber)").font(.system(.subheadline, design: .monospaced)).opacity(0.7)
                     .padding(.leading, 12)
                     .accessibilityLabel("Hand \(handNumber)")

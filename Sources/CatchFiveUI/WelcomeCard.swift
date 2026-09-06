@@ -24,6 +24,10 @@ struct WelcomeCard: View {
             }
             .accessibilityElement(children: .combine)
 
+            if let context = model.resumeContext {
+                Text(context).font(.footnote).opacity(0.8).frame(maxWidth: .infinity, alignment: .leading)
+            }
+
             VStack(spacing: 10) {
                 if model.match.winner == nil {
                     // A dealt hand is a game to return to even before the first bid.

@@ -7,13 +7,13 @@ public enum Theme {
         public static let ratio = 1.5
         /// Real cards round 3–4 mm on a 63 mm width, about six percent.
         public static func radius(width: Double) -> Double { width * 0.06 }
-        public static let handWidth = 64.0
-        public static let handWidthWide = 68.0
+        public static let handWidth = 58.0
+        public static let handWidthWide = 62.0
         public static let pileWidth = 62.0
         public static let backWidth = 40.0
         public static let tutorialWidth = 48.0
         /// Spacing between fanned hand cards; negative so they overlap.
-        public static let handOverlap = -16.0
+        public static let handOverlap = -8.0
         /// Every overlapped card must still expose this much to a thumb.
         public static let minimumTouchStrip = 44.0
         public static let fanRotationDegrees = 8.0
@@ -22,6 +22,12 @@ public enum Theme {
         public static let liftPressed = 6.0
         public static let pressedScale = 1.04
         public static let dimmedOpacity = 0.55
+        /// An unavailable card stays solid: a dark veil over the face and most of its colour drained, so it
+        /// reads as a card in shadow rather than a ghost showing the felt through it.
+        public static let dimmedVeil = 0.38
+        public static let dimmedSaturation = 0.35
+        /// Under Increase Contrast the veil lightens and the dashed edge does the telling.
+        public static let dimmedVeilHighContrast = 0.22
         /// Screens at least this wide (points) get the wider hand cards.
         public static let wideScreenWidth = 402.0
         /// Card faces stop scaling with Dynamic Type past this size; the surrounding text keeps scaling.
@@ -75,6 +81,9 @@ public enum Theme {
         public static let pileMarginY = 48.0
         public static let seatBackWidth = 30.0
         public static let portraitSize = 36.0
+        /// A played card lands with its own small turn and drift, like a card tossed in by hand.
+        public static let tossRotationDegrees = 11.0
+        public static let tossDrift = 9.0
         /// Seat tiles share one width; their height follows the phase (call text in the auction, backs in play).
         public static let seatTileWidth = 116.0
         /// The round status-line buttons (last trick, hint): visible disc and hit area.
@@ -84,6 +93,8 @@ public enum Theme {
         public static let deckWidth = 38.0
         /// How far above the fan the deck sits, for the deal-in flight.
         public static let deckRise = 520.0
+        /// The discard pile sits this far below the deck; discards fly there when trump is named.
+        public static let discardDrop = 72.0
         /// Bid, pass and suit pills: full column width, solid, well above the 44 pt minimum.
         public static let auctionButtonHeight = 64.0
         public static let auctionButtonSpacing = 6.0
@@ -111,6 +122,8 @@ public enum Theme {
         public static let dealStagger = 0.09
         /// The scheduler waits this long after trump is named before the first lead, so the deal finishes.
         public static let dealHold: Duration = .milliseconds(1400)
+        /// How long the draw for dealer stays on the table before it puts itself away.
+        public static let dealerDrawHold: Duration = .seconds(4)
     }
 
     /// Colours for drawn faces, chosen to sit with felt and ivory. No gold here (D33).

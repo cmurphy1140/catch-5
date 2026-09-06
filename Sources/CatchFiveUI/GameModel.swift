@@ -7,12 +7,19 @@ public final class GameModel: ObservableObject {
     @Published public private(set) var match: Match
     @Published public private(set) var revision = 0
     @Published public var errorMessage: String?
+    /// A failed write of the game, settings or history. The move it followed was accepted and stands;
+    /// `retrySave()` writes the same state again and never replays anything.
+    @Published public var saveError: String?
     /// The computer strategy's advice for the human seat, shown on request and cleared by the next action.
     @Published public private(set) var hint: Advice?
     /// Why a card on the table or in the last trick was played; toggled by tapping it.
     @Published public private(set) var explanation: String?
     /// A one-line note about something that happened without a tap, such as the discard after trump.
     @Published public private(set) var notice: String?
+    /// How the first dealer of this match was chosen; shown until the first action, or dismissed.
+    @Published private(set) var dealerDraw: DealerDraw?
+    /// Why the human's last refused tap was refused, in the player's words; cleared by the next accepted action.
+    @Published public private(set) var refusal: String?
     /// The human's most recent accepted action, for the undo toast and haptics; nil after undo or a new hand.
     @Published public private(set) var lastHumanAction: PlayerAction?
     @Published public var settings: Settings { didSet { persistSettings() } }
@@ -42,6 +49,23 @@ public final class GameModel: ObservableObject {
 
     public var statistics: Statistics { Statistics(records) }
 
+    public func dismissDealerDraw() { dealerDraw = nil }
+
+    /// A fresh match with the dealer decided by a draw, shown on the table until the first action.
+    static func freshMatch() -> (match: Match, draw: DealerDraw) {
+        let draw = DealerDraw.draw(from: deck())
+        // The generated deck is always a valid, unique 52-card deck.
+        return (try! Match(deck: deck(), dealer: draw.dealer), draw)
+    }
+
+    /// The finished hand's outcome in the player's order: contract, arithmetic, defenders, deciding rules.
+    var lastHandOutcome: HandOutcome? {
+        let history = match.history
+        guard let last = history.last else { return nil }
+        let before = history.count > 1 ? history[history.count - 2].scores : [0, 0]
+        return HandOutcome(summary: last, before: before, names: seatNames)
+    }
+
     /// Every play of the finished hand alongside the standard strategy's choice; nil before the hand is scored.
     public func handReview() -> HandReview? {
         guard match.hand.phase == .finished else { return nil }
@@ -56,7 +80,7 @@ public final class GameModel: ObservableObject {
         records.append(MatchRecord(date: now(), scores: match.scores, winner: match.winner ?? 0, hands: match.history.count,
                                    difficulty: settings.difficulty, humanBids: performance.bids, humanBidsMade: performance.bidsMade,
                                    humanPlays: performance.plays, humanPlaysAgreed: performance.playsAgreed))
-        if let historyURL { try? MatchHistoryStore.write(records, to: historyURL) }
+        persistHistory()
     }
 
     public var isHumanTurn: Bool { match.winner == nil && match.hand.nextSeat == 0 }
@@ -65,14 +89,26 @@ public final class GameModel: ObservableObject {
     /// True once something has happened this match and nobody has won yet; drives the menu's Continue button.
     public var matchInProgress: Bool { match.actionCount > 0 && match.winner == nil }
 
+    /// One line for the welcome card: where the saved match stands, or nil when there is nothing to resume.
+    public var resumeContext: String? {
+        guard matchInProgress else { return nil }
+        let phase: String = switch match.hand.phase {
+        case .bidding: "bidding"
+        case .choosingTrump: "choosing trump"
+        case .playing: "trick \(match.hand.completedTricks.count + 1)"
+        case .finished: "hand scored"
+        }
+        return "Hand \(match.handNumber) · Your team \(match.scores[0]), their team \(match.scores[1]) · \(phase)"
+    }
+
     /// The login screen's one write: the trimmed name becomes seat 0's name as well.
     public func signIn(name: String, portrait: Portrait, difficulty: Difficulty) {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        settings.playerName = trimmed
-        settings.seatNames[0] = trimmed
-        settings.playerPortrait = portrait
-        settings.difficulty = difficulty
+        var updated = settings
+        updated.setPlayerName(name)
+        guard updated.hasSignedIn else { return }
+        updated.playerPortrait = portrait
+        updated.difficulty = difficulty
+        settings = updated   // one write, one save
     }
 
     /// One VoiceOver sentence for a seat tile: name, direction, call or card count, dealer, to act.
@@ -102,8 +138,7 @@ public final class GameModel: ObservableObject {
         guard isHumanTurn else { return }
         notice = nil
         let discards = discardCount(for: action)
-        perform { try match.apply(action, seat: 0) }
-        if errorMessage == nil {
+        if perform({ try match.apply(action, seat: 0) }) {
             notice = discards.map(discardNotice)
             lastHumanAction = action
         }
@@ -198,6 +233,7 @@ public final class GameModel: ObservableObject {
     /// Ask the computer strategy what it would do from seat 0 and why.
     public func showHint() {
         guard isHumanTurn, let view = try? PlayerView(match: match, seat: 0) else { return }
+        refusal = nil   // the player asked for something newer than the last refusal
         hint = ComputerPlayer.advise(view)
     }
 
@@ -232,6 +268,7 @@ public final class GameModel: ObservableObject {
     /// Show the explanation for a played card, or hide it if it is already showing.
     public func explain(_ play: Play, inLastTrick: Bool) {
         let text = explanation(for: play, inLastTrick: inLastTrick)
+        refusal = nil
         explanation = explanation == text ? nil : text
     }
 
@@ -241,35 +278,93 @@ public final class GameModel: ObservableObject {
         return (try? copy.apply(action, seat: 0)) != nil
     }
 
+    /// Nil when the engine would accept `action` from the human right now; otherwise the reason it would
+    /// not, in the player's words. Validates on a copy, so the match and its action count never change.
+    public func validationMessage(for action: PlayerAction) -> String? {
+        guard match.winner == nil else { return Self.message(for: MatchError.matchFinished) }
+        guard isHumanTurn else {
+            return match.hand.nextSeat.map { "Wait for \(seatNames[$0])." } ?? "This hand is over."
+        }
+        var copy = match
+        do {
+            try copy.apply(action, seat: 0)
+            return nil
+        } catch HandError.mustFollowSuit {
+            guard let led = match.hand.currentTrick.first?.card.suit else { return Self.message(for: HandError.mustFollowSuit) }
+            return "Follow \(led.rawValue); you still have \(led.rawValue)."
+        } catch {
+            return Self.message(for: error)
+        }
+    }
+
+    /// Records why a tap was refused so the table can say so inline. Nothing about the match changes.
+    public func refuse(_ action: PlayerAction) {
+        refusal = validationMessage(for: action)
+    }
+
+    /// The suit you are obliged to follow right now: the suit led, while it is your turn to play and you
+    /// still hold it. Nil when you lead, when you cannot follow, or when it is not your turn.
+    public var suitToFollow: Suit? {
+        guard isHumanTurn, match.hand.phase == .playing, let led = match.hand.currentTrick.first?.card.suit,
+              match.hand.hands[0].contains(where: { $0.suit == led }) else { return nil }
+        return led
+    }
+
+    /// What naming `suit` as trump would do to the hand: "keep 4 · draw 2". Only while the human is
+    /// choosing trump; it counts the human's own cards and reveals nothing about the stock.
+    public func trumpPreview(for suit: Suit) -> String? {
+        guard match.hand.phase == .choosingTrump, isHumanTurn else { return nil }
+        let kept = match.hand.hands[0].filter { $0.suit == suit }.count
+        return "keep \(kept) · draw \(min(6 - kept, match.hand.stock.count))"
+    }
+
+    /// The dealer's special bidding rights, shown only when it is the human's turn to bid as dealer.
+    public var auctionContext: String? {
+        let auction = match.hand.auction
+        guard match.hand.phase == .bidding, isHumanTurn, auction.dealer == 0 else { return nil }
+        if auction.isNineAndOut { return "As dealer you may match 9 and out; matching makes you the bidder." }
+        if let high = auction.highestBid { return "As dealer you may match the high bid of \(high)." }
+        return "Everyone passed, so as dealer you must bid at least 2."
+    }
+
     public func nextHand() {
         perform { try match.startNextHand(deck: Self.deck()) }
         lastHumanAction = nil
         notice = nil
     }
     public func newGame() {
-        perform { match = try Match(deck: Self.deck(), dealer: 3) }
+        let draw = DealerDraw.draw(from: Self.deck())
+        perform { match = try Match(deck: Self.deck(), dealer: draw.dealer) }
+        dealerDraw = draw
         recordedCurrentMatch = false
         finalPerformance = nil
         lastHumanAction = nil
         notice = nil
     }
 
-    private func perform(_ action: () throws -> Void) {
+    /// Applies a rule action. Returns true when the engine accepted it; a save failure afterwards is
+    /// reported through `saveError` and does not make the action any less accepted.
+    @discardableResult
+    private func perform(_ action: () throws -> Void) -> Bool {
         do {
             try action()
-            errorMessage = nil
-            hint = nil
-            explanation = nil
-            persist()
-            recordMatchIfFinished()
-            revision += 1
         } catch {
             errorMessage = Self.message(for: error)
+            return false
         }
+        errorMessage = nil
+        refusal = nil
+        dealerDraw = nil   // the first action puts the draw away
+        hint = nil
+        explanation = nil
+        persist()
+        recordMatchIfFinished()
+        revision += 1
+        return true
     }
 
     /// Rule errors in the words a player would use.
-    public static func message(for error: Error) -> String {
+    nonisolated public static func message(for error: Error) -> String {
         switch error {
         case HandError.mustFollowSuit: "You must follow suit: play a card of the suit that was led if you have one."
         case HandError.cardNotHeld: "That card is not in your hand."
@@ -286,13 +381,28 @@ public final class GameModel: ObservableObject {
 
     private func persistSettings() {
         guard let settingsURL else { return }
-        try? SettingsStore.write(settings, to: settingsURL)
+        do { try SettingsStore.write(settings, to: settingsURL) }
+        catch { saveError = "Could not save your settings. \(error.localizedDescription)" }
+    }
+
+    private func persistHistory() {
+        guard let historyURL else { return }
+        do { try MatchHistoryStore.write(records, to: historyURL) }
+        catch { saveError = "Could not save your match history. \(error.localizedDescription)" }
     }
 
     public func persist() {
         guard let saveURL else { return }
         do { try MatchSave.write(match, to: saveURL) }
-        catch { errorMessage = "Could not save this game. Your current game is still open. \(error.localizedDescription)" }
+        catch { saveError = "Could not save this game. Your current game is still open. \(error.localizedDescription)" }
+    }
+
+    /// Writes the game, settings and history again from the state already in memory.
+    public func retrySave() {
+        saveError = nil
+        persist()
+        persistSettings()
+        persistHistory()
     }
 
     public static func deck() -> [Card] {
@@ -308,21 +418,46 @@ public final class GameModel: ObservableObject {
     public static func loadDefault(in directory: URL) -> GameModel {
         let url = directory.appendingPathComponent("game.json")
         let settingsURL = directory.appendingPathComponent("settings.json")
-        let settings = (try? SettingsStore.read(from: settingsURL)) ?? Settings()
         let historyURL = directory.appendingPathComponent("history.json")
-        let records = MatchHistoryStore.readSettingAsideCorruption(at: historyURL)
-        // The generated deck is always a valid, unique 52-card deck.
-        let fresh = GameModel(match: try! Match(deck: deck(), dealer: 3), saveURL: url, settings: settings, settingsURL: settingsURL,
-                              records: records, historyURL: historyURL)
-        do {
-            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            if FileManager.default.fileExists(atPath: url.path) {
-                return GameModel(match: try MatchSave.read(from: url), saveURL: url, settings: settings, settingsURL: settingsURL,
-                                 records: records, historyURL: historyURL)
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        var notices: [String] = []
+        // Settings that cannot be read are set aside, not silently replaced: replacing them would sign the
+        // player out and, through the login gate, discard their match.
+        var settings = Settings()
+        if FileManager.default.fileExists(atPath: settingsURL.path) {
+            do { settings = try SettingsStore.read(from: settingsURL) } catch {
+                notices.append(setAside(settingsURL, as: "settings-corrupt.json", what: "Your settings", error: error))
             }
-        } catch {
-            fresh.errorMessage = "Your previous game could not be restored. A new game is ready. \(error.localizedDescription)"
         }
+        let records = MatchHistoryStore.readSettingAsideCorruption(at: historyURL)
+        let start = freshMatch()
+        let fresh = GameModel(match: start.match, saveURL: url, settings: settings, settingsURL: settingsURL,
+                              records: records, historyURL: historyURL)
+        fresh.dealerDraw = start.draw
+        if FileManager.default.fileExists(atPath: url.path) {
+            do {
+                let restored = GameModel(match: try MatchSave.read(from: url), saveURL: url, settings: settings, settingsURL: settingsURL,
+                                         records: records, historyURL: historyURL)
+                restored.errorMessage = notices.first
+                return restored
+            } catch {
+                notices.append(setAside(url, as: "game-corrupt.json", what: "Your previous game", error: error))
+            }
+        }
+        fresh.errorMessage = notices.isEmpty ? nil : notices.joined(separator: " ")
         return fresh
+    }
+
+    /// Moves an unreadable file out of the way and says exactly what happened, so the message never claims a
+    /// rescue that failed; if it cannot be moved, the file will be replaced and the message says so.
+    private static func setAside(_ url: URL, as name: String, what: String, error: Error) -> String {
+        let aside = url.deletingLastPathComponent().appendingPathComponent(name)
+        try? FileManager.default.removeItem(at: aside)
+        do {
+            try FileManager.default.moveItem(at: url, to: aside)
+            return "\(what) could not be read, so it was kept as \(name) and fresh defaults are in use. \(error.localizedDescription)"
+        } catch {
+            return "\(what) could not be read and could not be set aside, so it will be replaced. \(error.localizedDescription)"
+        }
     }
 }

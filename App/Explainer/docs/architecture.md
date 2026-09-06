@@ -95,7 +95,7 @@ sequenceDiagram
 Two details carry the design:
 
 1. **`allows(_:)` is a dry run.** The view greys out illegal cards by copying the `Match` (cheap, it is a struct) and trying the action on the copy. No legality logic exists in the view.
-2. **`revision` is a heartbeat.** Every accepted action increments it. `TableView` attaches `.task(id: model.revision)`; SwiftUI cancels the old task and starts a new one whenever the id changes. That task sleeps briefly, then calls `stepComputer()` if a computer is due. The chain continues until it is the human's turn or the hand ends. No timers, no queues.
+2. **`revision` is a heartbeat.** Every accepted action increments it. `TableView` attaches `.task` with an id made of `model.revision` and `TablePause.isPaused`; SwiftUI cancels the old task and starts a new one whenever either changes, so a cover over the table stops the computers and lifting it restarts them. That task sleeps briefly, then calls `stepComputer()` if a computer is due. The chain continues until it is the human's turn or the hand ends. No timers, no queues.
 
 ## The referee pattern
 
