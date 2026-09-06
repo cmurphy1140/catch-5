@@ -45,8 +45,9 @@ struct TableSurface: View {
                     HStack { contractPill.accessibilitySortPriority(25); Spacer(minLength: 0) }
                     Spacer(minLength: 4)
                     SeatView(model: model, seat: 2).accessibilitySortPriority(20)
-                    // The side tiles give way before the pile can touch them (`TableLayout`).
-                    let sideWidth = TableLayout.sideSeatWidth(available: geometry.size.width)
+                    // The side tiles give way before the pile can touch them (`TableLayout`); in the auction
+                    // there is no pile, so they keep their full width.
+                    let sideWidth = inAuction ? Theme.Table.seatTileWidth : TableLayout.sideSeatWidth(available: geometry.size.width)
                     HStack(alignment: .center) {
                         SeatView(model: model, seat: 1, width: sideWidth).accessibilitySortPriority(30)
                         Spacer(minLength: TableLayout.seatGap)
@@ -385,36 +386,41 @@ struct SeatView: View {
     private var hand: Hand { model.match.hand }
     private var active: Bool { hand.nextSeat == seat && model.match.winner == nil }
 
-    /// One fixed size in every phase: name on top, the call or the card-back stack in the middle, and a
-    /// badge line that is always reserved, so tiles never grow or shrink as the hand moves on.
+    /// Portrait beside the name, with the call or the card-back stack under the name and a badge line only
+    /// when a badge applies. Laid out sideways so a row of seats costs the height of one portrait, not a
+    /// stack of four lines; that is what leaves the auction its bottom row of controls (spec R21).
     var body: some View {
-        VStack(spacing: 4) {
+        HStack(alignment: .center, spacing: 8) {
             PortraitView(portrait: portrait, size: Theme.Table.portraitSize, expression: SeatMood.expression(for: seat, in: model.match))
-            Text(model.seatNames[seat]).font(.headline).lineLimit(1).minimumScaleFactor(0.7)
-            ZStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(model.seatNames[seat]).font(.headline).lineLimit(1).minimumScaleFactor(0.7)
                 if hand.phase == .bidding {
-                    Text(model.latestCall(for: seat) ?? "Waiting").font(.caption).opacity(0.75).lineLimit(1)
+                    Text(model.latestCall(for: seat) ?? "Waiting").font(.caption).opacity(0.75).lineLimit(1).minimumScaleFactor(0.8)
                 } else {
-                    ForEach(0..<min(3, max(1, hand.hands[seat].count)), id: \.self) { index in
-                        CardBackView(width: Theme.Table.seatBackWidth)
-                            .offset(x: Double(index) * 4 - 4)
+                    ZStack(alignment: .leading) {
+                        ForEach(0..<min(3, max(1, hand.hands[seat].count)), id: \.self) { index in
+                            CardBackView(width: Theme.Table.seatBackWidth)
+                                .offset(x: Double(index) * 4)
+                        }
+                        Text(hand.hands[seat].count, format: .number).font(.caption.weight(.bold).monospacedDigit())
+                            .padding(.horizontal, 5).padding(.vertical, 1)
+                            .background(.black.opacity(0.55), in: Capsule())
+                            .offset(x: Theme.Table.seatBackWidth * 0.9, y: Theme.Table.seatBackWidth * 0.55)
                     }
-                    Text(hand.hands[seat].count, format: .number).font(.caption.weight(.bold).monospacedDigit())
-                        .padding(.horizontal, 5).padding(.vertical, 1)
-                        .background(.black.opacity(0.55), in: Capsule())
-                        .offset(x: Theme.Table.seatBackWidth * 0.65, y: Theme.Table.seatBackWidth * 0.55)
+                    .frame(height: Theme.Table.seatBackWidth * Theme.Card.ratio + 4)
+                    .dynamicTypeSize(...Theme.Card.maximumTypeSize)
+                }
+                if hand.auction.dealer == seat || (hand.auction.winner == seat && hand.phase != .bidding) {
+                    HStack(spacing: 6) {
+                        if hand.auction.dealer == seat { Text("DEALER").foregroundStyle(.gold) }
+                        if hand.auction.winner == seat, hand.phase != .bidding { Text("BIDDER").opacity(0.7) }
+                    }
+                    .font(.system(.caption2, design: .monospaced)).lineLimit(1).minimumScaleFactor(0.7)
                 }
             }
-            .frame(height: Theme.Table.seatBackWidth * Theme.Card.ratio + 4)
-            .dynamicTypeSize(...Theme.Card.maximumTypeSize)
-            HStack(spacing: 6) {
-                if hand.auction.dealer == seat { Text("DEALER").foregroundStyle(.gold) }
-                if hand.auction.winner == seat, hand.phase != .bidding { Text("BIDDER").opacity(0.7) }
-            }
-            .font(.system(.caption2, design: .monospaced)).lineLimit(1).minimumScaleFactor(0.7)
-            .frame(height: 15)
+            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 10).padding(.vertical, 6)
+        .padding(.horizontal, 6).padding(.vertical, 6)
         .frame(width: width)
         // No fill: the name, backs and badges sit straight on the felt; only the seat to act gets a ring.
         .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(.gold, lineWidth: active ? 2 : 0))

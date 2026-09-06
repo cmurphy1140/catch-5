@@ -41,7 +41,7 @@ struct HandFanView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .bottom)
-            .frame(height: HandLayout.height(of: arrangement, cardWidth: scaledStandard))
+            .frame(height: HandLayout.height(of: arrangement, cardWidth: scaledWidth))
             .onGeometryChange(for: Double.self) { $0.size.width } action: { measuredWidth = $0 }
             if !cards.isEmpty {
                 HStack(spacing: 8) {
