@@ -82,12 +82,12 @@ public struct TableView: View {
         VStack(spacing: 6) {
             ScoreBarView(us: model.match.scores[0], them: model.match.scores[1],
                          usLabel: teamLabel(0), themLabel: teamLabel(1),
-                         handNumber: model.match.handNumber,
+                         contract: contractChip,
                          canUndo: model.canUndo, onUndo: { model.undo() },
                          onScores: { showScoreboard = true }, onSettings: { showSettings = true },
                          onStatistics: { showStatistics = true }, onTutorial: { showTutorial = true },
                          onNewGame: { confirmNewGame = true }, onLeave: onLeave)
-                .padding(.horizontal, 16).padding(.top, 4).padding(.bottom, 14)
+                .padding(.horizontal, 16).padding(.top, 2).padding(.bottom, 8)
                 // A solid header band: runs up behind the status bar and ends in a frown, the corners
                 // hanging lower than the middle, so the scores sit on one colour and the wood starts beneath.
                 .background {
@@ -193,6 +193,14 @@ public struct TableView: View {
             .confirmationDialog("Start over? This replaces your saved game.", isPresented: $confirmNewGame) {
                 Button("Start new game", role: .destructive) { model.newGame() }
             }
+    }
+
+    /// The header's contract chip: the bid and bidder once the auction has resolved, trump once named.
+    private var contractChip: ScoreBarView.Contract? {
+        let auction = model.match.hand.auction
+        guard auction.nextSeat == nil, let bidder = auction.winner, let bid = auction.highestBid else { return nil }
+        return ScoreBarView.Contract(trump: model.match.hand.trump, bid: bid, isNineAndOut: auction.isNineAndOut,
+                                     bidder: model.seatNames[bidder])
     }
 
     private func teamLabel(_ team: Int) -> String {

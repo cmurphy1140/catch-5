@@ -44,7 +44,6 @@ struct TableSurface: View {
                 // Three groups spread over the full height: the contract under the header, the seats and
                 // pile in the middle, and the status line with its controls down by the hand.
                 VStack(spacing: 6) {
-                    HStack { contractPill.accessibilitySortPriority(25); Spacer(minLength: 0) }
                     Spacer(minLength: 4)
                     SeatView(model: model, seat: 2).accessibilitySortPriority(20)
                     // The side tiles give way before the pile can touch them (`TableLayout`); in the auction
@@ -155,28 +154,6 @@ struct TableSurface: View {
         let removal: AnyTransition = .offset(x: to.width * reach.width, y: to.height * reach.height)
             .combined(with: .scale(scale: 0.5)).combined(with: .opacity)
         return .asymmetric(insertion: insertion, removal: removal)
-    }
-
-    // MARK: Contract
-
-    /// Trump and the contract, in gold (rule 2), as plain text at the table's top-left once trump is
-    /// named: no pill, so it sits in the felt like a scorer's note.
-    @ViewBuilder private var contractPill: some View {
-        if let trump = hand.trump {
-            HStack(spacing: 8) {
-                Text(trump.glyph).font(.title2).foregroundStyle(trump.isRed ? Color.suitRed : .ivory)
-                Text("Trump")
-                if let contract = model.contract {
-                    Text("·").opacity(0.5)
-                    Text(contract)
-                }
-            }
-            .font(.system(.body, design: .serif).weight(.semibold))
-            .foregroundStyle(.gold)
-            .lineLimit(1).minimumScaleFactor(0.8)
-            .padding(.leading, 4).padding(.top, 10)
-            .accessibilityElement(children: .combine)
-        }
     }
 
     // MARK: Status, hints, explanations

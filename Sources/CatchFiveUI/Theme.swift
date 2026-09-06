@@ -100,7 +100,7 @@ public enum Theme {
         public static let auctionButtonSpacing = 6.0
         public static let auctionButtonRadius = 14.0
         /// The header band's bottom edge is a frown: the corners hang this much lower than the middle.
-        public static let headerDip = 26.0
+        public static let headerDip = 18.0
     }
 
     public enum Motion {
