@@ -350,3 +350,11 @@ D36 is taken by the cast, login and menu work on the parallel branch.
 
 **Why:** Task 4 of the roadmap. The first question after a hand is "did we make it and what did it cost", and the scores in the header only show the result of the arithmetic. Building the wording from numbers the engine already computed keeps the card honest and lets the edge cases be tested without playing a hand to reach them.
 
+## D44. Covers hide the table from VoiceOver, focus follows the game, motion and contrast settings are honoured, and one haptic speaks per action (PR #28, 2026-09-05)
+
+**Chosen:** The table is `accessibilityHidden` while the welcome card covers it (the card is marked modal) and while the finished-hand card is up, so VoiceOver meets the cover and nothing behind it. An `AccessibilityFocusState` on the status line receives focus when a cover lifts, a sheet closes or the human's turn comes, and `AccessibilityNotification.Announcement` reads out the trick winner and the hand outcome. Under Reduce Motion the card press no longer lifts or scales (it dims) and a refused tap no longer shakes (the reason on the message line carries it); deal, discard, flight and collection were already crossfades. Under Increase Contrast a dimmed card keeps 80% opacity and gains a dashed edge, and the welcome dim layer is darker. `TableFeedback` reduces each accepted action to one haptic, the most consequential outcome first: match won (success) or lost (error), hand ended, trick won or lost, play, call. The refusal buzz stays separate because it never coincides with an action.
+
+**Over:** Six stacked `sensoryFeedback` modifiers that could all fire on one tap; `.success` on every hand end, which made a lost hand feel like a win; lowering opacity as the only "not legal now" signal.
+
+**Why:** Task 5 of the roadmap. A modal cover that leaves the table in the accessibility tree lets VoiceOver users play under the card. Focus and announcements are what turn a visual table into a narrated one. The motion and contrast settings are promises the system makes on the user's behalf; the table has to keep them in its own effects, not just its transitions. Haptics are a language: one word per event, and different words for winning and losing.
+

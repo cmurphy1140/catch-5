@@ -17,6 +17,8 @@ struct TableSurface: View {
     let onReview: () -> Void
     /// The 9-and-out pill asks the table to confirm before the bid is sent.
     let onNineAndOut: () -> Void
+    /// VoiceOver focus lands on the status line when a cover lifts or the turn changes.
+    let statusFocus: AccessibilityFocusState<Bool>.Binding
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var hand: Hand { model.match.hand }
@@ -65,8 +67,10 @@ struct TableSurface: View {
             .frame(width: geometry.size.width, height: geometry.size.height)
             // The stock sits in the top-right corner of the table; refills deal in from here.
             .overlay(alignment: .topTrailing) { DeckView(remaining: hand.stock.count).padding(.top, 6) }
-            // The finished hand's card takes over the table; what is underneath fades back.
+            // The finished hand's card takes over the table; what is underneath fades back and leaves the
+            // accessibility tree, so VoiceOver meets the card and nothing behind it.
             .opacity(hand.phase == .finished ? 0.12 : 1)
+            .accessibilityHidden(hand.phase == .finished)
             .overlay { if hand.phase == .finished { finishedCard } }
         }
         .accessibilityElement(children: .contain)
@@ -170,6 +174,7 @@ struct TableSurface: View {
                 Spacer().frame(width: Theme.Table.statusButtonHitSize, height: Theme.Table.statusButtonHitSize)
             }
             statusText.font(.title3.weight(.medium)).multilineTextAlignment(.center).frame(maxWidth: .infinity)
+                .accessibilityFocused(statusFocus)
             if model.isHumanTurn, hand.phase != .finished {
                 smallButton("lightbulb", label: "Hint") { model.showHint() }
             } else {
