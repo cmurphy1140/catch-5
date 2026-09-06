@@ -382,3 +382,11 @@ D36 is taken by the cast, login and menu work on the parallel branch.
 
 **Why:** Two of the ten would have cost real players their saved match on the first launch after updating. The rest are the difference between a feature that works in the fixture and one that works on a phone.
 
+## D51. Opponents wear a mood, drawn from public events only (PR #34, 2026-09-05)
+
+**Chosen:** `SeatMood.expression(for:in:)` gives each opponent's portrait one of six looks from things everyone at the table can see: thinking when it is their turn, pleased or rueful while the last trick still lies on the table (the takers and the losers), triumphant or dismayed when the match is decided, neutral otherwise. `PortraitView` draws the look with two eyes, two brows and a mouth whose bend animates between a frown and a grin; Reduce Motion drops the animation. The function takes the match and the seat and never reads a hand, so no expression can hint at a card.
+
+**Over:** Reactions to hidden information (a seat wincing at its own hand would be a side channel, which the research brief and the house rules both forbid); a Rive or Lottie runtime for animated avatars (six looks are within reach of the shapes the portraits are already made of).
+
+**Why:** The cast is the table's personality, and a face that reacts to the trick just taken makes turn order and outcomes legible without reading a label. Keeping the input to public events keeps it honest.
+

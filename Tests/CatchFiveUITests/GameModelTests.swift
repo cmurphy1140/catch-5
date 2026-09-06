@@ -571,7 +571,7 @@ import Testing
 
 @Test func handLayoutFansOnlyWhenEveryStripIsThumbSized() {
     // Six 64 pt cards on the iPhone 16 (393 − 32 padding − 16 inset): a fan with the full overlap.
-    #expect(HandLayout.arrange(count: 6, cardWidth: 64, available: 345) == .fan(strip: 48))
+    #expect(HandLayout.arrange(count: 6, cardWidth: 64, available: 345) == .fan(strip: Theme.Card.touchStrip(width: 64)))
     // Cards grown by Dynamic Type still fan while every strip stays at 44 or more.
     #expect(HandLayout.arrange(count: 6, cardWidth: 120, available: 345) == .fan(strip: 45))
     // Any wider and the fan would hide part of a thumb target: two rows of three instead.
@@ -580,10 +580,10 @@ import Testing
     // Rows keep the invariant too, and never overlap more than the fan would.
     if case let .rows(perRow, strip) = rows { #expect(strip >= Theme.Card.minimumTouchStrip && perRow == 3) }
     // Fewer cards fan at any size; a single card needs no strip at all.
-    #expect(HandLayout.arrange(count: 3, cardWidth: 100, available: 345) == .fan(strip: 84))
-    #expect(HandLayout.arrange(count: 1, cardWidth: 100, available: 200) == .fan(strip: 84))
+    #expect(HandLayout.arrange(count: 3, cardWidth: 100, available: 345) == .fan(strip: Theme.Card.touchStrip(width: 100)))
+    #expect(HandLayout.arrange(count: 1, cardWidth: 100, available: 200) == .fan(strip: Theme.Card.touchStrip(width: 100)))
     // Height follows the arrangement so the hand never clips.
-    #expect(HandLayout.height(of: .fan(strip: 48), cardWidth: 64) == 64 * Theme.Card.ratio + 16 + Theme.Card.fanDrop)
+    #expect(HandLayout.height(of: .fan(strip: 56), cardWidth: 64) == 64 * Theme.Card.ratio + 16 + Theme.Card.fanDrop)
     #expect(HandLayout.height(of: .rows(perRow: 3, strip: 84), cardWidth: 100) == 2 * 100 * Theme.Card.ratio + 8 + 16)
 }
 
@@ -858,4 +858,33 @@ import Testing
     model.send(.play(try #require(model.match.hand.legalMoves(seat: 0).first)))
     let cue = TableFeedback.cue(from: before, to: TableFeedback.Snapshot(model))
     #expect(cue == .play || cue == .trickWon || cue == .trickLost)
+}
+
+@Test func seatMoodsFollowPublicEventsOnly() throws {
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    var match = try Match(deck: deck, dealer: 3)
+    // Fresh hand: seat 0 is to bid, so seat 0 thinks and the others are neutral.
+    #expect(SeatMood.expression(for: 0, in: match) == .thinking)
+    #expect(SeatMood.expression(for: 1, in: match) == .neutral)
+    try match.bid(seat: 0, amount: 9)
+    #expect(SeatMood.expression(for: 1, in: match) == .thinking)
+    for seat in 1...3 { try match.bid(seat: seat, amount: nil) }
+    try match.chooseTrump(seat: 0, suit: .clubs)
+    // Play one trick out; the winning team is pleased and the other rueful until the next lead.
+    for _ in 0..<4 {
+        let seat = try #require(match.hand.nextSeat)
+        try match.play(seat: seat, card: try #require(match.hand.legalMoves(seat: seat).first))
+    }
+    let winner = try #require(match.hand.completedTricks.last?.winner)
+    for seat in 0..<4 where seat != match.hand.nextSeat {
+        #expect(SeatMood.expression(for: seat, in: match) == (seat % 2 == winner % 2 ? .pleased : .rueful))
+    }
+    #expect(SeatMood.expression(for: try #require(match.hand.nextSeat), in: match) == .thinking)
+    // Once the next trick starts, the reaction is over.
+    let leader = try #require(match.hand.nextSeat)
+    try match.play(seat: leader, card: try #require(match.hand.legalMoves(seat: leader).first))
+    for seat in 0..<4 where seat != match.hand.nextSeat { #expect(SeatMood.expression(for: seat, in: match) == .neutral) }
+    // The verdict on a finished match is the loudest expression of all.
+    #expect(SeatMood.expression(for: 1, in: match, matchWinner: 1) == .triumphant)
+    #expect(SeatMood.expression(for: 2, in: match, matchWinner: 1) == .dismayed)
 }

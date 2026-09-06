@@ -7,13 +7,13 @@ public enum Theme {
         public static let ratio = 1.5
         /// Real cards round 3–4 mm on a 63 mm width, about six percent.
         public static func radius(width: Double) -> Double { width * 0.06 }
-        public static let handWidth = 64.0
-        public static let handWidthWide = 68.0
+        public static let handWidth = 58.0
+        public static let handWidthWide = 62.0
         public static let pileWidth = 62.0
         public static let backWidth = 40.0
         public static let tutorialWidth = 48.0
         /// Spacing between fanned hand cards; negative so they overlap.
-        public static let handOverlap = -16.0
+        public static let handOverlap = -8.0
         /// Every overlapped card must still expose this much to a thumb.
         public static let minimumTouchStrip = 44.0
         public static let fanRotationDegrees = 8.0
