@@ -725,7 +725,9 @@ import Testing
     defer { try? FileManager.default.removeItem(at: url) }
     let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3))
     try finishMatch(model)
-    #expect(model.match.actionCount > 100)
+    // A finished match is at least two full hands of bids, trump and plays; the deck is shuffled, so the
+    // exact length varies and a short match must not fail the timing check it exists for.
+    #expect(model.match.actionCount >= 58)
     try MatchSave.write(model.match, to: url)
     let clock = ContinuousClock()
     let elapsed = try clock.measure { _ = try MatchSave.read(from: url) }
@@ -1066,3 +1068,4 @@ import Testing
     #expect(parts.detail == "Partner's queen of clubs holds the trick, so the most valuable card goes to it.")
     #expect(TableSurface.hintParts("Pass").recommendation == "Pass" && TableSurface.hintParts("Pass").detail.isEmpty)
 }
+
