@@ -90,8 +90,9 @@ struct MainMenuView: View {
         .sheet(isPresented: $showTutorial, onDismiss: { model.markRulesSeen() }) { TutorialView(model: tutorial) { showTutorial = false } }
         .sheet(isPresented: $showStatistics) { StatisticsView(stats: model.statistics, records: model.records) { showStatistics = false } }
         .fullScreenCoverOrSheet(isPresented: $showExplainer) { ExplainerView { showExplainer = false } }
-        .confirmationDialog("Start over? This replaces your saved game.", isPresented: $confirmNewMatch) {
+        .confirmationDialog("Start over? This replaces your saved game.", isPresented: $confirmNewMatch, titleVisibility: .visible) {
             Button("Start new match", role: .destructive) { model.newGame(); onPlay() }
+            Button("Cancel", role: .cancel) {}
         }
     }
 }

@@ -190,8 +190,9 @@ public struct TableView: View {
                 Button("Bid 9 and out", role: .destructive) { model.send(.nineAndOut) }
                 Button("Cancel", role: .cancel) {}
             } message: { Text("Take all nine points to win the match. Take fewer and you lose it, whatever the score.") }
-            .confirmationDialog("Start over? This replaces your saved game.", isPresented: $confirmNewGame) {
+            .confirmationDialog("Start over? This replaces your saved game.", isPresented: $confirmNewGame, titleVisibility: .visible) {
                 Button("Start new game", role: .destructive) { model.newGame() }
+                Button("Cancel", role: .cancel) {}
             }
     }
 

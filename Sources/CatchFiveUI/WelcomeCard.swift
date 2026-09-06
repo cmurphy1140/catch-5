@@ -40,8 +40,9 @@ struct WelcomeCard: View {
         .shadow(color: .black.opacity(0.5), radius: 24, y: 12)
         .foregroundStyle(.ivory)
         .padding(24)
-        .confirmationDialog("Start over? This replaces your saved game.", isPresented: $confirmNewMatch) {
+        .confirmationDialog("Start over? This replaces your saved game.", isPresented: $confirmNewMatch, titleVisibility: .visible) {
             Button("Start new match", role: .destructive) { model.newGame(); onPlay() }
+            Button("Cancel", role: .cancel) {}
         }
     }
 
