@@ -92,7 +92,8 @@ struct TableSurface: View {
         let pile = pile
         ZStack {
             // Reserve the pile's footprint so the layout does not jump between phases.
-            Color.clear.frame(width: TableLayout.pileReservation, height: Theme.Card.pileWidth * Theme.Card.ratio + 48)
+            Color.clear.frame(width: TableLayout.pileReservation,
+                              height: Theme.Card.pileWidth * Theme.Card.ratio + Theme.Table.partnerNudge + Theme.Table.ownNudge + 8)
             ForEach(pile.plays, id: \.card) { play in
                 Button { model.explain(play, inLastTrick: pile.isLast) } label: {
                     CardView(card: play.card, width: Theme.Card.pileWidth, style: .pile)
@@ -390,10 +391,10 @@ struct SeatView: View {
     /// when a badge applies. Laid out sideways so a row of seats costs the height of one portrait, not a
     /// stack of four lines; that is what leaves the auction its bottom row of controls (spec R21).
     var body: some View {
-        HStack(alignment: .center, spacing: 8) {
+        HStack(alignment: .center, spacing: 6) {
             PortraitView(portrait: portrait, size: Theme.Table.portraitSize, expression: SeatMood.expression(for: seat, in: model.match))
             VStack(alignment: .leading, spacing: 2) {
-                Text(model.seatNames[seat]).font(.headline).lineLimit(1).minimumScaleFactor(0.7)
+                Text(model.seatNames[seat]).font(.headline).lineLimit(1).minimumScaleFactor(0.6)
                 if hand.phase == .bidding {
                     Text(model.latestCall(for: seat) ?? "Waiting").font(.caption).opacity(0.75).lineLimit(1).minimumScaleFactor(0.8)
                 } else {
@@ -420,7 +421,7 @@ struct SeatView: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 6).padding(.vertical, 6)
+        .padding(.horizontal, 4).padding(.vertical, 6)
         .frame(width: width)
         // No fill: the name, backs and badges sit straight on the felt; only the seat to act gets a ring.
         .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(.gold, lineWidth: active ? 2 : 0))

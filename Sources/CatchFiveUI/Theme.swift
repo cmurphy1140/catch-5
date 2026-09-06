@@ -73,9 +73,9 @@ public enum Theme {
 
     public enum Table {
         /// How far a played card is nudged from the pile's centre toward its seat.
-        public static let sideNudge = 38.0
-        public static let partnerNudge = 28.0
-        public static let ownNudge = 30.0
+        public static let sideNudge = 48.0
+        public static let partnerNudge = 42.0
+        public static let ownNudge = 42.0
         /// The pile's reserved footprint around a card, so the table does not jump between tricks.
         public static let pileMarginX = 64.0
         public static let pileMarginY = 48.0
@@ -83,7 +83,7 @@ public enum Theme {
         public static let portraitSize = 36.0
         /// A played card lands with its own small turn and drift, like a card tossed in by hand.
         public static let tossRotationDegrees = 11.0
-        public static let tossDrift = 9.0
+        public static let tossDrift = 6.0
         /// Seat tiles share one width; their height follows the phase (call text in the auction, backs in play).
         public static let seatTileWidth = 116.0
         /// The round status-line buttons (last trick, hint): visible disc and hit area.
