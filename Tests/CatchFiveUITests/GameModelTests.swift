@@ -732,3 +732,39 @@ import Testing
     #expect(TableFeedback.cue(action: .play, trickWinner: 1, handEnded: true, matchWinner: 1) == .matchLost)
     #expect(TableFeedback.cue(action: nil, trickWinner: nil, handEnded: false, matchWinner: nil) == nil)
 }
+
+@MainActor @Test func restoringALongReplayIsFastEnoughToNeedNoLoadingState() throws {
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: url) }
+    let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3))
+    try finishMatch(model)
+    #expect(model.match.actionCount > 100)
+    try MatchSave.write(model.match, to: url)
+    let clock = ContinuousClock()
+    let elapsed = try clock.measure { _ = try MatchSave.read(from: url) }
+    // A whole match replays through the rules well inside the 300 ms the roadmap sets for showing a spinner.
+    #expect(elapsed < .milliseconds(300), "restore took \(elapsed)")
+}
+
+@MainActor @Test func corruptGameIsSetAsideAndTheFreshGameSaysSo() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    let game = directory.appendingPathComponent("game.json")
+    try Data("not a game".utf8).write(to: game)
+    let model = GameModel.loadDefault(in: directory)
+    #expect(model.match.actionCount == 0)
+    #expect(model.errorMessage?.contains("kept as game-corrupt.json") == true)
+    #expect(FileManager.default.fileExists(atPath: directory.appendingPathComponent("game-corrupt.json").path))
+    #expect(try String(contentsOf: directory.appendingPathComponent("game-corrupt.json"), encoding: .utf8) == "not a game")
+    #expect(!FileManager.default.fileExists(atPath: game.path))
+}
+
+@MainActor @Test func resumeContextDescribesTheSavedMatch() throws {
+    let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3))
+    #expect(model.resumeContext == nil)   // nothing has happened yet
+    model.send(.bid(nil))
+    #expect(model.resumeContext == "Hand 1 · Your team 0, their team 0 · bidding")
+    try finishMatch(model)
+    #expect(model.resumeContext == nil)   // a finished match is not something to resume
+}

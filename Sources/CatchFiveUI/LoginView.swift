@@ -1,7 +1,7 @@
 import CatchFive
 import SwiftUI
 
-/// The one-time name prompt. Nothing here talks to a network; "New match" writes Settings and opens the intro.
+/// Setting up your player, once. This is a local profile, not an account: nothing here talks to a network; "New match" writes Settings and opens the intro.
 struct LoginView: View {
     @ObservedObject var model: GameModel
     let onDone: () -> Void
@@ -17,7 +17,7 @@ struct LoginView: View {
             VStack(spacing: 28) {
                 VStack(spacing: 4) {
                     Text("CATCH 5").font(.system(.largeTitle, design: .serif).weight(.bold))
-                    Text("PULL UP A CHAIR").font(.system(.caption2, design: .monospaced).weight(.medium)).tracking(1).opacity(0.7)
+                    Text("SET UP YOUR PLAYER").font(.system(.caption2, design: .monospaced).weight(.medium)).tracking(1).opacity(0.7)
                 }
                 .padding(.top, 40)
 
