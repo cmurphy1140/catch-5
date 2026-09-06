@@ -197,12 +197,11 @@ struct TableSurface: View {
     }
 
     /// A tertiary control: a 28pt circle inside a 44pt hit area.
+    /// A bare glyph with a soft shadow for contrast, no plate (spec R19); the hit area stays 48 pt.
     private func smallButton(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Image(systemName: symbol).font(.body)
-                .frame(width: Theme.Table.statusButtonSize, height: Theme.Table.statusButtonSize)
-                .background(.ivory.opacity(0.1), in: Circle())
-                .overlay(Circle().stroke(.ivory.opacity(0.35)))
+            Image(systemName: symbol).font(.title3.weight(.medium))
+                .shadow(color: .black.opacity(0.45), radius: 1.5, y: 1)
                 .frame(width: Theme.Table.statusButtonHitSize, height: Theme.Table.statusButtonHitSize)
                 .contentShape(Rectangle())
         }

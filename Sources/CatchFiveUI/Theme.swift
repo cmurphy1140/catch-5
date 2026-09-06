@@ -86,8 +86,7 @@ public enum Theme {
         public static let tossDrift = 6.0
         /// Seat tiles share one width; their height follows the phase (call text in the auction, backs in play).
         public static let seatTileWidth = 116.0
-        /// The round status-line buttons (last trick, hint): visible disc and hit area.
-        public static let statusButtonSize = 38.0
+        /// The status-line glyph buttons (last trick, hint): hit area; the glyph itself has no plate.
         public static let statusButtonHitSize = 48.0
         /// The deck in the table's top-right corner.
         public static let deckWidth = 38.0
