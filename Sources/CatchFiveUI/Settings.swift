@@ -27,6 +27,14 @@ public struct Settings: Codable, Equatable, Sendable {
 
     public var hasSignedIn: Bool { playerName != nil }
 
+    /// The one place the player's name is written: trimmed, and mirrored into seat 0. Blank input is ignored.
+    public mutating func setPlayerName(_ name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        playerName = trimmed
+        seatNames[0] = trimmed
+    }
+
     public init(playSpeed: PlaySpeed = .normal, seatNames: [String] = Settings.defaultSeatNames,
                 haptics: Bool = true, difficulty: Difficulty = .standard, hasSeenRules: Bool = false,
                 completedLessons: Set<Int> = [], playerName: String? = nil,
@@ -44,15 +52,20 @@ public struct Settings: Codable, Equatable, Sendable {
     // Missing keys fall back to defaults so an older settings file keeps loading.
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        playSpeed = try container.decodeIfPresent(PlaySpeed.self, forKey: .playSpeed) ?? .normal
-        let names = try container.decodeIfPresent([String].self, forKey: .seatNames) ?? Settings.defaultSeatNames
-        seatNames = names.count == 4 ? Settings.migrated(names) : Settings.defaultSeatNames
-        haptics = try container.decodeIfPresent(Bool.self, forKey: .haptics) ?? true
-        difficulty = try container.decodeIfPresent(Difficulty.self, forKey: .difficulty) ?? .standard
-        hasSeenRules = try container.decodeIfPresent(Bool.self, forKey: .hasSeenRules) ?? false
-        completedLessons = try container.decodeIfPresent(Set<Int>.self, forKey: .completedLessons) ?? []
-        playerName = try container.decodeIfPresent(String.self, forKey: .playerName)
-        playerPortrait = try container.decodeIfPresent(Portrait.self, forKey: .playerPortrait) ?? Cast.defaultPlayerPortrait
+        // A value this build does not recognise (a newer build's enum case) falls back to its default rather
+        // than throwing the whole file away, which would sign the player out.
+        playSpeed = (try? container.decodeIfPresent(PlaySpeed.self, forKey: .playSpeed)) ?? nil ?? .normal
+        haptics = (try? container.decodeIfPresent(Bool.self, forKey: .haptics)) ?? nil ?? true
+        difficulty = (try? container.decodeIfPresent(Difficulty.self, forKey: .difficulty)) ?? nil ?? .standard
+        hasSeenRules = (try? container.decodeIfPresent(Bool.self, forKey: .hasSeenRules)) ?? nil ?? false
+        completedLessons = (try? container.decodeIfPresent(Set<Int>.self, forKey: .completedLessons)) ?? nil ?? []
+        playerName = (try? container.decodeIfPresent(String.self, forKey: .playerName)) ?? nil
+        playerPortrait = (try? container.decodeIfPresent(Portrait.self, forKey: .playerPortrait)) ?? nil ?? Cast.defaultPlayerPortrait
+        let names = (try? container.decodeIfPresent([String].self, forKey: .seatNames)) ?? nil ?? Settings.defaultSeatNames
+        // Only a file from before the cast (no player name yet) still carries the direction defaults by
+        // accident; after sign-in a typed "West" is a choice and stays.
+        let migrated = playerName == nil ? Settings.migrated(names) : names
+        seatNames = migrated.count == 4 ? migrated : Settings.defaultSeatNames
     }
 
     /// Seats 1 to 3 that still carry the old direction names take the cast's names; custom names are kept.

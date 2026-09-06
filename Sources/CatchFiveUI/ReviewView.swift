@@ -15,7 +15,7 @@ struct ReviewView: View {
             List {
                 let (agreed, total) = review.agreement(forSeat: 0)
                 Section {
-                    Text("You played the strategy's card \(agreed) of \(total) times. Rows marked with a branch show where the standard strategy would have played differently\(difficulty == .easy ? "; the computers are on Easy, so their rows compare them to Standard too" : "").")
+                    Text("You played the strategy's card \(agreed) of \(total) times. Rows marked with a branch show where the standard strategy would have played differently\(difficulty == .easy ? "; the computers are on Easy, so their rows compare them to Standard too" : ""). Standard's choice is a recommendation, not proof that another legal play was wrong.")
                         .font(.footnote)
                 }
                 ForEach(review.tricks, id: \.number) { trick in

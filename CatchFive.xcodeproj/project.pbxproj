@@ -25,10 +25,10 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		09661FAA1C3506ADA3F2A835 /* catch-5-app-2985e8 */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "catch-5-app-2985e8"; path = .; sourceTree = SOURCE_ROOT; };
 		1999DADBE795A305CC992342 /* Decisions.dc.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = Decisions.dc.html; sourceTree = "<group>"; };
 		2DC470ABDFC9C4590E184C91 /* Code-Map.dc.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "Code-Map.dc.html"; sourceTree = "<group>"; };
 		380F910757F3E46F93822B8F /* Index.dc.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = Index.dc.html; sourceTree = "<group>"; };
+		53E2688F74876BBCCCD1A00B /* cardgame-io */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "cardgame-io"; path = .; sourceTree = SOURCE_ROOT; };
 		695DE31686F3F460BFDF4E3F /* Build-and-Run.dc.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "Build-and-Run.dc.html"; sourceTree = "<group>"; };
 		98CFDCA65E6195B76B88774D /* Architecture.dc.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = Architecture.dc.html; sourceTree = "<group>"; };
 		9B3E579D68599CFF3F7B4383 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -79,7 +79,7 @@
 		9E1D7A103B7DCEF4FA33CF7B /* Packages */ = {
 			isa = PBXGroup;
 			children = (
-				09661FAA1C3506ADA3F2A835 /* catch-5-app-2985e8 */,
+				53E2688F74876BBCCCD1A00B /* cardgame-io */,
 			);
 			name = Packages;
 			sourceTree = "<group>";
@@ -337,6 +337,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UIUserInterfaceStyle = Dark;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -363,6 +364,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UIUserInterfaceStyle = Dark;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

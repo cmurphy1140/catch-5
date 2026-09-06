@@ -46,12 +46,12 @@ flowchart BT
     L5["Computer players (19 tests)<br/>ComputerPlayerTests<br/>single decisions, advice wording, 24 shuffled matches, 200-match bidding calibration"]
     L5b["Strategy benchmark (2 tests)<br/>StrategyBenchmark + EasyPlayer<br/>600 mirrored matches against the frozen PR #2 player"]
     L5c["Review and undo (6 tests)<br/>ReviewTests, UndoTests<br/>replayed views explain every play; rewinding the action log"]
-    L6["View model and tutorial (48 tests)<br/>GameModelTests, TutorialModelTests<br/>hints, explanations, settings and the cast migration, sign-in, the root screen, history, accessibility wording, the toast and notice, the scheduler's decisions, theme metrics, tutorial fixtures, the rules figures, chapters and trials, and the house numbers vs the engine"]
+    L6["View model and tutorial (74 tests)<br/>GameModelTests, TutorialModelTests<br/>hints, explanations, settings and the cast migration, sign-in, the root screen, history, accessibility wording, the toast and notice, the scheduler's decisions and the pause policy, save failure versus an accepted move, refusal wording, the dealer context, the hand outcome wording, the one-cue haptic priority, restore timing, the corrupt-save set-aside, the trump preview, the sign-in routing, tolerant settings and their set-aside, the feedback snapshot, the seat moods, the card toss, the suit to follow, the discard flight, the draw for dealer, theme metrics and the measured hand and seat layouts, tutorial fixtures vs the engine, the rules figures, chapters and trials, and the house numbers vs the engine"]
     L7["Manual: simulator<br/>screenshots of each screen and sheet"]
     L1 --> L2 --> L3 --> L4 --> L5 --> L5b --> L5c --> L6 --> L7
 ```
 
-Total: 116 automated tests, about 3.5 s (the strategy benchmark is most of that). Every layer above the first uses the real code beneath it; nothing is mocked. If `trickWinner` broke, the failure would show up in one small trick test *and* in the 208-hand simulation, and the small one tells you exactly what changed.
+Total: 142 automated tests, about 3.5 s (the strategy benchmark is most of that). Every layer above the first uses the real code beneath it; nothing is mocked. If `trickWinner` broke, the failure would show up in one small trick test *and* in the 208-hand simulation, and the small one tells you exactly what changed.
 
 The cast, login and menu are covered at the model layer: `Settings` migration and round trip, `matchInProgress`, `signIn` and `seatSummary`; the screens themselves are checked by the simulator screenshot pass.
 

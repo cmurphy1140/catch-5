@@ -10,6 +10,7 @@ public struct TableView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var cards
     @State private var confirmNewGame = false
+    @State private var confirmNineAndOut = false
     @State private var showSettings = false
     @State private var showTutorial = false
     @State private var showReview = false
@@ -21,17 +22,59 @@ public struct TableView: View {
     @State private var shakes: [Card: Int] = [:]
     @State private var shakeCount = 0
     @State private var toast: PlayerAction?
+    /// What the last revision changed, reduced to the one cue worth a haptic.
+    @State private var cue: (id: Int, cue: TableFeedback.Cue)?
+    @State private var seen: TableFeedback.Snapshot
+    @AccessibilityFocusState private var statusFocused: Bool
 
     private let onLeave: () -> Void
+    /// Something outside this view covers the table (the welcome card); computers wait while it is up.
+    private let covered: Bool
 
-    public init(model: GameModel, onLeave: @escaping () -> Void = {}) {
+    public init(model: GameModel, tutorial: TutorialModel? = nil, covered: Bool = false, onLeave: @escaping () -> Void = {}) {
         _model = StateObject(wrappedValue: model)
-        _tutorial = StateObject(wrappedValue: model.makeTutorial())
+        // Share the root's tutorial model when there is one, so lessons finished in the intro show as done here.
+        _tutorial = StateObject(wrappedValue: tutorial ?? model.makeTutorial())
+        _seen = State(initialValue: TableFeedback.Snapshot(model))
+        self.covered = covered
         self.onLeave = onLeave
     }
 
+    /// Every reason the scheduler must wait, gathered in one place. Any sheet, dialog, cover or the
+    /// reopened trick pauses play; closing one of several keeps it paused.
+    private var pause: TablePause {
+        TablePause(sceneActive: scenePhase == .active,
+                   welcomeShown: covered,
+                   sheetShown: showSettings || showTutorial || showReview || showScoreboard || showStatistics,
+                   dialogShown: confirmNewGame || confirmNineAndOut || model.errorMessage != nil || model.saveError != nil,
+                   inspectingTrick: reopenedTrick != nil,
+                   drawShown: drawShown)
+    }
+
+    /// The draw for dealer is showing: a fresh match, not yet covered, with its draw still on the table.
+    private var drawShown: Bool { model.dealerDraw != nil && model.match.actionCount == 0 && !covered }
+
+    /// The scheduler restarts whenever an action lands or the pause lifts, and cancels when a pause begins.
+    private struct SchedulerKey: Hashable {
+        let revision: Int
+        let paused: Bool
+    }
+
     public var body: some View {
-        withSheets.transformEnvironment(\.dynamicTypeSize) { $0 = $0.boosted(by: Theme.textBoostSteps) }
+        withSheets
+            .overlay {
+                if drawShown, let draw = model.dealerDraw {
+                    DealerDrawView(draw: draw, names: model.seatNames, portraits: portraits) {
+                        withAnimation(motion(Theme.Motion.overlay)) { model.dismissDealerDraw() }
+                    }
+                    .transition(.opacity)
+                }
+            }
+            .transformEnvironment(\.dynamicTypeSize) { $0 = $0.boosted(by: Theme.textBoostSteps) }
+    }
+
+    private var portraits: [Portrait] {
+        [model.settings.playerPortrait] + Cast.opponents.map(\.portrait)
     }
 
     /// Score bar, table and hand in one non-scrolling column.
@@ -55,7 +98,9 @@ public struct TableView: View {
                 }
             TableSurface(model: model, namespace: cards, collapsedTricks: collapsedTricks, reopenedTrick: reopenedTrick, toast: toast,
                          onReopenTrick: { withAnimation(motion(Theme.Motion.collapse)) { reopenedTrick = model.match.hand.completedTricks.count } },
-                         onReview: { showReview = true })
+                         onCloseTrick: { withAnimation(motion(Theme.Motion.collapse)) { reopenedTrick = nil } },
+                         onReview: { showReview = true }, onNineAndOut: { confirmNineAndOut = true },
+                         statusFocus: $statusFocused)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.horizontal, 16)
             // Cards stop growing at XXXL so the fan keeps six cards on screen; the cap must sit above the
@@ -69,7 +114,7 @@ public struct TableView: View {
         .frame(maxWidth: 640)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .foregroundStyle(.ivory)
-        .background(FeltView().ignoresSafeArea())
+        .background(FeltView().equatable().ignoresSafeArea())
         .preferredColorScheme(.dark)
     }
 
@@ -78,10 +123,18 @@ public struct TableView: View {
     private var withScheduling: some View {
         layout
             .animation(motion(Theme.Motion.flight), value: model.revision)
-            .task(id: model.revision) { await advance() }
+            .task(id: SchedulerKey(revision: model.revision, paused: pause.isPaused)) { await advance() }
             .onChange(of: model.match.handNumber) { _, _ in collapsedTricks = 0; reopenedTrick = nil }
-            .onChange(of: model.revision) { _, _ in withAnimation(motion(Theme.Motion.collapse)) { reopenedTrick = nil } }
+            .onChange(of: model.revision) { _, revision in
+                withAnimation(motion(Theme.Motion.collapse)) { reopenedTrick = nil }
+                noteChanges(revision)
+            }
             .onChange(of: model.lastHumanAction) { _, action in toast = action }
+            // Focus follows the game: a lifted cover or a new turn puts VoiceOver on the status line.
+            .onChange(of: covered) { _, now in if !now { statusFocused = true } }
+            .onChange(of: pause.sheetShown) { _, now in if !now { statusFocused = true } }
+            .onChange(of: pause.dialogShown) { _, now in if !now { statusFocused = true } }
+            .onChange(of: model.isHumanTurn) { _, now in if now { statusFocused = true } }
             .task(id: toast) {
                 guard toast != nil else { return }
                 try? await Task.sleep(for: .seconds(Theme.Motion.toastSeconds))
@@ -91,15 +144,24 @@ public struct TableView: View {
             .onChange(of: scenePhase) { _, phase in if phase != .active { model.persist() } }
     }
 
-    /// The haptic vocabulary from the plan, all gated by the settings toggle.
+    /// Two haptics only: the refusal buzz, and one outcome cue per accepted action (`TableFeedback`).
     private var withHaptics: some View {
         withScheduling
-            .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.6), trigger: model.lastHumanAction) { _, new in playHaptic(new) }
-            .sensoryFeedback(.selection, trigger: model.lastHumanAction) { _, new in callHaptic(new) }
             .sensoryFeedback(.impact(flexibility: .rigid, intensity: 0.4), trigger: shakeCount) { _, _ in model.settings.haptics }
-            .sensoryFeedback(trickFeedback, trigger: model.match.hand.completedTricks.count) { old, new in model.settings.haptics && new > old }
-            .sensoryFeedback(.success, trigger: model.match.history.count) { _, new in model.settings.haptics && new > 0 }
-            .sensoryFeedback(.impact(weight: .heavy), trigger: model.match.winner) { _, new in model.settings.haptics && new != nil }
+            .sensoryFeedback(cue?.cue.feedback ?? .selection, trigger: cue?.id ?? 0) { _, _ in model.settings.haptics && cue != nil }
+    }
+
+    /// After each accepted action, work out what it did and pick the one cue and announcement for it.
+    private func noteChanges(_ revision: Int) {
+        let now = TableFeedback.Snapshot(model)
+        if let picked = TableFeedback.cue(from: seen, to: now) { cue = (revision, picked) }
+        let handEnded = now.hands > seen.hands
+        if now.tricks > seen.tricks, !handEnded, let winner = now.lastTrickWinner {
+            AccessibilityNotification.Announcement("\(model.seatNames[winner]) took the trick").post()
+        } else if handEnded, let outcome = model.lastHandOutcome {
+            AccessibilityNotification.Announcement("\(outcome.headline). \(outcome.bidderLine)").post()
+        }
+        seen = now
     }
 
     private var withSheets: some View {
@@ -118,6 +180,16 @@ public struct TableView: View {
             .alert("Game notice", isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
                 Button("OK") { model.errorMessage = nil }
             } message: { Text(model.errorMessage ?? "") }
+            // The buttons clear the error themselves; dismissal must not, or a failed Retry would go quiet.
+            .alert("Could not save", isPresented: Binding(get: { model.saveError != nil }, set: { _ in })) {
+                Button("Retry") { model.retrySave() }
+                Button("Not now", role: .cancel) { model.saveError = nil }
+            } message: { Text(model.saveError ?? "") }
+            // The one bid that can end the match on its own: confirm it, then let the engine judge it at that moment.
+            .confirmationDialog("Bid 9 and out?", isPresented: $confirmNineAndOut, titleVisibility: .visible) {
+                Button("Bid 9 and out", role: .destructive) { model.send(.nineAndOut) }
+                Button("Cancel", role: .cancel) {}
+            } message: { Text("Take all nine points to win the match. Take fewer and you lose it, whatever the score.") }
             .confirmationDialog("Start over? This replaces your saved game.", isPresented: $confirmNewGame) {
                 Button("Start new game", role: .destructive) { model.newGame() }
             }
@@ -129,31 +201,19 @@ public struct TableView: View {
 
     private func motion(_ animation: Animation) -> Animation { reduceMotion ? Theme.Motion.reduced : animation }
 
-    private func playHaptic(_ action: PlayerAction?) -> Bool {
-        guard model.settings.haptics, let action else { return false }
-        if case .play = action { return true }
-        return false
-    }
 
-    private func callHaptic(_ action: PlayerAction?) -> Bool {
-        guard model.settings.haptics, let action else { return false }
-        if case .play = action { return false }
-        return true
-    }
 
     /// A finished trick is worth a medium tap when our side took it, a light one otherwise.
-    private var trickFeedback: SensoryFeedback {
-        (model.match.hand.completedTricks.last?.winner ?? 1) % 2 == 0
-            ? .impact(weight: .medium, intensity: 0.9) : .impact(weight: .light, intensity: 0.7)
-    }
 
     private func shake(_ card: Card) {
         shakes[card, default: 0] += 1
         shakeCount += 1
+        model.refuse(.play(card))
     }
 
     /// After every accepted action: hold a finished trick, collapse it, then let the next computer act.
     private func advance() async {
+        guard !pause.isPaused else { return }
         let hand = model.match.hand
         if collapsedTricks > hand.completedTricks.count { collapsedTricks = hand.completedTricks.count }
         let step = TableScheduler.plan(hand: hand, collapsedTricks: collapsedTricks)

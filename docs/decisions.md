@@ -318,6 +318,54 @@ D36 is taken by the cast, login and menu work on the parallel branch.
 
 **Why:** Standard game onboarding is a short, skippable intro with a clear door to the full lessons, and returning players expect to be at the table one launch away. A card over the table keeps the two things a returning player actually wants in reach without a page between them.
 
+## D40. Play pauses under any cover, and a failed save is not a refused move (PR #24, 2026-09-05)
+
+**Chosen:** `TablePause` gathers every reason the computers must wait: the scene is not active, the welcome card is up, any sheet is open, a confirmation or alert is showing, or the player has reopened the last trick. `TableView` keys its scheduler task on the revision and that one flag, so a cover cancels the task and lifting the last cover starts one fresh task that applies at most one computer action. Because the reopened trick now pauses play, the status line gains a Hide control beside Show. In `GameModel`, `perform` returns whether the engine accepted the action; the human's toast and haptic follow that answer, not the absence of an error message. Write failures for the game, settings and history land in `saveError`, shown as a "Could not save" alert with Retry, and `retrySave()` writes the state already in memory, never replaying a move.
+
+**Over:** Checking each overlay flag inside `advance()` (misses the cancellation, so a sleep started before the cover could still act after it); folding save failures into `errorMessage` (a successful bid then looked refused and lost its toast); retrying by re-sending the action.
+
+**Why:** The roadmap's first task. Task ids are how SwiftUI cancels work, so the pause belongs in the id. Stacked covers stay paused because the flag is computed from all of them at once. Separating acceptance from persistence keeps the replay log the only record of what happened; a save is a copy of it, and a retry copies again.
+
+## D41. The hand and the seat row are laid out from measurements, with a two-row fallback (PR #25, 2026-09-05)
+
+**Chosen:** `HandFanView` measures the width it is given and asks `HandLayout.arrange` how to use it. The fan keeps its overlap while every card's exposed strip is at least 44 pt; when scaled cards or a narrow width would push a strip under that, the hand becomes two flat rows, each still meeting the bound, and the hand's height follows. The seat row does the same through `TableLayout`: the pile reserves a nudged card plus air, and the side tiles take what is left down to an 84 pt floor, so a played card never sits on a seat tile.
+
+**Over:** Trusting the theme constants (the old metric test checked 60 and 64 pt cards against a 375 pt phone and nothing else, while the runtime fitting could shrink a strip below 44 with no fallback); hard-coding a 126 pt pile footprint that was narrower than two nudged cards.
+
+**Why:** Task 2 of the roadmap. A touch target the user cannot see is a mis-tap waiting to happen, and Apple's 44 pt minimum applies to every essential control. Deciding from a measurement makes the invariant true on every width and text size rather than on the ones somebody screenshotted, and a pure function is the only way to test that without a device matrix.
+
+## D42. Refusals say why, the dealer is told their rights, and 9 and out asks first (PR #26, 2026-09-05)
+
+**Chosen:** `GameModel.validationMessage(for:)` runs an action on a copy of the match and turns the engine's refusal into the player's words, with the two common cases spelled out: "Follow hearts; you still have hearts." and "Wait for Hazel." A refused card tap still shakes and buzzes, and now also records that sentence in `refusal`, which the message line shows until the next accepted action. Greyed auction pills carry the same sentence as their accessibility hint. When the human bids as dealer, a line above the grid says what the dealer may do: match the high bid, match 9 and out, or bid the forced 2. The 9-and-out pill opens a confirmation ("Take all nine points to win the match. Take fewer and you lose it, whatever the score."); confirming sends the bid through the engine at that moment, cancelling changes nothing, and the dialog counts as a cover for `TablePause`.
+
+**Over:** A second set of rules in the views to explain refusals (the engine is the referee, so the copy-and-try keeps one source of truth); a modal alert per refusal; confirming ordinary bids (their consequence does not justify a second tap).
+
+**Why:** Task 3 of the roadmap. A shake without a reason teaches nothing; the reason costs one dry run. The dealer's rights are the one part of the auction a newcomer cannot guess from the pills alone. Nine and out is the only bid that can end the match by itself, which is what earns it a confirmation.
+
+## D43. The hand-end card leads with the verdict and the arithmetic (PR #27, 2026-09-05)
+
+**Chosen:** `HandOutcome` turns the engine's `HandSummary` and the previous scores into the order a player wants: "Contract made" or "Contract set" (or "9 and out made" / "failed") in gold, then "Connor + Otto bid 4 · captured 6 · score 2 → 8" and the defenders' line, then the point-by-point rows, then notes only when a rule decided something: a Game tie going to the bidder, a Five or Jack that was never dealt, both teams reaching 25 on one hand. The review sheet says that Standard's choice is a recommendation, not proof that another legal play was wrong.
+
+**Over:** Leading with the five category rows and leaving the reader to work out whether the bid made and why the score moved; a permanent list of every rule on the card.
+
+**Why:** Task 4 of the roadmap. The first question after a hand is "did we make it and what did it cost", and the scores in the header only show the result of the arithmetic. Building the wording from numbers the engine already computed keeps the card honest and lets the edge cases be tested without playing a hand to reach them.
+
+## D44. Covers hide the table from VoiceOver, focus follows the game, motion and contrast settings are honoured, and one haptic speaks per action (PR #28, 2026-09-05)
+
+**Chosen:** The table is `accessibilityHidden` while the welcome card covers it (the card is marked modal) and while the finished-hand card is up, so VoiceOver meets the cover and nothing behind it. An `AccessibilityFocusState` on the status line receives focus when a cover lifts, a sheet closes or the human's turn comes, and `AccessibilityNotification.Announcement` reads out the trick winner and the hand outcome. Under Reduce Motion the card press no longer lifts or scales (it dims) and a refused tap no longer shakes (the reason on the message line carries it); deal, discard, flight and collection were already crossfades. Under Increase Contrast a dimmed card keeps 80% opacity and gains a dashed edge, and the welcome dim layer is darker. `TableFeedback` reduces each accepted action to one haptic, the most consequential outcome first: match won (success) or lost (error), hand ended, trick won or lost, play, call. The refusal buzz stays separate because it never coincides with an action.
+
+**Over:** Six stacked `sensoryFeedback` modifiers that could all fire on one tap; `.success` on every hand end, which made a lost hand feel like a win; lowering opacity as the only "not legal now" signal.
+
+**Why:** Task 5 of the roadmap. A modal cover that leaves the table in the accessibility tree lets VoiceOver users play under the card. Focus and announcements are what turn a visual table into a narrated one. The motion and contrast settings are promises the system makes on the user's behalf; the table has to keep them in its own effects, not just its transitions. Haptics are a language: one word per event, and different words for winning and losing.
+
+## D45. Restore is measured, not staged; a corrupt save is kept; the welcome card says where you were (PR #29, 2026-09-05)
+
+**Chosen:** A test replays a whole match from its save and asserts it takes under 300 ms, the roadmap's threshold for showing a spinner; it does, by a wide margin, so there is no bootstrap state and no progress indicator. A game file that cannot be decoded is moved to `game-corrupt.json` (as history already was) and the fresh game's notice says so, so nothing is overwritten and the player chooses to continue the fresh deal or start a new match. The welcome card gains one line of `resumeContext`: hand number, both scores and the phase. The launch screen is declared dark (`UIUserInterfaceStyle`) in both build paths, so the first frame is dark like the felt rather than a white flash. The sign-in screen is headed "Set up your player" to say it is a local profile, not an account.
+
+**Over:** A "Restoring your game…" state on principle (the measurement says it would never be seen); replacing an unreadable save silently; a launch storyboard or image asset for the launch colour (the hand-built simulator bundle compiles no asset catalog, and a dark interface style needs none).
+
+**Why:** Task 6 of the roadmap, which asked for measurement before machinery. Keeping the corrupt file costs nothing and leaves a path to recovery. The card's context line answers "where was I" before the player commits to Continue.
+
 ## D46. The rules sheet shows each rule before it states it (PR #30, 2026-09-05)
 
 **Chosen:** `RulesView` is six chapters on the felt, each an inlay panel with a gold numeral: a figure first, built from the table's own pieces (portraits, card backs, `CardView`, the cast's names), then the rule as written from `RulesText`, always visible under a thin gold rule. A chapter rail of chips under the title scrolls to a chapter (`scrollPosition`) and lights the chapter at the top. Interaction is spent only where it adds understanding: a Following suit / Trumped toggle on the example trick, tappable point tiles that explain how each point is won. `RulesFigures` holds every number a figure draws and a test checks them against the engine, including the two example tricks through `trickWinner`. Reduce Motion drops the springs.
@@ -326,6 +374,22 @@ D36 is taken by the cast, login and menu work on the parallel branch.
 
 **Why:** Connor asked for a much better layout with an interactive flow and its own colour scheme, distinct from the tutorial. The tutorial is wood, pills and exercises; the rules are felt, panels and figures, so the two read as different rooms. Building figures from the real components keeps them in the app's language, and checking their numbers against the engine keeps them true. A review of the first cut moved the house numbers into `HouseRules` so the ladder and the target quote the engine rather than repeat it, built the trick captions and VoiceOver labels from the same data as the figures, capped the card-sized parts at XXXL, and gave the rail chips 44 pt targets.
 
+## D47. Suit pills are named and say what they keep (PR #31, 2026-09-05)
+
+**Chosen:** While the human chooses trump, each suit pill carries the suit's name beneath its glyph and a preview from `GameModel.trumpPreview(for:)`: "keep 4 · draw 2", counted from the human's own hand only. The VoiceOver label carries the same words. Nothing about the stock or other hands is revealed; the engine still does the discarding.
+
+**Over:** Glyphs alone (a beginner does not always know ♣ from ♠ at a glance, and the choice is the one that shapes the whole hand); a manual discard phase.
+
+**Why:** The roadmap's trump section asked for labelled suits and an optional factual preview. The preview costs a count over six cards and turns the least explained decision in the auction into an informed one.
+
+## D48. The roadmap stack after review: nothing is thrown away without a choice (PR #32, 2026-09-05)
+
+**Chosen:** A code review of Tasks 1 to 6 found ten defects; all are fixed here. Sign-in no longer discards an older install's match in progress: `destinationAfterSignIn` keeps it behind the welcome card, and a signed-in player who never finished the intro is routed back to it (`initialScreen`). Settings decoding tolerates values this build does not recognise, migrates the old direction names only for files written before sign-in existed, and an unreadable settings file is set aside as `settings-corrupt.json` with a notice shown on whichever screen opens; the corrupt-game notice now says only what actually happened. One writer, `Settings.setPlayerName`, serves sign-in and the Settings sheet, whose name field is a draft so spaces and clearing work. `TableFeedback.Snapshot` is seeded from the restored match, so resuming fires no phantom hand-end cue or announcement. A refused tap's reason comes first on the message line and yields to a hint or explanation. The save alert's dismissal no longer clears the error, so a failed Retry stays visible. The hand keeps its natural fan until its width is measured. Dialog dismissal restores VoiceOver focus. The root's tutorial model is shared with the table, and the felt is `Equatable` so the table's updates never redraw its stipple.
+
+**Over:** Merging the stack and fixing forward; leaving the review's cleanup items (duplicate gold-button and portrait-picker code, the docs export swept into main) for later, which they are.
+
+**Why:** Two of the ten would have cost real players their saved match on the first launch after updating. The rest are the difference between a feature that works in the fixture and one that works on a phone.
+
 ## D50. Rules you can try, judged by the engine (PR #30, 2026-09-05)
 
 **Chosen:** Three chapters of the rules sheet end with a "Try it" panel: follow suit (hearts led, spades trump, six cards in your hand), the dealer's right to match (you are dealer facing a bid of 3), and 9 and out below zero (a failed 9 last hand left you at −9). Each `RuleTrial` is a real `Match` built through the engine from a crafted deck, so the position is exactly what the game would deal, and `attempt(_:)` hands whatever the reader tries to the engine on a copy: a refusal comes back in the words the table uses, an acceptance is played out with the standard strategy and described. Reset restores the position. A test drives all three through the engine.
@@ -333,4 +397,45 @@ D36 is taken by the cast, login and menu work on the parallel branch.
 **Over:** A scripted quiz with authored right answers (that is the tutorial's job); a second rules implementation inside the sheet; a "Try it" that only animates.
 
 **Why:** From the research brief's "rulebook you can demonstrate": a rule is learned by being refused once, safely. Building the positions with the engine and judging with the engine means the sheet can never teach a move the game rejects, which is the brief's one hard requirement.
+
+## D51. Opponents wear a mood, drawn from public events only (PR #34, 2026-09-05)
+
+**Chosen:** `SeatMood.expression(for:in:)` gives each opponent's portrait one of six looks from things everyone at the table can see: thinking when it is their turn, pleased or rueful while the last trick still lies on the table (the takers and the losers), triumphant or dismayed when the match is decided, neutral otherwise. `PortraitView` draws the look with two eyes, two brows and a mouth whose bend animates between a frown and a grin; Reduce Motion drops the animation. The function takes the match and the seat and never reads a hand, so no expression can hint at a card.
+
+**Over:** Reactions to hidden information (a seat wincing at its own hand would be a side channel, which the research brief and the house rules both forbid); a Rive or Lottie runtime for animated avatars (six looks are within reach of the shapes the portraits are already made of).
+
+**Why:** The cast is the table's personality, and a face that reacts to the trick just taken makes turn order and outcomes legible without reading a label. Keeping the input to public events keeps it honest.
+
+## D52. Played cards land as if tossed (PR #35, 2026-09-05)
+
+**Chosen:** Each card on the pile keeps its seat's nudge and adds a turn of up to eleven degrees and a drift of up to nine points of its own, from `CardToss.pose(for:hand:trick:)`. The pose is a pure function of the card, the hand number and the trick number, seeded through the same generator as the wood grain, so a re-render never moves a card, the same trick looks the same after a relaunch, and the next trick and the next hand come out differently. The flight in and the collapse toward the winner are unchanged; the card simply arrives at its own angle.
+
+**Over:** Random poses drawn at render time (they would jitter on every update and differ after a restore); one fixed layout (Connor: the pile should look like a player threw the cards in, not always the same).
+
+**Why:** A hand-thrown pile reads as a table with people at it. Determinism is what keeps that from becoming noise.
+
+## D53. Unavailable cards sit in shadow, and the status line names the suit to follow (PR #36, 2026-09-05)
+
+**Chosen:** A card you cannot play right now stays solid ivory with a dark veil over its face and most of its colour drained, like a card in shadow; nothing shows through it. Under Increase Contrast the veil lightens and the dashed edge from D44 carries the state. While you must follow suit, the status line reads "Your turn · follow diamonds" (`GameModel.suitToFollow`), so the shaded cards come with their reason.
+
+**Over:** Lowering the card's opacity (Connor: the see-through cards over the felt looked wrong, and they did, a ghost of a card rather than a card); saying only "Your turn" and leaving the player to work out why four cards are shaded.
+
+**Why:** A card is an opaque object; showing felt through it breaks the table. Shade and desaturation say "not now" while keeping every index readable, and the status line turns the shading from a puzzle into a rule.
+
+## D54. Discards go to a pile under the deck (PR #37, 2026-09-05)
+
+**Chosen:** When trump is named, the cards leaving your hand no longer rise and fade; each flies to the top-right corner and shrinks to a card back, landing on a discard pile drawn beneath the deck (`DiscardPileView`: up to three fanned backs and the count of every seat's discards). The flight reuses the deal-in geometry with a lower landing point (`discardTarget`, `Theme.Table.discardDrop`). Reduce Motion crossfades, as before.
+
+**Over:** Cards that vanish upward (Connor asked to see them go somewhere); animating the computers' discards from their seats (their cards were never visible, so there is nothing to carry).
+
+**Why:** A discard pile gives the refill a source and a sink at the same corner: cards leave to the pile, replacements come from the deck above it. The count also answers a question the rules raise, since undealt and discarded cards are out of play, scoring cards included.
+
+## D55. The first dealer is drawn for (PR #38, 2026-09-05)
+
+**Chosen:** A new match, and a fresh install's first match, begin with a draw: each seat takes one card from a shuffled deck, the highest deals, and equal ranks go by suit with clubs lowest and spades highest, so one draw always settles it. The draw is shown over the table (`DealerDrawView`) with the dealer's card ringed and a sentence, puts itself away after four seconds or at the first action, and pauses play while it shows. The match itself starts from a fresh shuffle with that dealer; the draw is not in the replay log, so a restored game shows no draw. The house rules gain the sentence, in `docs/catch-five-rules.md` and `RulesText` together. After the first hand the deal passes to the left, as before.
+
+**Over:** Dealer 3 every time (Connor asked for a draw); redrawing ties (a suit order makes the draw a single step and matches how the cards rank elsewhere in the game); recording the draw as an action (it decides the dealer and nothing else, and the engine already takes the dealer as an input).
+
+**Why:** Drawing for the deal is how a table starts, and it puts the cast's faces to work before the first bid. The draw stays a presentation of a decision the engine receives, not a rule the engine has to learn.
+
 
