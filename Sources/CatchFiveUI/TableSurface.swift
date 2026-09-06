@@ -181,22 +181,38 @@ struct TableSurface: View {
 
     private var statusLine: some View {
         HStack(spacing: 8) {
-            // Left: reopen the last trick when the pile is clear. Right: the hint on your turn.
-            if pile.plays.isEmpty, hand.completedTricks.last != nil, hand.phase == .playing, reopenedTrick == nil {
-                smallButton("rectangle.stack", label: "Show the last trick", action: onReopenTrick)
-            } else if reopenedTrick != nil {
-                // Play waits while the trick is open, so there must be a way to put it down again.
-                smallButton("xmark", label: "Hide the last trick", action: onCloseTrick)
-            } else {
+            if reopenedTrick != nil {
+                // Reviewing the last trick is its own state (spec R24): say so, and name the way back.
+                // Play waits while the trick is open; no hint is offered, since nothing is being decided.
+                Button(action: onCloseTrick) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left").font(.subheadline.weight(.bold))
+                        Text("Back to play").font(.subheadline.weight(.semibold))
+                    }
+                    .frame(minHeight: Theme.Table.statusButtonHitSize)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Back to play")
+                Text("Reviewing last trick").font(.title3.weight(.medium)).lineLimit(1).minimumScaleFactor(0.7)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityFocused(statusFocus)
                 Spacer().frame(width: Theme.Table.statusButtonHitSize, height: Theme.Table.statusButtonHitSize)
-            }
-            statusText.font(.title3.weight(.medium)).multilineTextAlignment(.center).frame(maxWidth: .infinity)
-                .lineLimit(1).minimumScaleFactor(0.7)
-                .accessibilityFocused(statusFocus)
-            if model.isHumanTurn, hand.phase != .finished {
-                smallButton("lightbulb", label: "Hint") { model.showHint() }
             } else {
-                Spacer().frame(width: Theme.Table.statusButtonHitSize, height: Theme.Table.statusButtonHitSize)
+                // Left: reopen the last trick when the pile is clear. Right: the hint on your turn.
+                if pile.plays.isEmpty, hand.completedTricks.last != nil, hand.phase == .playing {
+                    smallButton("rectangle.stack", label: "Show the last trick", action: onReopenTrick)
+                } else {
+                    Spacer().frame(width: Theme.Table.statusButtonHitSize, height: Theme.Table.statusButtonHitSize)
+                }
+                statusText.font(.title3.weight(.medium)).multilineTextAlignment(.center).frame(maxWidth: .infinity)
+                    .lineLimit(1).minimumScaleFactor(0.7)
+                    .accessibilityFocused(statusFocus)
+                if model.isHumanTurn, hand.phase != .finished {
+                    smallButton("lightbulb", label: "Hint") { model.showHint() }
+                } else {
+                    Spacer().frame(width: Theme.Table.statusButtonHitSize, height: Theme.Table.statusButtonHitSize)
+                }
             }
         }
     }
@@ -267,7 +283,7 @@ struct TableSurface: View {
             } else if hand.phase == .bidding, !model.isHumanTurn, let call = model.latestCall(for: 0) {
                 Text("You: \(call)").font(.footnote).opacity(0.85)
             } else if !inAuction {
-                Text(pile.plays.isEmpty ? " " : "Tap a card to see why it was played")
+                Text(pile.plays.isEmpty ? " " : (reopenedTrick != nil ? "Tap a card to see why it was played" : "Tap a card on the table to see why it was played"))
                     .font(.footnote).foregroundStyle(.ivory.opacity(0.5))
                     .accessibilityHidden(true)
             }
