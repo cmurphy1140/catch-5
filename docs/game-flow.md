@@ -110,7 +110,7 @@ flowchart TD
     D --> R
 ```
 
-Because `stepComputer()` increments `revision`, the next task starts automatically. The human's tap also increments it, which cancels any pending computer sleep, so nothing acts out of turn. The task's id also carries a pause flag from `TablePause`: while the welcome card, any sheet, a dialog, the reopened last trick or an inactive scene covers the table, the flag flips, the task is cancelled, and nothing acts until every cover is gone, at which point one fresh task runs and applies at most one computer action. The decisions in the middle (hold or not, lead or follow, wait for the deal) come from `TableScheduler.plan`, a pure function with its own test.
+Because `stepComputer()` increments `revision`, the next task starts automatically. The human's tap also increments it, which cancels any pending computer sleep, so nothing acts out of turn. The task's id also carries a pause flag from `TablePause`: while the pause card, any sheet, a dialog, the reopened last trick or an inactive scene covers the table, the flag flips, the task is cancelled, and nothing acts until every cover is gone, at which point one fresh task runs and applies at most one computer action. The decisions in the middle (hold or not, lead or follow, wait for the deal) come from `TableScheduler.plan`, a pure function with its own test.
 
 ## How a computer chooses a card
 

@@ -447,3 +447,21 @@ D36 is taken by the cast, login and menu work on the parallel branch.
 **Why:** Drawing for the deal is how a table starts, and it puts the cast's faces to work before the first bid. The draw stays a presentation of a decision the engine receives, not a rule the engine has to learn.
 
 
+
+## D56. Three elements up top, a pause card, the main menu on launch, one setting for guidance (PR #40, 2026-09-06)
+
+**Chosen:** The header is back to the spec's three elements (R1): the score chip, the contract chip once bidding resolves, and the menu. The Home control leaves it; Pause game is the menu's first item and opens `WelcomeCard` as a pause card with exactly Continue game, New match and Main menu (R32). Its greeting and saved-match summary move to the main menu, where a returning player now lands on every launch (`RootView.initialScreen` returns `.menu`), never a popup over the table; Main menu on the card keeps the match for Continue game. Faces grow from 60 to 68 pt (R2), with the halo gap, tile padding and status-glyph hit size trimmed so every bidding row still fits. `Settings.beginnerMode`, on by default and for settings files from before it existed, is one switch (on the main menu and in Settings) for hints and guided play: off hides the hint bulb, tap-to-explain on the pile with its prompt line, and the keep captions under the trump pills (R14 first cut, R30); rule refusals, the undo toast and the record of play stay in both modes. The three Start over dialogs show their title and carry an explicit Cancel.
+
+**Over:** Keeping Home as a fourth header element (the spec caps the top at three); a Settings action on the pause card (the main menu's hamburger owns Settings, Statistics and the explainer, so the card stays at three actions); the larger single-row seating experiment (abandoned: a modest 68 pt keeps partner-across seating); a switch per coaching surface (one switch is what a beginner can find).
+
+**Why:** The table is the interface, the menu is where the destinations live, and guidance is a mode rather than a scattering of toggles.
+
+**Verified 2026-09-06** on the "Catch 5 Wood" simulator (iPhone 16 Pro, iOS 26.5, simctl content size medium) against `783fa80`, the branch tip that PR #40 squashed: the three dropdown destinations open and return to the menu; the beginner toggle persists both ways to `settings.json` with difficulty and the saved match untouched; bidding, trump and play fit in both modes with every pill hittable above the hand; an illegal card is refused with "Follow clubs; you still have clubs." in both modes and stays in the hand; pause Continue, Main menu → Continue game, New match cancel and confirm, relaunch to the main menu and first-run onboarding all behave. One platform note: on iOS 26 the confirmation dialogs present as popovers anchored to their button and drop the Cancel button; tapping outside cancels and the match is preserved.
+
+## D57. Start over asks with an alert, not a confirmation dialog (2026-09-06)
+
+**Chosen:** The three Start over prompts (main menu, pause card, table menu) are `alert`s: the title "Start over?", the message "This replaces your saved game.", a destructive Start new match and a Cancel.
+
+**Over:** `confirmationDialog` with `titleVisibility: .visible` and an explicit Cancel (PR #40). Verified on the iOS 26.5 simulator: the dialog presents as a popover anchored to its button and the system drops the Cancel button, leaving a tap outside as the only way out; on iOS 18 it is a bottom sheet with Cancel. An alert shows both buttons on every system.
+
+**Why:** Throwing away a saved match deserves a named way to say no, wherever the app runs (spec R32: Cancel leaves the match untouched).
