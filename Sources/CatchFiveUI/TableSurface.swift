@@ -22,6 +22,8 @@ struct TableSurface: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// The hint's full reason, opened from its Why? control (spec R22).
     @State private var showHintDetail = false
+    /// The column's own height, measured so the table can tell whether it fits the surface (spec R25).
+    @State private var contentHeight = 0.0
 
     private var hand: Hand { model.match.hand }
 
@@ -39,15 +41,17 @@ struct TableSurface: View {
     var body: some View {
         GeometryReader { geometry in
             let reach = CGSize(width: geometry.size.width / 2 + 40, height: geometry.size.height / 2 + 40)
-            // Scrolls only when the content cannot fit, which happens at accessibility text sizes.
+            // Space goes by priority (spec R25): the seats and the pile hold the top of the table, the
+            // status line with its controls and commentary sits down by the hand, and whatever the phase
+            // leaves over opens up between them. The column is stretched to the surface whenever its
+            // content fits; when it cannot, at accessibility text sizes, it keeps its own height and scrolls.
+            let fits = contentHeight <= geometry.size.height + 0.5
             ScrollView(.vertical, showsIndicators: false) {
-                // Three groups spread over the full height: the contract under the header, the seats and
-                // pile in the middle, and the status line with its controls down by the hand.
                 VStack(spacing: 6) {
-                    Spacer(minLength: 4)
                     SeatView(model: model, seat: 2).accessibilitySortPriority(20)
                     // The side tiles give way before the pile can touch them (`TableLayout`); in the auction
-                    // there is no pile, so they keep their full width.
+                    // there is no pile, so they keep their full width. Faces sit level with the pile's centre,
+                    // each beside the card its seat played.
                     let sideWidth = inAuction ? Theme.Table.seatTileWidth : TableLayout.sideSeatWidth(available: geometry.size.width)
                     HStack(alignment: .center) {
                         SeatView(model: model, seat: 1, width: sideWidth).accessibilitySortPriority(30)
@@ -62,8 +66,10 @@ struct TableSurface: View {
                     if model.isHumanTurn, hand.phase == .choosingTrump { trumpChoice }
                     commentary
                 }
+                .padding(.top, Theme.Table.seatInset)
+                .onGeometryChange(for: Double.self) { $0.size.height } action: { contentHeight = $0 }
                 .frame(width: geometry.size.width)
-                .frame(minHeight: geometry.size.height)
+                .frame(height: fits ? geometry.size.height : nil)
             }
             .scrollBounceBehavior(.basedOnSize)
             .frame(width: geometry.size.width, height: geometry.size.height)
