@@ -7,38 +7,86 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		12908FAF1D2D4258F5C94C8A /* Architecture.dc.html in Resources */ = {isa = PBXBuildFile; fileRef = 98CFDCA65E6195B76B88774D /* Architecture.dc.html */; };
+		058EFB52D605FE1EC4EE422D /* learning-path.md in Resources */ = {isa = PBXBuildFile; fileRef = CE017B28290DFF90141AEE7C /* learning-path.md */; };
+		08E4B3F49823005966ABC5B8 /* testing-1.png in Resources */ = {isa = PBXBuildFile; fileRef = 37312E6C45BE6D267B75CAFF /* testing-1.png */; };
+		09001D251B2E193F8A00F3F4 /* architecture-2.png in Resources */ = {isa = PBXBuildFile; fileRef = 1CA5818F81F20BB29F19B85C /* architecture-2.png */; };
+		096D05F189011B3F109E36C8 /* game-flow-4.png in Resources */ = {isa = PBXBuildFile; fileRef = 6EF55DEC135E78F05FE647D6 /* game-flow-4.png */; };
+		0A69930DDD9D67F98D7F4282 /* redesign-plan.md in Resources */ = {isa = PBXBuildFile; fileRef = 43CF64FEEB821D2765865A02 /* redesign-plan.md */; };
+		0DDA3C3AB38440CD89DA3DDD /* game-flow-5.png in Resources */ = {isa = PBXBuildFile; fileRef = 2DBED0111D7CD42C9A7491C1 /* game-flow-5.png */; };
+		0E8D16E311E1DBD759065C1B /* types-and-functions.md in Resources */ = {isa = PBXBuildFile; fileRef = 9DF1C64F50EDE5F7BC6E3D53 /* types-and-functions.md */; };
+		127617973CDB24ECC6815AD5 /* architecture-1.png in Resources */ = {isa = PBXBuildFile; fileRef = 6C830D3A0DDD255152F3A4F3 /* architecture-1.png */; };
+		156200F707681847766BE766 /* game-flow-7.png in Resources */ = {isa = PBXBuildFile; fileRef = 101BAE1FF19AED90F08AA5B6 /* game-flow-7.png */; };
 		196ACFD1BDF12D1C68EB2805 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 9B3E579D68599CFF3F7B4383 /* PrivacyInfo.xcprivacy */; };
-		24153E3D2B95829748E586EE /* Code-Map.dc.html in Resources */ = {isa = PBXBuildFile; fileRef = 2DC470ABDFC9C4590E184C91 /* Code-Map.dc.html */; };
-		28A34A643669FC840F51FF58 /* Types-and-Functions.dc.html in Resources */ = {isa = PBXBuildFile; fileRef = E31A3484B0F7EB7903C9420A /* Types-and-Functions.dc.html */; };
+		1EF0E4CA059307576E301D3F /* testing.md in Resources */ = {isa = PBXBuildFile; fileRef = CC4223EE39FE440829FD4307 /* testing.md */; };
+		262C231A715AECB49C99FC42 /* build-and-run-1.png in Resources */ = {isa = PBXBuildFile; fileRef = 3524C3BCC79FE940A632D706 /* build-and-run-1.png */; };
 		29F1DCF74EC44C2DE2084AF2 /* Explainer in Resources */ = {isa = PBXBuildFile; fileRef = EFB3FB1A3FFAB76602EA056B /* Explainer */; };
 		2B0BD89E9D1950AD6CE9D931 /* CatchFiveUI in Frameworks */ = {isa = PBXBuildFile; productRef = 8C3AEDE87BDF11591300F118 /* CatchFiveUI */; };
-		481360737135910F7ADF272D /* Build-and-Run.dc.html in Resources */ = {isa = PBXBuildFile; fileRef = 695DE31686F3F460BFDF4E3F /* Build-and-Run.dc.html */; };
-		52E080244D523C1E3A11E772 /* Game-Flow.dc.html in Resources */ = {isa = PBXBuildFile; fileRef = BB7FD2ED15316879E54E582A /* Game-Flow.dc.html */; };
-		5942C6719FA51DCA8FB6E4A1 /* Decisions.dc.html in Resources */ = {isa = PBXBuildFile; fileRef = 1999DADBE795A305CC992342 /* Decisions.dc.html */; };
-		6007E672DB871AE60EFCF69B /* Index.dc.html in Resources */ = {isa = PBXBuildFile; fileRef = 380F910757F3E46F93822B8F /* Index.dc.html */; };
+		2E84F438AF23DBFD50AC25A2 /* build-and-run.md in Resources */ = {isa = PBXBuildFile; fileRef = E06D5D9E7D0B696A5A64D1EB /* build-and-run.md */; };
+		3076FE48C14E328D1C92E4D5 /* roadmap.md in Resources */ = {isa = PBXBuildFile; fileRef = 01A71B2BC68FFB7B227FA46D /* roadmap.md */; };
+		322E3CFBB4F9E0551926CE4A /* build-and-run-2.png in Resources */ = {isa = PBXBuildFile; fileRef = 6025338F5A1AA65B9A5A06B9 /* build-and-run-2.png */; };
+		398B4D647088290866022B0E /* architecture-4.png in Resources */ = {isa = PBXBuildFile; fileRef = 07FB6DDCEC3AD87D9EFC85A3 /* architecture-4.png */; };
+		3EF5B51E44005D878B83C30A /* architecture-3.png in Resources */ = {isa = PBXBuildFile; fileRef = CE4A31F313EA6FEA5A21D10D /* architecture-3.png */; };
+		40D427428F84B2B7ED4DF3BA /* build-and-run-3.png in Resources */ = {isa = PBXBuildFile; fileRef = D4EF2AF08E6FFCB876D2DD40 /* build-and-run-3.png */; };
+		486088B0194E21E2FAE4EC81 /* build-and-run-4.png in Resources */ = {isa = PBXBuildFile; fileRef = BD2C65195ECFB2EC54AD5E3B /* build-and-run-4.png */; };
+		494DA83D55A7F00A3B0B78DF /* game-flow.md in Resources */ = {isa = PBXBuildFile; fileRef = 769AF87C7B38A7AEB3C3805E /* game-flow.md */; };
+		6313E5CF0466FAE9C2CD2E12 /* device-install-1.png in Resources */ = {isa = PBXBuildFile; fileRef = EB8A40A7CF435F21C3F2F0D6 /* device-install-1.png */; };
 		65AD9165C27E75A83C624D4B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C30CE2B9240F2C4094DBAFAB /* Assets.xcassets */; };
+		6BF2C3FC7944B51D124D50CB /* game-flow-6.png in Resources */ = {isa = PBXBuildFile; fileRef = A4F75B269AFA6D7C3F6F2454 /* game-flow-6.png */; };
+		7091C4B034D6872978FE6B25 /* game-flow-8.png in Resources */ = {isa = PBXBuildFile; fileRef = 95A815064373F37C58D94242 /* game-flow-8.png */; };
+		755F47553AA9871E867C3F36 /* types-and-functions-1.png in Resources */ = {isa = PBXBuildFile; fileRef = 0BE2D9EC815A9DE89936FB49 /* types-and-functions-1.png */; };
+		7E1028772872090A99A64EB6 /* decisions.md in Resources */ = {isa = PBXBuildFile; fileRef = 887593AF37502C730CD3C513 /* decisions.md */; };
 		8389536425FF69B74BBC1DE5 /* CatchFiveApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0A21C058444C61FC449F3F4 /* CatchFiveApp.swift */; };
-		8D17A774D9EA0592E159EAC0 /* Tutorial.dc.html in Resources */ = {isa = PBXBuildFile; fileRef = D1C4F198E60E300326E4C508 /* Tutorial.dc.html */; };
-		B9C7BB906A01CD4A02939B92 /* Tutorial-Spec.dc.html in Resources */ = {isa = PBXBuildFile; fileRef = A3B830B23B588B60B75B6A15 /* Tutorial-Spec.dc.html */; };
-		E065B0D28742A174D5BA6181 /* Testing.dc.html in Resources */ = {isa = PBXBuildFile; fileRef = E9D1DD345B411D815EB8549C /* Testing.dc.html */; };
+		8BF085B5D85FFC0E48C5D5B2 /* tutorial-spec.md in Resources */ = {isa = PBXBuildFile; fileRef = BBC09055FDE65FAD1797A3FF /* tutorial-spec.md */; };
+		94D7264074FB1D878DA2526B /* device-install.md in Resources */ = {isa = PBXBuildFile; fileRef = 2ED285156D4BCC929441E405 /* device-install.md */; };
+		995DD9A9644C32B4DC5EF6DE /* code-map.md in Resources */ = {isa = PBXBuildFile; fileRef = 4DC1628C6ED1DA37B0AFF3E2 /* code-map.md */; };
+		9B0EB922612F34498B15B0F6 /* game-flow-2.png in Resources */ = {isa = PBXBuildFile; fileRef = 50784CCE47D3BBD70B0B8F8A /* game-flow-2.png */; };
+		A2B99C515A39F34BF112D8E0 /* testing-2.png in Resources */ = {isa = PBXBuildFile; fileRef = 01981EA89A1BB4C42FEF442F /* testing-2.png */; };
+		A853FD99C9E8B41405B116CB /* game-flow-3.png in Resources */ = {isa = PBXBuildFile; fileRef = A6A755E25AFE63DC9E548087 /* game-flow-3.png */; };
+		AEB46E8664DAC1FFDA4C67A1 /* code-map-1.png in Resources */ = {isa = PBXBuildFile; fileRef = 2DF12CB73F3F5FDB3E4D9E21 /* code-map-1.png */; };
+		B749C9E85FB96AEFAD6D28FA /* roadmap-1.png in Resources */ = {isa = PBXBuildFile; fileRef = 04C05423C104A831E656D6B9 /* roadmap-1.png */; };
+		C2CFF02AA6B492AE38158421 /* architecture.md in Resources */ = {isa = PBXBuildFile; fileRef = 86A782DE5A7D4E5AE472F596 /* architecture.md */; };
+		EA9507F57CBC51BC044C4913 /* game-flow-1.png in Resources */ = {isa = PBXBuildFile; fileRef = 411B4F79BDFE28B6443DDAD4 /* game-flow-1.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		1999DADBE795A305CC992342 /* Decisions.dc.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = Decisions.dc.html; sourceTree = "<group>"; };
-		2DC470ABDFC9C4590E184C91 /* Code-Map.dc.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "Code-Map.dc.html"; sourceTree = "<group>"; };
-		380F910757F3E46F93822B8F /* Index.dc.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = Index.dc.html; sourceTree = "<group>"; };
-		53E2688F74876BBCCCD1A00B /* cardgame-io */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "cardgame-io"; path = .; sourceTree = SOURCE_ROOT; };
-		695DE31686F3F460BFDF4E3F /* Build-and-Run.dc.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "Build-and-Run.dc.html"; sourceTree = "<group>"; };
-		98CFDCA65E6195B76B88774D /* Architecture.dc.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = Architecture.dc.html; sourceTree = "<group>"; };
+		01981EA89A1BB4C42FEF442F /* testing-2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "testing-2.png"; sourceTree = "<group>"; };
+		01A71B2BC68FFB7B227FA46D /* roadmap.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = roadmap.md; sourceTree = "<group>"; };
+		04C05423C104A831E656D6B9 /* roadmap-1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "roadmap-1.png"; sourceTree = "<group>"; };
+		07FB6DDCEC3AD87D9EFC85A3 /* architecture-4.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "architecture-4.png"; sourceTree = "<group>"; };
+		0BE2D9EC815A9DE89936FB49 /* types-and-functions-1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "types-and-functions-1.png"; sourceTree = "<group>"; };
+		101BAE1FF19AED90F08AA5B6 /* game-flow-7.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "game-flow-7.png"; sourceTree = "<group>"; };
+		1CA5818F81F20BB29F19B85C /* architecture-2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "architecture-2.png"; sourceTree = "<group>"; };
+		2DBED0111D7CD42C9A7491C1 /* game-flow-5.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "game-flow-5.png"; sourceTree = "<group>"; };
+		2DF12CB73F3F5FDB3E4D9E21 /* code-map-1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "code-map-1.png"; sourceTree = "<group>"; };
+		2ED285156D4BCC929441E405 /* device-install.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "device-install.md"; sourceTree = "<group>"; };
+		3524C3BCC79FE940A632D706 /* build-and-run-1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "build-and-run-1.png"; sourceTree = "<group>"; };
+		37312E6C45BE6D267B75CAFF /* testing-1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "testing-1.png"; sourceTree = "<group>"; };
+		411B4F79BDFE28B6443DDAD4 /* game-flow-1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "game-flow-1.png"; sourceTree = "<group>"; };
+		43CF64FEEB821D2765865A02 /* redesign-plan.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "redesign-plan.md"; sourceTree = "<group>"; };
+		4DC1628C6ED1DA37B0AFF3E2 /* code-map.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "code-map.md"; sourceTree = "<group>"; };
+		50784CCE47D3BBD70B0B8F8A /* game-flow-2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "game-flow-2.png"; sourceTree = "<group>"; };
+		6025338F5A1AA65B9A5A06B9 /* build-and-run-2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "build-and-run-2.png"; sourceTree = "<group>"; };
+		6C830D3A0DDD255152F3A4F3 /* architecture-1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "architecture-1.png"; sourceTree = "<group>"; };
+		6EF55DEC135E78F05FE647D6 /* game-flow-4.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "game-flow-4.png"; sourceTree = "<group>"; };
+		769AF87C7B38A7AEB3C3805E /* game-flow.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "game-flow.md"; sourceTree = "<group>"; };
+		86A782DE5A7D4E5AE472F596 /* architecture.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = architecture.md; sourceTree = "<group>"; };
+		887593AF37502C730CD3C513 /* decisions.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = decisions.md; sourceTree = "<group>"; };
+		95A815064373F37C58D94242 /* game-flow-8.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "game-flow-8.png"; sourceTree = "<group>"; };
 		9B3E579D68599CFF3F7B4383 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		9DF1C64F50EDE5F7BC6E3D53 /* types-and-functions.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "types-and-functions.md"; sourceTree = "<group>"; };
 		A0A21C058444C61FC449F3F4 /* CatchFiveApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatchFiveApp.swift; sourceTree = "<group>"; };
-		A3B830B23B588B60B75B6A15 /* Tutorial-Spec.dc.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "Tutorial-Spec.dc.html"; sourceTree = "<group>"; };
-		BB7FD2ED15316879E54E582A /* Game-Flow.dc.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "Game-Flow.dc.html"; sourceTree = "<group>"; };
+		A4F75B269AFA6D7C3F6F2454 /* game-flow-6.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "game-flow-6.png"; sourceTree = "<group>"; };
+		A6A755E25AFE63DC9E548087 /* game-flow-3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "game-flow-3.png"; sourceTree = "<group>"; };
+		BBC09055FDE65FAD1797A3FF /* tutorial-spec.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "tutorial-spec.md"; sourceTree = "<group>"; };
+		BD2C65195ECFB2EC54AD5E3B /* build-and-run-4.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "build-and-run-4.png"; sourceTree = "<group>"; };
+		C2FEA9594C304BD52324DF05 /* modest-chebyshev-d173ce */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "modest-chebyshev-d173ce"; path = .; sourceTree = SOURCE_ROOT; };
 		C30CE2B9240F2C4094DBAFAB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		D1C4F198E60E300326E4C508 /* Tutorial.dc.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = Tutorial.dc.html; sourceTree = "<group>"; };
-		E31A3484B0F7EB7903C9420A /* Types-and-Functions.dc.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "Types-and-Functions.dc.html"; sourceTree = "<group>"; };
-		E9D1DD345B411D815EB8549C /* Testing.dc.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = Testing.dc.html; sourceTree = "<group>"; };
+		CC4223EE39FE440829FD4307 /* testing.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = testing.md; sourceTree = "<group>"; };
+		CE017B28290DFF90141AEE7C /* learning-path.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "learning-path.md"; sourceTree = "<group>"; };
+		CE4A31F313EA6FEA5A21D10D /* architecture-3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "architecture-3.png"; sourceTree = "<group>"; };
+		D4EF2AF08E6FFCB876D2DD40 /* build-and-run-3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "build-and-run-3.png"; sourceTree = "<group>"; };
+		E06D5D9E7D0B696A5A64D1EB /* build-and-run.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "build-and-run.md"; sourceTree = "<group>"; };
+		EB8A40A7CF435F21C3F2F0D6 /* device-install-1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "device-install-1.png"; sourceTree = "<group>"; };
 		EFB3FB1A3FFAB76602EA056B /* Explainer */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Explainer; path = App/Explainer; sourceTree = SOURCE_ROOT; };
 		F01AF627757685E129B9142A /* CatchFiveApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = CatchFiveApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -55,6 +103,25 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		00F238F361009C29E816CE32 /* docs */ = {
+			isa = PBXGroup;
+			children = (
+				86A782DE5A7D4E5AE472F596 /* architecture.md */,
+				E06D5D9E7D0B696A5A64D1EB /* build-and-run.md */,
+				4DC1628C6ED1DA37B0AFF3E2 /* code-map.md */,
+				887593AF37502C730CD3C513 /* decisions.md */,
+				2ED285156D4BCC929441E405 /* device-install.md */,
+				769AF87C7B38A7AEB3C3805E /* game-flow.md */,
+				CE017B28290DFF90141AEE7C /* learning-path.md */,
+				43CF64FEEB821D2765865A02 /* redesign-plan.md */,
+				01A71B2BC68FFB7B227FA46D /* roadmap.md */,
+				CC4223EE39FE440829FD4307 /* testing.md */,
+				BBC09055FDE65FAD1797A3FF /* tutorial-spec.md */,
+				9DF1C64F50EDE5F7BC6E3D53 /* types-and-functions.md */,
+			);
+			path = docs;
+			sourceTree = "<group>";
+		};
 		1F25F5D57E87C593555967D5 /* App */ = {
 			isa = PBXGroup;
 			children = (
@@ -64,6 +131,35 @@
 				ECF4402922F72D896EEE0FE1 /* Explainer */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		60895E6EB85E84A4C99EFA5B /* diagrams */ = {
+			isa = PBXGroup;
+			children = (
+				6C830D3A0DDD255152F3A4F3 /* architecture-1.png */,
+				1CA5818F81F20BB29F19B85C /* architecture-2.png */,
+				CE4A31F313EA6FEA5A21D10D /* architecture-3.png */,
+				07FB6DDCEC3AD87D9EFC85A3 /* architecture-4.png */,
+				3524C3BCC79FE940A632D706 /* build-and-run-1.png */,
+				6025338F5A1AA65B9A5A06B9 /* build-and-run-2.png */,
+				D4EF2AF08E6FFCB876D2DD40 /* build-and-run-3.png */,
+				BD2C65195ECFB2EC54AD5E3B /* build-and-run-4.png */,
+				2DF12CB73F3F5FDB3E4D9E21 /* code-map-1.png */,
+				EB8A40A7CF435F21C3F2F0D6 /* device-install-1.png */,
+				411B4F79BDFE28B6443DDAD4 /* game-flow-1.png */,
+				50784CCE47D3BBD70B0B8F8A /* game-flow-2.png */,
+				A6A755E25AFE63DC9E548087 /* game-flow-3.png */,
+				6EF55DEC135E78F05FE647D6 /* game-flow-4.png */,
+				2DBED0111D7CD42C9A7491C1 /* game-flow-5.png */,
+				A4F75B269AFA6D7C3F6F2454 /* game-flow-6.png */,
+				101BAE1FF19AED90F08AA5B6 /* game-flow-7.png */,
+				95A815064373F37C58D94242 /* game-flow-8.png */,
+				04C05423C104A831E656D6B9 /* roadmap-1.png */,
+				37312E6C45BE6D267B75CAFF /* testing-1.png */,
+				01981EA89A1BB4C42FEF442F /* testing-2.png */,
+				0BE2D9EC815A9DE89936FB49 /* types-and-functions-1.png */,
+			);
+			path = diagrams;
 			sourceTree = "<group>";
 		};
 		69E681B29B00FBD4B2B35C3C = {
@@ -79,7 +175,7 @@
 		9E1D7A103B7DCEF4FA33CF7B /* Packages */ = {
 			isa = PBXGroup;
 			children = (
-				53E2688F74876BBCCCD1A00B /* cardgame-io */,
+				C2FEA9594C304BD52324DF05 /* modest-chebyshev-d173ce */,
 			);
 			name = Packages;
 			sourceTree = "<group>";
@@ -87,16 +183,8 @@
 		ECF4402922F72D896EEE0FE1 /* Explainer */ = {
 			isa = PBXGroup;
 			children = (
-				98CFDCA65E6195B76B88774D /* Architecture.dc.html */,
-				695DE31686F3F460BFDF4E3F /* Build-and-Run.dc.html */,
-				2DC470ABDFC9C4590E184C91 /* Code-Map.dc.html */,
-				1999DADBE795A305CC992342 /* Decisions.dc.html */,
-				BB7FD2ED15316879E54E582A /* Game-Flow.dc.html */,
-				380F910757F3E46F93822B8F /* Index.dc.html */,
-				E9D1DD345B411D815EB8549C /* Testing.dc.html */,
-				A3B830B23B588B60B75B6A15 /* Tutorial-Spec.dc.html */,
-				D1C4F198E60E300326E4C508 /* Tutorial.dc.html */,
-				E31A3484B0F7EB7903C9420A /* Types-and-Functions.dc.html */,
+				60895E6EB85E84A4C99EFA5B /* diagrams */,
+				00F238F361009C29E816CE32 /* docs */,
 			);
 			path = Explainer;
 			sourceTree = "<group>";
@@ -174,19 +262,43 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				12908FAF1D2D4258F5C94C8A /* Architecture.dc.html in Resources */,
 				65AD9165C27E75A83C624D4B /* Assets.xcassets in Resources */,
-				481360737135910F7ADF272D /* Build-and-Run.dc.html in Resources */,
-				24153E3D2B95829748E586EE /* Code-Map.dc.html in Resources */,
-				5942C6719FA51DCA8FB6E4A1 /* Decisions.dc.html in Resources */,
 				29F1DCF74EC44C2DE2084AF2 /* Explainer in Resources */,
-				52E080244D523C1E3A11E772 /* Game-Flow.dc.html in Resources */,
-				6007E672DB871AE60EFCF69B /* Index.dc.html in Resources */,
 				196ACFD1BDF12D1C68EB2805 /* PrivacyInfo.xcprivacy in Resources */,
-				E065B0D28742A174D5BA6181 /* Testing.dc.html in Resources */,
-				B9C7BB906A01CD4A02939B92 /* Tutorial-Spec.dc.html in Resources */,
-				8D17A774D9EA0592E159EAC0 /* Tutorial.dc.html in Resources */,
-				28A34A643669FC840F51FF58 /* Types-and-Functions.dc.html in Resources */,
+				127617973CDB24ECC6815AD5 /* architecture-1.png in Resources */,
+				09001D251B2E193F8A00F3F4 /* architecture-2.png in Resources */,
+				3EF5B51E44005D878B83C30A /* architecture-3.png in Resources */,
+				398B4D647088290866022B0E /* architecture-4.png in Resources */,
+				C2CFF02AA6B492AE38158421 /* architecture.md in Resources */,
+				262C231A715AECB49C99FC42 /* build-and-run-1.png in Resources */,
+				322E3CFBB4F9E0551926CE4A /* build-and-run-2.png in Resources */,
+				40D427428F84B2B7ED4DF3BA /* build-and-run-3.png in Resources */,
+				486088B0194E21E2FAE4EC81 /* build-and-run-4.png in Resources */,
+				2E84F438AF23DBFD50AC25A2 /* build-and-run.md in Resources */,
+				AEB46E8664DAC1FFDA4C67A1 /* code-map-1.png in Resources */,
+				995DD9A9644C32B4DC5EF6DE /* code-map.md in Resources */,
+				7E1028772872090A99A64EB6 /* decisions.md in Resources */,
+				6313E5CF0466FAE9C2CD2E12 /* device-install-1.png in Resources */,
+				94D7264074FB1D878DA2526B /* device-install.md in Resources */,
+				EA9507F57CBC51BC044C4913 /* game-flow-1.png in Resources */,
+				9B0EB922612F34498B15B0F6 /* game-flow-2.png in Resources */,
+				A853FD99C9E8B41405B116CB /* game-flow-3.png in Resources */,
+				096D05F189011B3F109E36C8 /* game-flow-4.png in Resources */,
+				0DDA3C3AB38440CD89DA3DDD /* game-flow-5.png in Resources */,
+				6BF2C3FC7944B51D124D50CB /* game-flow-6.png in Resources */,
+				156200F707681847766BE766 /* game-flow-7.png in Resources */,
+				7091C4B034D6872978FE6B25 /* game-flow-8.png in Resources */,
+				494DA83D55A7F00A3B0B78DF /* game-flow.md in Resources */,
+				058EFB52D605FE1EC4EE422D /* learning-path.md in Resources */,
+				0A69930DDD9D67F98D7F4282 /* redesign-plan.md in Resources */,
+				B749C9E85FB96AEFAD6D28FA /* roadmap-1.png in Resources */,
+				3076FE48C14E328D1C92E4D5 /* roadmap.md in Resources */,
+				08E4B3F49823005966ABC5B8 /* testing-1.png in Resources */,
+				A2B99C515A39F34BF112D8E0 /* testing-2.png in Resources */,
+				1EF0E4CA059307576E301D3F /* testing.md in Resources */,
+				8BF085B5D85FFC0E48C5D5B2 /* tutorial-spec.md in Resources */,
+				755F47553AA9871E867C3F36 /* types-and-functions-1.png in Resources */,
+				0E8D16E311E1DBD759065C1B /* types-and-functions.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
