@@ -589,6 +589,17 @@ import Testing
     #expect(TableLayout.sideSeatWidth(available: 600) == Theme.Table.seatTileWidth)
 }
 
+@Test func seatTilesHoldTheLargerFaceAndItsHaloOnEveryVerifiedWidth() {
+    // Faces grew to at least 1.6× their first size (spec R2) and, with the halo at full breath, still fit
+    // inside the narrowest tile the pile row can hand a side seat.
+    #expect(Theme.Table.portraitSize >= 36 * 1.6)
+    let halo = Theme.Table.portraitSize * Theme.Table.activePulseScale + 2 * Theme.Table.activeRingGap
+    for available in [361.0, 343.0] {
+        #expect(TableLayout.sideSeatWidth(available: available) >= halo + 8)
+    }
+    #expect(TableLayout.minimumSeatWidth >= halo + 8)
+}
+
 @MainActor @Test func validationMessagesExplainRefusalsWithoutChangingTheMatch() throws {
     let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
     let model = GameModel(match: try Match(deck: deck, dealer: 3))

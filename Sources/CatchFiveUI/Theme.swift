@@ -79,8 +79,17 @@ public enum Theme {
         /// The pile's reserved footprint around a card, so the table does not jump between tricks.
         public static let pileMarginX = 64.0
         public static let pileMarginY = 48.0
-        public static let seatBackWidth = 30.0
-        public static let portraitSize = 36.0
+        /// The little stack of backs under a seat's name in play: a hint of a hand, not a count (spec R20).
+        public static let seatBackWidth = 14.0
+        /// Faces around the table read at a glance from arm's length: 1.67× the 36 pt they started at (spec R2).
+        public static let portraitSize = 60.0
+        /// The tutorial's lesson tiles keep the smaller face so three of them still share a row.
+        public static let tutorialPortraitSize = 36.0
+        /// The seat to act wears a gold halo: a ring this wide, this far outside the portrait, that pulses
+        /// gently to `activePulseScale` unless motion is reduced (spec R2).
+        public static let activeRingWidth = 3.0
+        public static let activeRingGap = 4.0
+        public static let activePulseScale = 1.05
         /// A played card lands with its own small turn and drift, like a card tossed in by hand.
         public static let tossRotationDegrees = 11.0
         public static let tossDrift = 6.0
@@ -107,6 +116,8 @@ public enum Theme {
         public static let overlay = Animation.spring(duration: 0.35, bounce: 0)
         /// Reduce Motion replaces every flight with this crossfade.
         public static let reduced = Animation.easeInOut(duration: 0.2)
+        /// The halo on the seat to act breathes in and out for as long as that seat is deciding.
+        public static let pulse = Animation.easeInOut(duration: 1.2).repeatForever(autoreverses: true)
         /// How long a finished trick stays on the table, winner ringed, before it collapses.
         public static let trickHold: Duration = .milliseconds(900)
         public static let shakeAmplitude = 6.0

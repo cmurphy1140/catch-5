@@ -410,47 +410,71 @@ struct SeatView: View {
     let seat: Int
     /// Side tiles take the width the row can spare; the partner's tile keeps the full width.
     var width: Double = Theme.Table.seatTileWidth
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// The halo's breathing, driven by a repeating animation while this seat is deciding.
+    @State private var pulsing = false
+    @ScaledMetric(relativeTo: .title2) private var backWidth = Theme.Table.seatBackWidth
 
     private var hand: Hand { model.match.hand }
     private var active: Bool { hand.nextSeat == seat && model.match.winner == nil }
 
-    /// Portrait beside the name, with the call or the card-back stack under the name and a badge line only
-    /// when a badge applies. Laid out sideways so a row of seats costs the height of one portrait, not a
-    /// stack of four lines; that is what leaves the auction its bottom row of controls (spec R21).
+    /// A face over a name over one line of badges: the call in the auction, a hint of a hand in play, and
+    /// DEALER or BIDDER when they apply. Everything a seat says sits under its own portrait, so nothing
+    /// about a player floats elsewhere on the table (spec R2). The seat to act wears a gold halo that
+    /// breathes; that halo is the table's only turn indicator.
     var body: some View {
-        HStack(alignment: .center, spacing: 6) {
+        VStack(spacing: 2) {
             PortraitView(portrait: portrait, size: Theme.Table.portraitSize, expression: SeatMood.expression(for: seat, in: model.match))
-            VStack(alignment: .leading, spacing: 2) {
-                Text(model.seatNames[seat]).font(.headline).lineLimit(1).minimumScaleFactor(0.6)
-                if hand.phase == .bidding {
-                    Text(model.latestCall(for: seat) ?? "Waiting").font(.caption).opacity(0.75).lineLimit(1).minimumScaleFactor(0.8)
-                } else {
-                    // The stack's thickness says roughly how many cards are left; there is no number (spec R20).
-                    ZStack(alignment: .leading) {
-                        ForEach(0..<min(3, max(1, hand.hands[seat].count)), id: \.self) { index in
-                            CardBackView(width: Theme.Table.seatBackWidth)
-                                .offset(x: Double(index) * 4)
-                        }
-                    }
-                    .frame(height: Theme.Table.seatBackWidth * Theme.Card.ratio + 4)
-                    .dynamicTypeSize(...Theme.Card.maximumTypeSize)
+                .overlay {
+                    Circle().stroke(.gold, lineWidth: Theme.Table.activeRingWidth)
+                        .padding(-Theme.Table.activeRingGap)
+                        .opacity(active ? 1 : 0)
                 }
-                if hand.auction.dealer == seat || (hand.auction.winner == seat && hand.phase != .bidding) {
-                    HStack(spacing: 6) {
-                        if hand.auction.dealer == seat { Text("DEALER").foregroundStyle(.gold) }
-                        if hand.auction.winner == seat, hand.phase != .bidding { Text("BIDDER").opacity(0.7) }
+                .scaleEffect(pulsing ? Theme.Table.activePulseScale : 1)
+                .onChange(of: active, initial: true) { _, isActive in
+                    if isActive, !reduceMotion {
+                        withAnimation(Theme.Motion.pulse) { pulsing = true }
+                    } else {
+                        withAnimation(Theme.Motion.overlay) { pulsing = false }
                     }
-                    .font(.system(.caption2, design: .monospaced)).lineLimit(1).minimumScaleFactor(0.7)
                 }
-            }
-            Spacer(minLength: 0)
+                .padding(.vertical, Theme.Table.activeRingGap)
+            Text(model.seatNames[seat]).font(.headline).lineLimit(1).minimumScaleFactor(0.6)
+            badges
         }
-        .padding(.horizontal, 4).padding(.vertical, 6)
+        .padding(.horizontal, 4).padding(.vertical, 2)
         .frame(width: width)
-        // No fill: the name, backs and badges sit straight on the felt; only the seat to act gets a ring.
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(.gold, lineWidth: active ? 2 : 0))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(model.seatSummary(for: seat))
+    }
+
+    /// One line, always the same height, so the tiles do not jump when a call lands or the phase turns.
+    private var badges: some View {
+        HStack(spacing: 6) {
+            if hand.phase == .bidding {
+                // The call as a badge on the same dark pill as the auction's own buttons; a pass is muted
+                // so the bids stand out. No badge until the seat has spoken: the halo says who is deciding.
+                if let call = hand.auction.calls.last(where: { $0.seat == seat }), let label = model.latestCall(for: seat) {
+                    Text(label).font(.caption.weight(.semibold)).foregroundStyle(.ivory)
+                        .padding(.horizontal, 8).padding(.vertical, 2)
+                        .background(Theme.Wood.inlay, in: Capsule())
+                        .opacity(call.bid == nil ? 0.7 : 1)
+                }
+            } else {
+                // The stack's thickness says roughly how many cards are left; there is no number (spec R20).
+                ZStack(alignment: .leading) {
+                    ForEach(0..<min(3, max(1, hand.hands[seat].count)), id: \.self) { index in
+                        CardBackView(width: Theme.Table.seatBackWidth).offset(x: Double(index) * 3)
+                    }
+                }
+                .padding(.trailing, 6)
+                .dynamicTypeSize(...Theme.Card.maximumTypeSize)
+            }
+            if hand.auction.dealer == seat { Text("DEALER").foregroundStyle(.gold) }
+            if hand.auction.winner == seat, hand.phase != .bidding { Text("BIDDER").opacity(0.7) }
+        }
+        .font(.system(.caption2, design: .monospaced)).lineLimit(1).minimumScaleFactor(0.6)
+        .frame(height: backWidth * Theme.Card.ratio + 2)
     }
 
     private var portrait: Portrait { Cast.opponent(at: seat)?.portrait ?? model.settings.playerPortrait }

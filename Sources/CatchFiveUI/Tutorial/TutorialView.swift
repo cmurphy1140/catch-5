@@ -133,7 +133,7 @@ struct SeatTile: View {
     var body: some View {
         Button(action: action) {
             VStack(spacing: 4) {
-                if let portrait { PortraitView(portrait: portrait, size: Theme.Table.portraitSize) }
+                if let portrait { PortraitView(portrait: portrait, size: Theme.Table.tutorialPortraitSize) }
                 Text(name).font(.subheadline.weight(.semibold))
                 Text(detail).font(.caption).opacity(0.7)
                 if let badge { Text(badge).font(.system(.caption2, design: .monospaced)).foregroundStyle(.gold) }
