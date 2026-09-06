@@ -5,6 +5,7 @@ struct SettingsView: View {
     @Binding var settings: Settings
     @Environment(\.dismiss) private var dismiss
     @State private var showExplainer = false
+    @State private var nameDraft = ""
 
     var body: some View {
         NavigationStack {
@@ -25,14 +26,10 @@ struct SettingsView: View {
                     }.pickerStyle(.segmented)
                 }
                 Section("You") {
-                    TextField("Your name", text: Binding(
-                        get: { settings.playerName ?? settings.seatNames[0] },
-                        set: { new in
-                            let trimmed = new.trimmingCharacters(in: .whitespaces)
-                            guard !trimmed.isEmpty else { return }
-                            settings.playerName = trimmed
-                            settings.seatNames[0] = trimmed
-                        }))
+                    // A draft, so spaces and clearing work while typing; each non-blank edit is committed.
+                    TextField("Your name", text: $nameDraft)
+                        .onAppear { nameDraft = settings.playerName ?? settings.seatNames[0] }
+                        .onChange(of: nameDraft) { _, new in settings.setPlayerName(new) }
                     HStack(spacing: 16) {
                         ForEach(Array(Cast.playerChoices.enumerated()), id: \.offset) { index, choice in
                             Button { settings.playerPortrait = choice } label: {

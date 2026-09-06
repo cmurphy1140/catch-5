@@ -19,7 +19,10 @@ struct HandFanView: View {
     private var scaledWidth: Double { wide ? scaledWide : scaledStandard }
     /// Fan or two rows: whichever keeps every card's exposed strip at least 44 pt (`HandLayout`).
     private var arrangement: HandLayout.Arrangement {
-        HandLayout.arrange(count: model.humanCards.count, cardWidth: scaledWidth, available: max(measuredWidth - 16, 0))
+        // Before the first measurement the fan keeps its natural overlap; deciding on a zero width would
+        // pick two rows and then tear the fan down once the real width lands.
+        guard measuredWidth > 0 else { return .fan(strip: Theme.Card.touchStrip(width: scaledWidth)) }
+        return HandLayout.arrange(count: model.humanCards.count, cardWidth: scaledWidth, available: measuredWidth - 16)
     }
 
     var body: some View {

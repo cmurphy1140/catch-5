@@ -80,7 +80,9 @@ struct WoodGrainView: View {
 }
 
 /// The felt of the playing area: the lighter felt in the middle, falling to a darker green at the edges.
-struct FeltView: View {
+struct FeltView: View, Equatable {
+    /// Nothing about the felt changes, so SwiftUI may skip it on every table update (`.equatable()`).
+    nonisolated static func == (lhs: FeltView, rhs: FeltView) -> Bool { true }
     var body: some View {
         ZStack {
             RadialGradient(colors: [Theme.Wood.feltEdge, Theme.Wood.felt, Theme.Wood.feltDark],

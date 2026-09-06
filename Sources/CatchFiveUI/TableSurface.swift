@@ -221,7 +221,11 @@ struct TableSurface: View {
     /// placeholder in play. Reserves no space in the auction while the controls need it.
     @ViewBuilder private var commentary: some View {
         ZStack {
-            if let toast, model.canUndo {
+            if let refusal = model.refusal {
+                // A refused tap answers first: it is the freshest thing the player did.
+                Text(refusal).font(.footnote).multilineTextAlignment(.center).foregroundStyle(.ivory.opacity(0.9))
+                    .padding(.horizontal, 8)
+            } else if let toast, model.canUndo {
                 HStack(spacing: 12) {
                     Text([model.describe(toast), model.notice].compactMap { $0 }.joined(separator: " · ")).font(.footnote).lineLimit(1)
                     Button("Undo") { model.undo() }.font(.footnote.weight(.semibold)).tint(.ivory)
@@ -230,9 +234,6 @@ struct TableSurface: View {
                 .padding(.horizontal, 14).padding(.vertical, 6)
                 .background(Theme.Wood.inlay.opacity(0.85), in: Capsule())
                 .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
-            } else if let refusal = model.refusal {
-                Text(refusal).font(.footnote).multilineTextAlignment(.center).foregroundStyle(.ivory.opacity(0.9))
-                    .padding(.horizontal, 8)
             } else if let text = model.hint?.reason ?? model.explanation {
                 Text(text)
                     .font(.footnote).multilineTextAlignment(.center)
@@ -296,12 +297,13 @@ struct TableSurface: View {
     /// Pills fill their column so neighbours almost touch: solid, tall, with a large label.
     private func actionButton(_ label: String, action: PlayerAction, fill: Color = Theme.Wood.inlay,
                               font: Font = .title3.weight(.semibold)) -> some View {
-        let allowed = model.allows(action)
+        // One dry run per pill: the reason, when there is one, is also why the pill is greyed.
+        let reason = model.validationMessage(for: action)
         return Button { model.send(action) } label: { Text(label).font(font) }
             .buttonStyle(PillButtonStyle(fill: fill))
-            .disabled(!allowed)
+            .disabled(reason != nil)
             // A greyed pill still says why it is greyed to assistive technology.
-            .accessibilityHint(allowed ? "" : model.validationMessage(for: action) ?? "")
+            .accessibilityHint(reason ?? "")
     }
 
     // MARK: Hand end
@@ -310,7 +312,7 @@ struct TableSurface: View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 12) {
                 if let winner = model.match.winner { matchOver(winner) }
-                HandSummaryView(match: model.match, names: model.seatNames)
+                HandSummaryView(match: model.match, names: model.seatNames, outcome: model.lastHandOutcome)
                 // Side by side when they fit, stacked at accessibility text sizes.
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 12) { reviewButton; dealButton }

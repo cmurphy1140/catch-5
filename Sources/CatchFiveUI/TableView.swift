@@ -24,24 +24,18 @@ public struct TableView: View {
     @State private var toast: PlayerAction?
     /// What the last revision changed, reduced to the one cue worth a haptic.
     @State private var cue: (id: Int, cue: TableFeedback.Cue)?
-    @State private var seen = Seen()
+    @State private var seen: TableFeedback.Snapshot
     @AccessibilityFocusState private var statusFocused: Bool
-
-    /// The counters the last revision left behind, so the next one can say what changed.
-    private struct Seen {
-        var tricks = 0
-        var hands = 0
-        var winner: Int?
-        var action: PlayerAction?
-    }
 
     private let onLeave: () -> Void
     /// Something outside this view covers the table (the welcome card); computers wait while it is up.
     private let covered: Bool
 
-    public init(model: GameModel, covered: Bool = false, onLeave: @escaping () -> Void = {}) {
+    public init(model: GameModel, tutorial: TutorialModel? = nil, covered: Bool = false, onLeave: @escaping () -> Void = {}) {
         _model = StateObject(wrappedValue: model)
-        _tutorial = StateObject(wrappedValue: model.makeTutorial())
+        // Share the root's tutorial model when there is one, so lessons finished in the intro show as done here.
+        _tutorial = StateObject(wrappedValue: tutorial ?? model.makeTutorial())
+        _seen = State(initialValue: TableFeedback.Snapshot(model))
         self.covered = covered
         self.onLeave = onLeave
     }
@@ -103,7 +97,7 @@ public struct TableView: View {
         .frame(maxWidth: 640)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .foregroundStyle(.ivory)
-        .background(FeltView().ignoresSafeArea())
+        .background(FeltView().equatable().ignoresSafeArea())
         .preferredColorScheme(.dark)
     }
 
@@ -114,12 +108,15 @@ public struct TableView: View {
             .animation(motion(Theme.Motion.flight), value: model.revision)
             .task(id: SchedulerKey(revision: model.revision, paused: pause.isPaused)) { await advance() }
             .onChange(of: model.match.handNumber) { _, _ in collapsedTricks = 0; reopenedTrick = nil }
-            .onChange(of: model.revision) { _, _ in withAnimation(motion(Theme.Motion.collapse)) { reopenedTrick = nil } }
+            .onChange(of: model.revision) { _, revision in
+                withAnimation(motion(Theme.Motion.collapse)) { reopenedTrick = nil }
+                noteChanges(revision)
+            }
             .onChange(of: model.lastHumanAction) { _, action in toast = action }
-            .onChange(of: model.revision) { _, revision in noteChanges(revision) }
             // Focus follows the game: a lifted cover or a new turn puts VoiceOver on the status line.
             .onChange(of: covered) { _, now in if !now { statusFocused = true } }
             .onChange(of: pause.sheetShown) { _, now in if !now { statusFocused = true } }
+            .onChange(of: pause.dialogShown) { _, now in if !now { statusFocused = true } }
             .onChange(of: model.isHumanTurn) { _, now in if now { statusFocused = true } }
             .task(id: toast) {
                 guard toast != nil else { return }
@@ -139,26 +136,15 @@ public struct TableView: View {
 
     /// After each accepted action, work out what it did and pick the one cue and announcement for it.
     private func noteChanges(_ revision: Int) {
-        let hand = model.match.hand
-        let tricks = hand.completedTricks.count
-        let hands = model.match.history.count
-        let trickWinner = tricks > seen.tricks ? hand.completedTricks.last?.winner : nil
-        let handEnded = hands > seen.hands
-        let matchWinner = model.match.winner != seen.winner ? model.match.winner : nil
-        let action: TableFeedback.HumanAction? = {
-            guard let last = model.lastHumanAction, last != seen.action else { return nil }
-            if case .play = last { return .play }
-            return .call
-        }()
-        if let picked = TableFeedback.cue(action: action, trickWinner: trickWinner, handEnded: handEnded, matchWinner: matchWinner) {
-            cue = (revision, picked)
-        }
-        if let trickWinner, !handEnded {
-            AccessibilityNotification.Announcement("\(model.seatNames[trickWinner]) took the trick").post()
+        let now = TableFeedback.Snapshot(model)
+        if let picked = TableFeedback.cue(from: seen, to: now) { cue = (revision, picked) }
+        let handEnded = now.hands > seen.hands
+        if now.tricks > seen.tricks, !handEnded, let winner = now.lastTrickWinner {
+            AccessibilityNotification.Announcement("\(model.seatNames[winner]) took the trick").post()
         } else if handEnded, let outcome = model.lastHandOutcome {
             AccessibilityNotification.Announcement("\(outcome.headline). \(outcome.bidderLine)").post()
         }
-        seen = Seen(tricks: tricks, hands: hands, winner: model.match.winner, action: model.lastHumanAction)
+        seen = now
     }
 
     private var withSheets: some View {
@@ -177,7 +163,8 @@ public struct TableView: View {
             .alert("Game notice", isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
                 Button("OK") { model.errorMessage = nil }
             } message: { Text(model.errorMessage ?? "") }
-            .alert("Could not save", isPresented: Binding(get: { model.saveError != nil }, set: { if !$0 { model.saveError = nil } })) {
+            // The buttons clear the error themselves; dismissal must not, or a failed Retry would go quiet.
+            .alert("Could not save", isPresented: Binding(get: { model.saveError != nil }, set: { _ in })) {
                 Button("Retry") { model.retrySave() }
                 Button("Not now", role: .cancel) { model.saveError = nil }
             } message: { Text(model.saveError ?? "") }
