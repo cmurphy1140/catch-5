@@ -20,6 +20,8 @@ struct TableSurface: View {
     /// VoiceOver focus lands on the status line when a cover lifts or the turn changes.
     let statusFocus: AccessibilityFocusState<Bool>.Binding
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// The hint's full reason, opened from its Why? control (spec R22).
+    @State private var showHintDetail = false
 
     private var hand: Hand { model.match.hand }
 
@@ -272,12 +274,27 @@ struct TableSurface: View {
                 .padding(.horizontal, 14).padding(.vertical, 6)
                 .background(Theme.Wood.inlay.opacity(0.85), in: Capsule())
                 .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
-            } else if let text = model.hint?.reason ?? model.explanation {
+            } else if let hint = model.hint {
+                // One complete recommendation on one line; the reason waits behind Why?, so a long hint
+                // can never push the controls above it off the screen (spec R22).
+                let parts = Self.hintParts(hint.reason)
+                HStack(spacing: 10) {
+                    Text(parts.recommendation).font(.footnote.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.8)
+                    if !parts.detail.isEmpty {
+                        Button("Why?") { showHintDetail = true }
+                            .font(.footnote.weight(.semibold)).tint(.ivory).underline()
+                            .accessibilityHint("Opens the reason for this hint")
+                    }
+                }
+                .foregroundStyle(.ivory)
+                .padding(.horizontal, 8)
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Hint: \(parts.recommendation)")
+            } else if let text = model.explanation {
                 Text(text)
                     .font(.footnote).multilineTextAlignment(.center)
                     .foregroundStyle(.ivory.opacity(0.85))
                     .padding(.horizontal, 8)
-                    .accessibilityLabel(model.hint != nil ? "Hint: \(text)" : text)
             } else if let notice = model.notice {
                 Text(notice).font(.footnote).opacity(0.85)
             } else if hand.phase == .bidding, !model.isHumanTurn, let call = model.latestCall(for: 0) {
@@ -290,6 +307,21 @@ struct TableSurface: View {
         }
         .frame(maxWidth: .infinity, minHeight: inAuction && model.isHumanTurn ? 0 : 36, alignment: .top)
         .animation(reduceMotion ? Theme.Motion.reduced : Theme.Motion.overlay, value: toast)
+        .sheet(isPresented: $showHintDetail) {
+            if let hint = model.hint {
+                HintDetailView(parts: Self.hintParts(hint.reason))
+            }
+        }
+    }
+
+    /// Advice reads "Play the six of clubs: partner's queen holds the trick, so…". The part before the
+    /// colon is the recommendation; the rest, with a capital, is the reason. No colon: all recommendation.
+    nonisolated static func hintParts(_ reason: String) -> (recommendation: String, detail: String) {
+        guard let colon = reason.firstIndex(of: ":") else { return (reason, "") }
+        let recommendation = String(reason[..<colon]).trimmingCharacters(in: .whitespaces)
+        let rest = reason[reason.index(after: colon)...].trimmingCharacters(in: .whitespaces)
+        guard let first = rest.first else { return (recommendation, "") }
+        return (recommendation, first.uppercased() + rest.dropFirst())
     }
 
     // MARK: Phase controls
@@ -526,3 +558,25 @@ struct DiscardPileView: View {
 private func + (lhs: CGSize, rhs: CGSize) -> CGSize {
     CGSize(width: lhs.width + rhs.width, height: lhs.height + rhs.height)
 }
+
+/// The hint's reason, in a short sheet over the table: bounded, scrollable, never in the way of a control.
+struct HintDetailView: View {
+    let parts: (recommendation: String, detail: String)
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("HINT").font(.system(.caption, design: .monospaced)).tracking(1).opacity(0.7)
+                Text(parts.recommendation).font(.system(.title3, design: .serif).weight(.bold))
+                Text(parts.detail).font(.body).lineSpacing(2).fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(24)
+        }
+        .foregroundStyle(.ivory)
+        .background(WoodGrainView().ignoresSafeArea())
+        .presentationDetents([.fraction(0.35), .medium])
+        .presentationDragIndicator(.visible)
+    }
+}
+

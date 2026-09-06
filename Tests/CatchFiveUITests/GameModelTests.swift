@@ -1059,3 +1059,10 @@ import Testing
     #expect(model.revision == before.3)
     #expect(try Data(contentsOf: url) == before.4)
 }
+
+@Test func hintSplitsIntoARecommendationAndItsReason() {
+    let parts = TableSurface.hintParts("Play the six of clubs: partner's queen of clubs holds the trick, so the most valuable card goes to it.")
+    #expect(parts.recommendation == "Play the six of clubs")
+    #expect(parts.detail == "Partner's queen of clubs holds the trick, so the most valuable card goes to it.")
+    #expect(TableSurface.hintParts("Pass").recommendation == "Pass" && TableSurface.hintParts("Pass").detail.isEmpty)
+}
