@@ -291,6 +291,14 @@ public final class GameModel: ObservableObject {
         refusal = validationMessage(for: action)
     }
 
+    /// The suit you are obliged to follow right now: the suit led, while it is your turn to play and you
+    /// still hold it. Nil when you lead, when you cannot follow, or when it is not your turn.
+    public var suitToFollow: Suit? {
+        guard isHumanTurn, match.hand.phase == .playing, let led = match.hand.currentTrick.first?.card.suit,
+              match.hand.hands[0].contains(where: { $0.suit == led }) else { return nil }
+        return led
+    }
+
     /// What naming `suit` as trump would do to the hand: "keep 4 · draw 2". Only while the human is
     /// choosing trump; it counts the human's own cards and reveals nothing about the stock.
     public func trumpPreview(for suit: Suit) -> String? {
