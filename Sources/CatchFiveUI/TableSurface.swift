@@ -112,7 +112,7 @@ struct TableSurface: View {
                 .zIndex(Double(pile.plays.firstIndex(where: { $0.card == play.card }) ?? 0))
             }
             if pile.plays.isEmpty, hand.phase == .playing, !model.isHumanTurn || hand.completedTricks.isEmpty {
-                Text(hand.completedTricks.isEmpty ? "First lead" : "").font(.caption2).opacity(0.35)
+                Text(hand.completedTricks.isEmpty ? "First lead" : "").font(.caption2).opacity(0.7)
             }
         }
         .accessibilitySortPriority(5)
@@ -301,7 +301,7 @@ struct TableSurface: View {
                 Text("You: \(call)").font(.footnote).opacity(0.85)
             } else if !inAuction {
                 Text(pile.plays.isEmpty ? " " : (reopenedTrick != nil ? "Tap a card to see why it was played" : "Tap a card on the table to see why it was played"))
-                    .font(.footnote).foregroundStyle(.ivory.opacity(0.5))
+                    .font(.footnote).foregroundStyle(.ivory.opacity(0.7))
                     .accessibilityHidden(true)
             }
         }

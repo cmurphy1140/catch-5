@@ -45,7 +45,7 @@ struct HandFanView: View {
             .onGeometryChange(for: Double.self) { $0.size.width } action: { measuredWidth = $0 }
             if !cards.isEmpty {
                 HStack(spacing: 8) {
-                    Text("YOUR HAND").opacity(0.55)
+                    Text("YOUR HAND").opacity(0.7)
                     if model.match.hand.auction.dealer == 0 {
                         Text("·").opacity(0.4)
                         Text("DEALER").foregroundStyle(.gold)
