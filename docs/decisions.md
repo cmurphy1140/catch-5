@@ -406,3 +406,11 @@ D36 is taken by the cast, login and menu work on the parallel branch.
 
 **Why:** A card is an opaque object; showing felt through it breaks the table. Shade and desaturation say "not now" while keeping every index readable, and the status line turns the shading from a puzzle into a rule.
 
+## D54. Discards go to a pile under the deck (PR #37, 2026-09-05)
+
+**Chosen:** When trump is named, the cards leaving your hand no longer rise and fade; each flies to the top-right corner and shrinks to a card back, landing on a discard pile drawn beneath the deck (`DiscardPileView`: up to three fanned backs and the count of every seat's discards). The flight reuses the deal-in geometry with a lower landing point (`discardTarget`, `Theme.Table.discardDrop`). Reduce Motion crossfades, as before.
+
+**Over:** Cards that vanish upward (Connor asked to see them go somewhere); animating the computers' discards from their seats (their cards were never visible, so there is nothing to carry).
+
+**Why:** A discard pile gives the refill a source and a sink at the same corner: cards leave to the pile, replacements come from the deck above it. The count also answers a question the rules raise, since undealt and discarded cards are out of play, scoring cards included.
+

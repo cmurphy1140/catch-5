@@ -66,7 +66,16 @@ struct TableSurface: View {
             .scrollBounceBehavior(.basedOnSize)
             .frame(width: geometry.size.width, height: geometry.size.height)
             // The stock sits in the top-right corner of the table; refills deal in from here.
-            .overlay(alignment: .topTrailing) { DeckView(remaining: hand.stock.count).padding(.top, 6) }
+            .overlay(alignment: .topTrailing) {
+                // The stock, and beneath it the discards: the cards that left every hand when trump was named.
+                VStack(spacing: 10) {
+                    DeckView(remaining: hand.stock.count)
+                    if !hand.discarded.isEmpty {
+                        DiscardPileView(count: hand.discarded.count).transition(.opacity)
+                    }
+                }
+                .padding(.top, 6)
+            }
             // The finished hand's card takes over the table; what is underneath fades back and leaves the
             // accessibility tree, so VoiceOver meets the card and nothing behind it.
             .opacity(hand.phase == .finished ? 0.12 : 1)
@@ -464,6 +473,30 @@ struct DeckView: View {
         .dynamicTypeSize(...Theme.Card.maximumTypeSize)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(remaining) cards in the deck")
+    }
+}
+
+/// The discards, face down under the deck, with their count: nothing about them is a secret worth
+/// keeping (the rules put them out of play), but nothing about them needs showing either.
+struct DiscardPileView: View {
+    let count: Int
+
+    var body: some View {
+        ZStack(alignment: .bottomTrailing) {
+            ForEach(0..<min(3, count), id: \.self) { index in
+                CardBackView(width: Theme.Table.deckWidth * 0.85)
+                    .rotationEffect(.degrees(Double(index) * 5 - 5))
+                    .offset(x: Double(index) * -1.5, y: Double(index) * -1.5)
+            }
+            Text(count, format: .number).font(.caption2.weight(.bold).monospacedDigit())
+                .padding(.horizontal, 5).padding(.vertical, 1)
+                .background(.black.opacity(0.6), in: Capsule())
+                .offset(x: 6, y: 6)
+        }
+        .opacity(0.8)
+        .dynamicTypeSize(...Theme.Card.maximumTypeSize)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(count) cards discarded")
     }
 }
 
