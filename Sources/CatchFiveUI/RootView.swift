@@ -1,9 +1,10 @@
 import SwiftUI
 
 /// Owns the one `GameModel`. A new player sees login, then the tutorial as an intro they may skip, then the
-/// table. A returning player lands on the table with a small welcome card over it.
+/// table. A returning player lands on the table with a small pause card over it; Main menu on that card, and
+/// Continue game on the menu, move between the menu and the table with the match preserved (spec R31, R32).
 public struct RootView: View {
-    enum Screen { case login, intro, table }
+    enum Screen { case login, intro, menu, table }
 
     @StateObject private var model: GameModel
     @StateObject private var tutorial: TutorialModel
@@ -45,6 +46,8 @@ public struct RootView: View {
                 LoginView(model: model) { startFirstMatch() }.transition(.opacity)
             case .intro:
                 IntroView(model: model, tutorial: tutorial) { model.markRulesSeen(); show(.table) }.transition(.opacity)
+            case .menu:
+                MainMenuView(model: model, tutorial: tutorial) { showWelcome = false; show(.table) }.transition(.opacity)
             case .table:
                 TableView(model: model, tutorial: tutorial, covered: showWelcome) { withAnimation(motion) { showWelcome = true } }
                     .transition(.opacity)
@@ -54,7 +57,8 @@ public struct RootView: View {
                         if showWelcome {
                             ZStack {
                                 Color.black.opacity(contrast == .increased ? 0.75 : 0.55).ignoresSafeArea()
-                                WelcomeCard(model: model) { withAnimation(motion) { showWelcome = false } }
+                                WelcomeCard(model: model, onPlay: { withAnimation(motion) { showWelcome = false } },
+                                            onMenu: { showWelcome = false; show(.menu) })
                             }
                             .transition(.opacity)
                             .accessibilityAddTraits(.isModal)

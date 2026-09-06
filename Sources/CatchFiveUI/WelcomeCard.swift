@@ -1,15 +1,16 @@
 import CatchFive
 import SwiftUI
 
-/// The returning player's card, shown over the dimmed table at launch and from the table's chevron:
-/// who you are, then Continue game (until the match is won), New match and Settings. No history, no lessons;
-/// those stay in the table's gear menu.
+/// The pause card, shown over the dimmed table at launch and from the table's Home control: who you are,
+/// then exactly three actions (spec R32). Continue game (until the match is won) is primary, New match asks
+/// first, and Main menu keeps the match and goes to the menu, where Settings, the lessons, statistics and
+/// the build explainer live.
 struct WelcomeCard: View {
     @ObservedObject var model: GameModel
     let onPlay: () -> Void
+    /// Leaves the table for the main menu with the match preserved.
+    let onMenu: () -> Void
     @State private var confirmNewMatch = false
-    @State private var showSettings = false
-    @State private var showExplainer = false
 
     var body: some View {
         VStack(spacing: 20) {
@@ -38,8 +39,7 @@ struct WelcomeCard: View {
                 } else {
                     prominent("New match") { model.newGame(); onPlay() }
                 }
-                plain("Settings") { showSettings = true }
-                plain("How Catch 5 is built") { showExplainer = true }
+                plain("Main menu", action: onMenu)
             }
         }
         .padding(22)
@@ -49,19 +49,29 @@ struct WelcomeCard: View {
         .shadow(color: .black.opacity(0.5), radius: 24, y: 12)
         .foregroundStyle(.ivory)
         .padding(24)
-        .sheet(isPresented: $showSettings) { SettingsView(settings: $model.settings) }
-        .fullScreenCoverOrSheet(isPresented: $showExplainer) { ExplainerView { showExplainer = false } }
         .confirmationDialog("Start over? This replaces your saved game.", isPresented: $confirmNewMatch) {
             Button("Start new match", role: .destructive) { model.newGame(); onPlay() }
         }
     }
 
     private func prominent(_ label: String, action: @escaping () -> Void) -> some View {
+        MenuButtons.prominent(label, action: action)
+    }
+
+    private func plain(_ label: String, action: @escaping () -> Void) -> some View {
+        MenuButtons.plain(label, action: action)
+    }
+}
+
+/// The menu's two buttons, shared by the pause card and the main menu: one gold primary per screen, and
+/// bordered ivory for the rest.
+enum MenuButtons {
+    static func prominent(_ label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) { Text(label).font(.headline).frame(maxWidth: .infinity).frame(minHeight: 48) }
             .buttonStyle(.borderedProminent).tint(.gold).foregroundStyle(.black)
     }
 
-    private func plain(_ label: String, action: @escaping () -> Void) -> some View {
+    static func plain(_ label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) { Text(label).frame(maxWidth: .infinity).frame(minHeight: 44) }
             .buttonStyle(.bordered).tint(.ivory.opacity(0.8))
     }
