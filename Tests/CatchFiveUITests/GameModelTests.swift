@@ -888,3 +888,28 @@ import Testing
     #expect(SeatMood.expression(for: 1, in: match, matchWinner: 1) == .triumphant)
     #expect(SeatMood.expression(for: 2, in: match, matchWinner: 1) == .dismayed)
 }
+
+@Test func tossedCardsLandDifferentlyButStayPut() {
+    // The same card in the same trick of the same hand always lands the same way, so a re-render never nudges it.
+    let ace = Card(.spades, .ace), five = Card(.hearts, .five)
+    let pose = CardToss.pose(for: ace, hand: 3, trick: 2)
+    #expect(pose == CardToss.pose(for: ace, hand: 3, trick: 2))
+    // Different cards, or the same card in another hand, land differently.
+    #expect(pose != CardToss.pose(for: five, hand: 3, trick: 2))
+    #expect(pose != CardToss.pose(for: ace, hand: 4, trick: 2))
+    // Every pose stays within a hand's-throw of the seat's spot and never turns a card past readable.
+    for hand in 1...12 {
+        for trick in 0...5 {
+            for suit in Suit.allCases {
+                for rank in Rank.allCases {
+                    let p = CardToss.pose(for: Card(suit, rank), hand: hand, trick: trick)
+                    #expect(abs(p.rotation) <= Theme.Table.tossRotationDegrees)
+                    #expect(abs(p.offset.width) <= Theme.Table.tossDrift && abs(p.offset.height) <= Theme.Table.tossDrift)
+                }
+            }
+        }
+    }
+    // The spread is real: over a hand's worth of cards the rotations are not all on one side.
+    let rotations = Rank.allCases.map { CardToss.pose(for: Card(.clubs, $0), hand: 1, trick: 0).rotation }
+    #expect(rotations.contains { $0 > 2 } && rotations.contains { $0 < -2 })
+}

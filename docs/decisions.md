@@ -390,3 +390,11 @@ D36 is taken by the cast, login and menu work on the parallel branch.
 
 **Why:** The cast is the table's personality, and a face that reacts to the trick just taken makes turn order and outcomes legible without reading a label. Keeping the input to public events keeps it honest.
 
+## D52. Played cards land as if tossed (PR #35, 2026-09-05)
+
+**Chosen:** Each card on the pile keeps its seat's nudge and adds a turn of up to eleven degrees and a drift of up to nine points of its own, from `CardToss.pose(for:hand:trick:)`. The pose is a pure function of the card, the hand number and the trick number, seeded through the same generator as the wood grain, so a re-render never moves a card, the same trick looks the same after a relaunch, and the next trick and the next hand come out differently. The flight in and the collapse toward the winner are unchanged; the card simply arrives at its own angle.
+
+**Over:** Random poses drawn at render time (they would jitter on every update and differ after a restore); one fixed layout (Connor: the pile should look like a player threw the cards in, not always the same).
+
+**Why:** A hand-thrown pile reads as a table with people at it. Determinism is what keeps that from becoming noise.
+

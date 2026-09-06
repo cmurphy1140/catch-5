@@ -92,7 +92,8 @@ struct TableSurface: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(model.spokenDescription(of: play, winner: pile.winner))
                 .accessibilityHint("Explains why this card was played")
-                .offset(Self.pileOffset(for: play.seat))
+                .rotationEffect(.degrees(toss(for: play).rotation))
+                .offset(Self.pileOffset(for: play.seat) + toss(for: play).offset)
                 .matchedGeometryEffect(id: play.card, in: namespace)
                 .transition(transition(for: play, winner: pile.winner, reach: reach))
                 .zIndex(Double(pile.plays.firstIndex(where: { $0.card == play.card }) ?? 0))
@@ -103,6 +104,11 @@ struct TableSurface: View {
         }
         .accessibilitySortPriority(5)
         .dynamicTypeSize(...Theme.Card.maximumTypeSize)
+    }
+
+    /// The card's own turn and drift on the pile, fixed for as long as this trick lies there.
+    private func toss(for play: Play) -> CardToss.Pose {
+        CardToss.pose(for: play.card, hand: model.match.handNumber, trick: hand.completedTricks.count)
     }
 
     /// Where each seat's card rests on the pile: nudged toward the seat that played it.
@@ -454,4 +460,8 @@ struct DeckView: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(remaining) cards in the deck")
     }
+}
+
+private func + (lhs: CGSize, rhs: CGSize) -> CGSize {
+    CGSize(width: lhs.width + rhs.width, height: lhs.height + rhs.height)
 }
