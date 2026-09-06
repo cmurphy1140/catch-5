@@ -323,11 +323,17 @@ struct TableSurface: View {
     }
 
     /// Four suit pills, each named for newcomers and captioned with what choosing it keeps and draws.
+    /// Suits alternate red and black, ♥ ♠ ♦ ♣, so the two red suits never sit side by side (spec R13).
+    static let trumpOrder: [Suit] = [.hearts, .spades, .diamonds, .clubs]
+
     private var trumpChoice: some View {
         HStack(alignment: .top, spacing: Theme.Table.auctionButtonSpacing) {
-            ForEach(Suit.allCases, id: \.self) { suit in
+            ForEach(Self.trumpOrder, id: \.self) { suit in
                 VStack(spacing: 2) {
-                    actionButton(suit.glyph, action: .chooseTrump(suit), fill: suit.pillFill, font: .largeTitle.weight(.bold))
+                    // The glyph carries the suit's colour on the same dark pill as every other choice; a red
+                    // fill only hid the glyph (spec R13).
+                    actionButton(suit.glyph, action: .chooseTrump(suit), font: .largeTitle.weight(.bold),
+                                 labelColor: suit.isRed ? Color.suitRed : .ivory)
                         .accessibilityLabel("\(suit.rawValue), \(model.trumpPreview(for: suit) ?? "")")
                     // One short caption line so the auction still fits without scrolling (D34): the suit and
                     // what it keeps; the draw count is implied and VoiceOver reads the full preview.
@@ -342,10 +348,10 @@ struct TableSurface: View {
 
     /// Pills fill their column so neighbours almost touch: solid, tall, with a large label.
     private func actionButton(_ label: String, action: PlayerAction, fill: Color = Theme.Wood.inlay,
-                              font: Font = .title3.weight(.semibold)) -> some View {
+                              font: Font = .title3.weight(.semibold), labelColor: Color = .ivory) -> some View {
         // One dry run per pill: the reason, when there is one, is also why the pill is greyed.
         let reason = model.validationMessage(for: action)
-        return Button { model.send(action) } label: { Text(label).font(font) }
+        return Button { model.send(action) } label: { Text(label).font(font).foregroundStyle(labelColor) }
             .buttonStyle(PillButtonStyle(fill: fill))
             .disabled(reason != nil)
             // A greyed pill still says why it is greyed to assistive technology.
@@ -455,8 +461,6 @@ struct SeatView: View {
 
 extension Suit {
     var isRed: Bool { self == .hearts || self == .diamonds }
-    /// Pill fill for a suit choice: the red suits get a deep red, the black suits the inlay.
-    var pillFill: Color { isRed ? Color(red: 0.56, green: 0.13, blue: 0.15) : Theme.Wood.inlay }
 }
 
 extension Color {

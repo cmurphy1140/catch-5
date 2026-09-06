@@ -1075,3 +1075,9 @@ import Testing
     #expect(DeckView.thickness(7) == 2 && DeckView.thickness(18) == 3)
     #expect(DeckView.thickness(28) == 5 && DeckView.thickness(52) == 5)
 }
+
+@Test func trumpChoicesAlternateRedAndBlack() {
+    let order = TableSurface.trumpOrder
+    #expect(Set(order) == Set(Suit.allCases) && order.count == 4)
+    for pair in zip(order, order.dropFirst()) { #expect(pair.0.isRed != pair.1.isRed) }
+}
