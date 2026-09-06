@@ -982,6 +982,8 @@ import Testing
 @Test func theRulesSayHowTheFirstDealerIsChosen() {
     #expect(RulesText.sections[0].paragraphs.count == 2)
     #expect(RulesText.sections[0].paragraphs[1].contains("highest deals"))
+}
+
 @Test func rulesFiguresMatchTheEngine() throws {
     // The scoring tiles add up to the nine points a hand can hold, and the Game ledger quotes the engine's values.
     #expect(RulesFigures.pointTiles.map(\.points).reduce(0, +) == 9)
