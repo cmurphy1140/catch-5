@@ -37,6 +37,8 @@ struct TableSurface: View {
     }
 
     private var inAuction: Bool { hand.phase == .bidding || hand.phase == .choosingTrump }
+    /// Coaching shows only in beginner mode (spec R14); rules, refusals and the record of play show in both.
+    private var coaching: Bool { model.settings.beginnerMode }
 
     var body: some View {
         GeometryReader { geometry in
@@ -105,8 +107,9 @@ struct TableSurface: View {
                             .stroke(.gold, lineWidth: pile.winner == play.seat ? 3 : 0))
                 }
                 .buttonStyle(.plain)
+                .allowsHitTesting(coaching)
                 .accessibilityLabel(model.spokenDescription(of: play, winner: pile.winner))
-                .accessibilityHint("Explains why this card was played")
+                .accessibilityHint(coaching ? "Explains why this card was played" : "")
                 .rotationEffect(.degrees(toss(for: play).rotation))
                 .offset(Self.pileOffset(for: play.seat) + toss(for: play).offset)
                 .matchedGeometryEffect(id: play.card, in: namespace)
@@ -190,7 +193,7 @@ struct TableSurface: View {
                 statusText.font(.title3.weight(.medium)).multilineTextAlignment(.center).frame(maxWidth: .infinity)
                     .lineLimit(1).minimumScaleFactor(0.7)
                     .accessibilityFocused(statusFocus)
-                if model.isHumanTurn, hand.phase != .finished {
+                if model.isHumanTurn, hand.phase != .finished, coaching {
                     smallButton("lightbulb", label: "Hint") { model.showHint() }
                 } else {
                     Spacer().frame(width: Theme.Table.statusButtonHitSize, height: Theme.Table.statusButtonHitSize)
@@ -279,7 +282,7 @@ struct TableSurface: View {
             } else if hand.phase == .bidding, !model.isHumanTurn, let call = model.latestCall(for: 0) {
                 Text("You: \(call)").font(.footnote).opacity(0.85)
             } else if !inAuction {
-                Text(pile.plays.isEmpty ? " " : (reopenedTrick != nil ? "Tap a card to see why it was played" : "Tap a card on the table to see why it was played"))
+                Text(pile.plays.isEmpty || !coaching ? " " : (reopenedTrick != nil ? "Tap a card to see why it was played" : "Tap a card on the table to see why it was played"))
                     .font(.footnote).foregroundStyle(.ivory.opacity(0.7))
                     .accessibilityHidden(true)
             }
@@ -338,9 +341,9 @@ struct TableSurface: View {
                     actionButton(suit.glyph, action: .chooseTrump(suit), font: .largeTitle.weight(.bold),
                                  labelColor: suit.isRed ? Color.suitRed : .ivory)
                         .accessibilityLabel("\(suit.rawValue), \(model.trumpPreview(for: suit) ?? "")")
-                    // One short caption line so the auction still fits without scrolling (D34): the suit and
-                    // what it keeps; the draw count is implied and VoiceOver reads the full preview.
-                    Text(model.trumpPreview(for: suit).flatMap { $0.split(separator: " · ").first }.map { "\(suit.rawValue) · \($0)" } ?? suit.rawValue)
+                    // One short caption line so the auction still fits without scrolling (D34): the suit and, in
+                    // beginner mode, what it keeps (spec R30); the draw count is implied and VoiceOver reads it all.
+                    Text(coaching ? (model.trumpPreview(for: suit).flatMap { $0.split(separator: " · ").first }.map { "\(suit.rawValue) · \($0)" } ?? suit.rawValue) : suit.rawValue)
                         .font(.caption2.weight(.semibold)).opacity(0.8)
                         .lineLimit(1).minimumScaleFactor(0.6)
                 }
@@ -448,7 +451,7 @@ struct SeatView: View {
             Text(model.seatNames[seat]).font(.headline).lineLimit(1).minimumScaleFactor(0.6)
             badges
         }
-        .padding(.horizontal, 4).padding(.vertical, 2)
+        .padding(.horizontal, 4).padding(.vertical, 1)
         .frame(width: width)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(model.seatSummary(for: seat))

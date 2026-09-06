@@ -589,6 +589,16 @@ import Testing
     #expect(TableLayout.sideSeatWidth(available: 600) == Theme.Table.seatTileWidth)
 }
 
+@Test func beginnerModeIsOnByDefaultAndForOlderSettingsFiles() throws {
+    // Guidance is the app's original behaviour, so a settings file from before the switch keeps it (spec R14).
+    #expect(Settings().beginnerMode)
+    let older = try JSONDecoder().decode(Settings.self, from: Data(#"{"playerName":"Connor"}"#.utf8))
+    #expect(older.beginnerMode)
+    var normal = Settings(); normal.beginnerMode = false
+    let round = try JSONDecoder().decode(Settings.self, from: try JSONEncoder().encode(normal))
+    #expect(!round.beginnerMode)
+}
+
 @Test func seatTilesHoldTheLargerFaceAndItsHaloOnEveryVerifiedWidth() {
     // Faces grew to at least 1.6× their first size (spec R2) and, with the halo at full breath, still fit
     // inside the tile the pile row hands a side seat on the verified widths (iPhone 16 Pro and 16, less

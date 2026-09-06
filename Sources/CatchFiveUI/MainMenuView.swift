@@ -43,6 +43,17 @@ struct MainMenuView: View {
                 .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .accessibilityElement(children: .combine)
 
+                // One setting for guidance (spec R14): on adds hints and explanations, off is a clean table.
+                Toggle(isOn: $model.settings.beginnerMode) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Beginner mode").font(.headline)
+                        Text("Hints and guided play").font(.footnote).opacity(0.75)
+                    }
+                }
+                .tint(.gold)
+                .padding(.horizontal, 16).padding(.vertical, 12)
+                .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+
                 VStack(spacing: 10) {
                     if model.match.winner == nil {
                         MenuButtons.prominent("Continue game", action: onPlay)
