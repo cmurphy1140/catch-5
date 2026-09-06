@@ -67,16 +67,13 @@ struct TableSurface: View {
             }
             .scrollBounceBehavior(.basedOnSize)
             .frame(width: geometry.size.width, height: geometry.size.height)
-            // The stock sits in the top-right corner of the table; refills deal in from here.
-            .overlay(alignment: .topTrailing) {
-                // The stock, and beneath it the discards: the cards that left every hand when trump was named.
-                VStack(spacing: 10) {
-                    DeckView(remaining: hand.stock.count)
-                    if !hand.discarded.isEmpty {
-                        DiscardPileView(count: hand.discarded.count).transition(.opacity)
-                    }
+            // The stock sits in the top-right corner of the table; refills deal in from here. The discards
+            // mirror it in the top-left, clear of the hand (spec R3), and discards fly there.
+            .overlay(alignment: .topTrailing) { DeckView(remaining: hand.stock.count).padding(.top, 6) }
+            .overlay(alignment: .topLeading) {
+                if !hand.discarded.isEmpty {
+                    DiscardPileView(count: hand.discarded.count).padding(.top, 6).transition(.opacity)
                 }
-                .padding(.top, 6)
             }
             // The finished hand's card takes over the table; what is underneath fades back and leaves the
             // accessibility tree, so VoiceOver meets the card and nothing behind it.
@@ -508,17 +505,17 @@ struct DeckView: View {
     }
 }
 
-/// The discards, face down under the deck: nothing about them is a secret worth keeping (the rules put
+/// The discards, face down in the top-left corner: nothing about them is a secret worth keeping (the rules put
 /// them out of play), but nothing about them needs showing either, so no number here (spec R20).
 struct DiscardPileView: View {
     let count: Int
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
+        ZStack(alignment: .bottomLeading) {
             ForEach(0..<min(3, DeckView.thickness(count)), id: \.self) { index in
                 CardBackView(width: Theme.Table.deckWidth * 0.85)
-                    .rotationEffect(.degrees(Double(index) * 5 - 5))
-                    .offset(x: Double(index) * -1.5, y: Double(index) * -1.5)
+                    .rotationEffect(.degrees(5 - Double(index) * 5))
+                    .offset(x: Double(index) * 1.5, y: Double(index) * -1.5)
             }
         }
         .opacity(0.8)

@@ -92,8 +92,6 @@ public enum Theme {
         public static let deckWidth = 38.0
         /// How far above the fan the deck sits, for the deal-in flight.
         public static let deckRise = 520.0
-        /// The discard pile sits this far below the deck; discards fly there when trump is named.
-        public static let discardDrop = 72.0
         /// Bid, pass and suit pills: full column width, solid, well above the 44 pt minimum.
         public static let auctionButtonHeight = 64.0
         public static let auctionButtonSpacing = 6.0

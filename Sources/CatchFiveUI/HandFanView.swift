@@ -102,7 +102,7 @@ struct HandFanView: View {
                 .combined(with: .scale(scale: 0.6)).combined(with: .opacity)
                 .animation(Theme.Motion.flight.delay(Theme.Motion.dealDelay + Double(index) * Theme.Motion.dealStagger))
             : .identity
-        // A discard flies to the pile under the deck in the top-right corner, shrinking to a card back.
+        // A discard flies to the pile in the top-left corner, shrinking to a card back.
         let removal: AnyTransition = hand.phase == .choosingTrump
             ? .offset(Self.discardTarget(index: index, count: model.humanCards.count, width: width))
                 .combined(with: .scale(scale: Theme.Table.deckWidth / scaledWidth)).combined(with: .opacity)
@@ -118,10 +118,10 @@ struct HandFanView: View {
         return CGSize(width: width - Theme.Table.deckWidth / 2 - cardCentre, height: -Theme.Table.deckRise)
     }
 
-    /// Where a discard lands: the pile just below the deck, in the same corner.
+    /// Where a discard lands: the pile in the top-left corner, level with the deck (spec R3).
     nonisolated static func discardTarget(index: Int, count: Int, width: Double) -> CGSize {
-        let origin = dealOrigin(index: index, count: count, width: width)
-        return CGSize(width: origin.width, height: origin.height + Theme.Table.discardDrop)
+        let cardCentre = (Double(index) + 0.5) * width / Double(max(count, 1))
+        return CGSize(width: Theme.Table.deckWidth * 0.85 / 2 - cardCentre, height: -Theme.Table.deckRise)
     }
 
     /// Cards rotate from −8° on the left to +8° on the right about their bottom edge.
