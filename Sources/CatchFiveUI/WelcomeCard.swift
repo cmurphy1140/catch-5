@@ -1,10 +1,10 @@
 import CatchFive
 import SwiftUI
 
-/// The pause card, shown over the dimmed table at launch and from the table's Home control: who you are,
-/// then exactly three actions (spec R32). Continue game (until the match is won) is primary, New match asks
-/// first, and Main menu keeps the match and goes to the menu, where Settings, the lessons, statistics and
-/// the build explainer live.
+/// The pause card, shown over the dimmed table from the table's menu: exactly three actions (spec R32).
+/// Continue game (until the match is won) is primary, New match asks first, and Main menu keeps the match
+/// and goes to the menu, where Settings, the lessons, statistics and the build explainer live. No greeting
+/// and no summary: the main menu carries those.
 struct WelcomeCard: View {
     @ObservedObject var model: GameModel
     let onPlay: () -> Void
@@ -14,20 +14,11 @@ struct WelcomeCard: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            HStack(spacing: 14) {
-                PortraitView(portrait: model.settings.playerPortrait, size: 48)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("CATCH 5").font(.system(.caption2, design: .monospaced).weight(.medium)).tracking(1).opacity(0.7)
-                    Text("Welcome back, \(model.settings.playerName ?? "friend")")
-                        .font(.system(.title3, design: .serif).weight(.semibold)).lineLimit(2)
-                }
-                Spacer(minLength: 0)
+            VStack(spacing: 2) {
+                Text("CATCH 5").font(.system(.caption2, design: .monospaced).weight(.medium)).tracking(1).opacity(0.7)
+                Text("Paused").font(.system(.title3, design: .serif).weight(.semibold))
             }
             .accessibilityElement(children: .combine)
-
-            if let context = model.resumeContext {
-                Text(context).font(.footnote).opacity(0.8).frame(maxWidth: .infinity, alignment: .leading)
-            }
 
             VStack(spacing: 10) {
                 if model.match.winner == nil {
@@ -49,8 +40,9 @@ struct WelcomeCard: View {
         .shadow(color: .black.opacity(0.5), radius: 24, y: 12)
         .foregroundStyle(.ivory)
         .padding(24)
-        .confirmationDialog("Start over? This replaces your saved game.", isPresented: $confirmNewMatch) {
+        .confirmationDialog("Start over? This replaces your saved game.", isPresented: $confirmNewMatch, titleVisibility: .visible) {
             Button("Start new match", role: .destructive) { model.newGame(); onPlay() }
+            Button("Cancel", role: .cancel) {}
         }
     }
 

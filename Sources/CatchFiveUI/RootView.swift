@@ -1,40 +1,38 @@
 import SwiftUI
 
 /// Owns the one `GameModel`. A new player sees login, then the tutorial as an intro they may skip, then the
-/// table. A returning player lands on the table with a small pause card over it; Main menu on that card, and
-/// Continue game on the menu, move between the menu and the table with the match preserved (spec R31, R32).
+/// table. A returning player lands on the main menu, Continue game one tap away; the table's menu opens a
+/// pause card whose Main menu comes back here with the match preserved (spec R31, R32).
 public struct RootView: View {
     enum Screen { case login, intro, menu, table }
 
     @StateObject private var model: GameModel
     @StateObject private var tutorial: TutorialModel
     @State private var screen: Screen
-    /// The returning player's card; also reopened by the table's chevron.
-    @State private var showWelcome: Bool
+    /// The pause card over the table, opened from the table's menu.
+    @State private var showWelcome = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorSchemeContrast) private var contrast
 
     public init(model: GameModel) {
         _model = StateObject(wrappedValue: model)
         _tutorial = StateObject(wrappedValue: model.makeTutorial())
-        let first = Self.initialScreen(for: model.settings)
-        _screen = State(initialValue: first)
-        _showWelcome = State(initialValue: first == .table)
+        _screen = State(initialValue: Self.initialScreen(for: model.settings))
     }
 
-    /// Login until a name is saved; the intro until it has been seen or skipped; then the table, with the
-    /// welcome card over it.
+    /// Login until a name is saved; the intro until it has been seen or skipped; then the main menu, never
+    /// a popup over the table (spec R32).
     nonisolated static func initialScreen(for settings: Settings) -> Screen {
         if !settings.hasSignedIn { return .login }
-        return settings.hasSeenRules ? .table : .intro
+        return settings.hasSeenRules ? .menu : .intro
     }
 
-    enum Destination: Equatable { case welcome, intro, table }
+    enum Destination: Equatable { case menu, intro, table }
 
     /// Where New match on the sign-in screen leads. An older install that already has a match in progress
-    /// keeps it and gets the welcome card, so nothing is thrown away without a choice.
+    /// keeps it and gets the main menu, so nothing is thrown away without a choice.
     nonisolated static func destinationAfterSignIn(matchInProgress: Bool, hasSeenRules: Bool) -> Destination {
-        if matchInProgress { return .welcome }
+        if matchInProgress { return .menu }
         return hasSeenRules ? .table : .intro
     }
 
@@ -81,7 +79,7 @@ public struct RootView: View {
     private func startFirstMatch() {
         if model.match.winner != nil { model.newGame() }
         switch Self.destinationAfterSignIn(matchInProgress: model.matchInProgress, hasSeenRules: model.settings.hasSeenRules) {
-        case .welcome: showWelcome = true; show(.table)
+        case .menu: showWelcome = false; show(.menu)
         case .intro: showWelcome = false; show(.intro)
         case .table: showWelcome = false; show(.table)
         }

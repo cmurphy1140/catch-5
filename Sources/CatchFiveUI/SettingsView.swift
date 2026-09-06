@@ -18,6 +18,11 @@ struct SettingsView: View {
                 } header: { Text("Difficulty") } footer: {
                     Text("Easy players use the original strategy and lose about two matches in three to Standard. Hints always use Standard.")
                 }
+                Section {
+                    Toggle("Beginner mode", isOn: $settings.beginnerMode)
+                } header: { Text("Assistance") } footer: {
+                    Text("Hints, tap-to-explain on the table and what each trump would keep. Off is normal mode: the same rules and a clean table.")
+                }
                 Section("Play speed") {
                     Picker("Computer pace", selection: $settings.playSpeed) {
                         Text("Relaxed").tag(Settings.PlaySpeed.relaxed)

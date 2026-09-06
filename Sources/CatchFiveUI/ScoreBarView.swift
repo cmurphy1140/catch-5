@@ -1,10 +1,10 @@
 import CatchFive
 import SwiftUI
 
-/// The bar pinned above the table, one row (spec R1): the way home, a score chip that opens the score
-/// sheet, the contract chip once bidding has resolved, and the menu. Nothing else lives up here; the
-/// hand number is on the score sheet, the seat to act is ringed at the table, and the dealer badge sits
-/// on the hand's label.
+/// The bar pinned above the table, one row of three (spec R1): a score chip that opens the score sheet,
+/// the contract chip once bidding has resolved, and the menu, which is also where the game pauses (spec
+/// R32). Nothing else lives up here; the hand number is on the score sheet, the seat to act is ringed at
+/// the table, and the dealer badge sits on the hand's label.
 struct ScoreBarView: View {
     /// What the contract chip shows: the bid and who holds it, plus trump once it is named.
     struct Contract: Equatable {
@@ -26,25 +26,11 @@ struct ScoreBarView: View {
     let onStatistics: () -> Void
     let onTutorial: () -> Void
     let onNewGame: () -> Void
-    let onLeave: () -> Void
+    /// Opens the pause card over the table.
+    let onPause: () -> Void
 
     var body: some View {
         HStack(spacing: 10) {
-            // Chevron and word, no plate (spec R16): the way back to the welcome card reads as a button
-            // because it says where it goes, not because it is boxed.
-            Button(action: onLeave) {
-                HStack(spacing: 4) {
-                    Image(systemName: "chevron.left").font(.subheadline.weight(.bold))
-                    Text("Home").font(.subheadline.weight(.semibold))
-                }
-                .shadow(color: .black.opacity(0.35), radius: 1, y: 1)
-                .frame(minHeight: 44)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Home")
-            .accessibilityHint("Shows the welcome card: continue this game, start a new match, or open Settings")
-
             Button(action: onScores) {
                 HStack(spacing: 4) {
                     Text("Us").opacity(0.7)
@@ -67,6 +53,7 @@ struct ScoreBarView: View {
             Spacer(minLength: 4)
 
             Menu {
+                Button("Pause game", systemImage: "pause.circle", action: onPause)
                 Button("Undo last action", systemImage: "arrow.uturn.backward", action: onUndo).disabled(!canUndo)
                 Divider()
                 Button("Settings", systemImage: "gearshape", action: onSettings)

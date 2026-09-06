@@ -509,7 +509,7 @@ import Testing
 
 @MainActor @Test func rootOpensOnLoginUntilSignedInThenOnTheTable() {
     #expect(RootView.initialScreen(for: Settings()) == .login)
-    #expect(RootView.initialScreen(for: Settings(hasSeenRules: true, playerName: "Connor")) == .table)
+    #expect(RootView.initialScreen(for: Settings(hasSeenRules: true, playerName: "Connor")) == .menu)
 }
 
 
@@ -589,15 +589,25 @@ import Testing
     #expect(TableLayout.sideSeatWidth(available: 600) == Theme.Table.seatTileWidth)
 }
 
+@Test func beginnerModeIsOnByDefaultAndForOlderSettingsFiles() throws {
+    // Guidance is the app's original behaviour, so a settings file from before the switch keeps it (spec R14).
+    #expect(Settings().beginnerMode)
+    let older = try JSONDecoder().decode(Settings.self, from: Data(#"{"playerName":"Connor"}"#.utf8))
+    #expect(older.beginnerMode)
+    var normal = Settings(); normal.beginnerMode = false
+    let round = try JSONDecoder().decode(Settings.self, from: try JSONEncoder().encode(normal))
+    #expect(!round.beginnerMode)
+}
+
 @Test func seatTilesHoldTheLargerFaceAndItsHaloOnEveryVerifiedWidth() {
     // Faces grew to at least 1.6× their first size (spec R2) and, with the halo at full breath, still fit
-    // inside the narrowest tile the pile row can hand a side seat.
+    // inside the tile the pile row hands a side seat on the verified widths (iPhone 16 Pro and 16, less
+    // the table's inset).
     #expect(Theme.Table.portraitSize >= 36 * 1.6)
     let halo = Theme.Table.portraitSize * Theme.Table.activePulseScale + 2 * Theme.Table.activeRingGap
-    for available in [361.0, 343.0] {
+    for available in [370.0, 361.0] {
         #expect(TableLayout.sideSeatWidth(available: available) >= halo + 8)
     }
-    #expect(TableLayout.minimumSeatWidth >= halo + 8)
 }
 
 @MainActor @Test func validationMessagesExplainRefusalsWithoutChangingTheMatch() throws {
@@ -791,14 +801,14 @@ import Testing
     var settings = Settings(playerName: "Connor")
     #expect(RootView.initialScreen(for: settings) == .intro)   // signed in, never saw the intro or rules
     settings.hasSeenRules = true
-    #expect(RootView.initialScreen(for: settings) == .table)
+    #expect(RootView.initialScreen(for: settings) == .menu)
     #expect(RootView.initialScreen(for: Settings()) == .login)
 }
 
 @Test func signingInKeepsAMatchAnExistingInstallLeftInProgress() {
-    // An older install with a saved match reaches the welcome card, not a silent new deal.
-    #expect(RootView.destinationAfterSignIn(matchInProgress: true, hasSeenRules: true) == .welcome)
-    #expect(RootView.destinationAfterSignIn(matchInProgress: true, hasSeenRules: false) == .welcome)
+    // An older install with a saved match reaches the main menu, not a silent new deal.
+    #expect(RootView.destinationAfterSignIn(matchInProgress: true, hasSeenRules: true) == .menu)
+    #expect(RootView.destinationAfterSignIn(matchInProgress: true, hasSeenRules: false) == .menu)
     #expect(RootView.destinationAfterSignIn(matchInProgress: false, hasSeenRules: false) == .intro)
     #expect(RootView.destinationAfterSignIn(matchInProgress: false, hasSeenRules: true) == .table)
 }

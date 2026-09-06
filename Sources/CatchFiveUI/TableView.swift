@@ -86,7 +86,7 @@ public struct TableView: View {
                          canUndo: model.canUndo, onUndo: { model.undo() },
                          onScores: { showScoreboard = true }, onSettings: { showSettings = true },
                          onStatistics: { showStatistics = true }, onTutorial: { showTutorial = true },
-                         onNewGame: { confirmNewGame = true }, onLeave: onLeave)
+                         onNewGame: { confirmNewGame = true }, onPause: onLeave)
                 .padding(.horizontal, 16).padding(.top, 2).padding(.bottom, 8)
                 // A solid header band: runs up behind the status bar and ends in a frown, the corners
                 // hanging lower than the middle, so the scores sit on one colour and the wood starts beneath.
@@ -190,8 +190,9 @@ public struct TableView: View {
                 Button("Bid 9 and out", role: .destructive) { model.send(.nineAndOut) }
                 Button("Cancel", role: .cancel) {}
             } message: { Text("Take all nine points to win the match. Take fewer and you lose it, whatever the score.") }
-            .confirmationDialog("Start over? This replaces your saved game.", isPresented: $confirmNewGame) {
+            .confirmationDialog("Start over? This replaces your saved game.", isPresented: $confirmNewGame, titleVisibility: .visible) {
                 Button("Start new game", role: .destructive) { model.newGame() }
+                Button("Cancel", role: .cancel) {}
             }
     }
 
