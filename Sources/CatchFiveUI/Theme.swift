@@ -81,14 +81,15 @@ public enum Theme {
         public static let pileMarginY = 48.0
         /// The little stack of backs under a seat's name in play: a hint of a hand, not a count (spec R20).
         public static let seatBackWidth = 14.0
-        /// Faces around the table read at a glance from arm's length: 1.67× the 36 pt they started at (spec R2).
-        public static let portraitSize = 60.0
+        /// Faces around the table read at a glance from arm's length: 68 pt, up from the 36 they started at
+        /// (spec R2) and a touch over the first pass's 60, the most a side tile holds beside the pile.
+        public static let portraitSize = 68.0
         /// The tutorial's lesson tiles keep the smaller face so three of them still share a row.
         public static let tutorialPortraitSize = 36.0
         /// The seat to act wears a gold halo: a ring this wide, this far outside the portrait, that pulses
         /// gently to `activePulseScale` unless motion is reduced (spec R2).
         public static let activeRingWidth = 3.0
-        public static let activeRingGap = 4.0
+        public static let activeRingGap = 3.0
         public static let activePulseScale = 1.05
         /// A played card lands with its own small turn and drift, like a card tossed in by hand.
         public static let tossRotationDegrees = 11.0
@@ -98,7 +99,7 @@ public enum Theme {
         /// Air between the header's edge and the partner's halo; the seats hold the top of the table (spec R25).
         public static let seatInset = 10.0
         /// The status-line glyph buttons (last trick, hint): hit area; the glyph itself has no plate.
-        public static let statusButtonHitSize = 48.0
+        public static let statusButtonHitSize = 44.0
         /// The deck in the table's top-right corner.
         public static let deckWidth = 38.0
         /// How far above the fan the deck sits, for the deal-in flight.
