@@ -5,7 +5,7 @@
 ```mermaid
 flowchart TB
     subgraph View["View layer — SwiftUI (Sources/CatchFiveUI)"]
-        RV["RootView: login → intro → table<br/>LoginView · IntroView · WelcomeCard · PortraitView (Cast)"]
+        RV["RootView: login → intro → main menu → table<br/>LoginView · IntroView · MainMenuView · WelcomeCard (pause) · PortraitView (Cast)"]
         TV["TableView + TableScheduler<br/>ScoreBarView · TableSurface (SeatView, pile) · HandFanView"]
         CV["CardView · CardBackView · Theme"]
         HS[HandSummaryView]
@@ -37,7 +37,7 @@ flowchart TB
 
 ### Screens
 
-`RootView` owns the one `GameModel`. A new player (no `Settings.playerName`) sees the login screen, whose only button is New match; that opens a one-page intro (`IntroView`: how a hand goes in five steps, with Learn the game for the full tutorial and Deal me in to skip) and then the table. A returning player lands on the table with a small `WelcomeCard` over it: Continue game until the match is won, New match, Settings. The table's chevron reopens that card. The three opponents are the fixed `Cast` (Hazel, Otto, Rue), whose names are the defaults in `Settings.seatNames` and whose faces `PortraitView` draws from a `Portrait` recipe.
+`RootView` owns the one `GameModel`. A new player (no `Settings.playerName`) sees the login screen, whose only button is New match; that opens a one-page intro (`IntroView`: how a hand goes in five steps, with Learn the game for the full tutorial and Deal me in to skip) and then the table. A returning player lands on the main menu (`MainMenuView`): a card with their name, difficulty and where the saved match stands, a Beginner mode toggle, Continue game in gold while a match is in progress, New match (confirmed if it would replace one) and How to play, with Settings, Statistics and How Catch 5 is built in a hamburger dropdown at the top right. The table's menu has Pause game, which opens `WelcomeCard` as a pause card with exactly Continue game, New match and Main menu; Main menu keeps the match for Continue game. The three opponents are the fixed `Cast` (Hazel, Otto, Rue), whose names are the defaults in `Settings.seatNames` and whose faces `PortraitView` draws from a `Portrait` recipe.
 
 ```mermaid
 flowchart LR
@@ -46,12 +46,13 @@ flowchart LR
     Login -- "New match" --> Intro
     Intro -- "Deal me in" --> Table
     Intro -- "Learn the game" --> Tutorial -- "Skip / Deal me in" --> Table
-    Q -- yes --> Table
-    Table --- Card["Welcome card: Continue game · New match · Settings"]
-    Table -- chevron --> Card
+    Q -- yes --> Menu["Main menu"]
+    Menu -- "Continue game / New match" --> Table
+    Table -- "Menu › Pause game" --> Card["Pause card: Continue game · New match · Main menu"]
+    Card -- "Main menu" --> Menu
 ```
 
-Dependencies only point downward. The engine module imports nothing but the Swift standard library and Foundation. That is not a style preference; it is what lets all 108 tests run on the Mac in a few seconds with no simulator.
+Dependencies only point downward. The engine module imports nothing but the Swift standard library and Foundation. That is not a style preference; it is what lets all 149 tests run on the Mac in a few seconds with no simulator.
 
 ## MVVM, mapped to this repo
 

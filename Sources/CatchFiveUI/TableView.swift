@@ -190,10 +190,12 @@ public struct TableView: View {
                 Button("Bid 9 and out", role: .destructive) { model.send(.nineAndOut) }
                 Button("Cancel", role: .cancel) {}
             } message: { Text("Take all nine points to win the match. Take fewer and you lose it, whatever the score.") }
-            .confirmationDialog("Start over? This replaces your saved game.", isPresented: $confirmNewGame, titleVisibility: .visible) {
+            // An alert, not a confirmation dialog: iOS 26 anchors the dialog to its button as a popover and drops
+            // the Cancel button, so only an alert keeps the explicit way out on every system (D57).
+            .alert("Start over?", isPresented: $confirmNewGame) {
                 Button("Start new game", role: .destructive) { model.newGame() }
                 Button("Cancel", role: .cancel) {}
-            }
+            } message: { Text("This replaces your saved game.") }
     }
 
     /// The header's contract chip: the bid and bidder once the auction has resolved, trump once named.
