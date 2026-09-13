@@ -465,3 +465,11 @@ D36 is taken by the cast, login and menu work on the parallel branch.
 **Over:** `confirmationDialog` with `titleVisibility: .visible` and an explicit Cancel (PR #40). Verified on the iOS 26.5 simulator: the dialog presents as a popover anchored to its button and the system drops the Cancel button, leaving a tap outside as the only way out; on iOS 18 it is a bottom sheet with Cancel. An alert shows both buttons on every system.
 
 **Why:** Throwing away a saved match deserves a named way to say no, wherever the app runs (spec R32: Cancel leaves the match untouched).
+
+## D58. Strategy moves on evidence from real hands: the bot bank (2026-09-13)
+
+**Chosen:** When Connor sees a computer seat bid wrong, waste a trick, ignore its partner or give away the Five or Jack, that hand is flagged and rebuilt from the replay log as a deterministic test fixture in `Tests/CatchFiveTests/`. The test names the bad decision. A change to `ComputerPlayer` is accepted only if it passes the new fixture and the mirrored benchmark against the frozen player (D17) does not get worse.
+
+**Over:** Leaving strategy parked (D22), or tuning heuristics against the benchmark alone. D22's six ideas were measured against a computer opponent; the family plays against people, and the decisions that annoy a person are the ones worth fixing first.
+
+**Why:** Connor named bad bot decisions as the app's biggest miss versus the real table. Each flagged hand is a small, reproducible, human-judged case, which is the cheapest evidence there is.

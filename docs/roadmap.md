@@ -1,4 +1,6 @@
-# Roadmap: from playable to shippable
+# Historical delivery roadmap
+
+**Current direction — September 13, 2026:** use the [family-first UI/UX plan](superpowers/plans/2026-09-05-iphone-16-ui-ux-gameplay.md). The milestones below retain historical delivery context, not a current verification checklist. App Store preparation is deferred; do not infer that archiving is the only remaining work.
 
 **Status (2026-09-04):** all six milestones are merged (PRs #8 to #13), plus the tutorial (PR #14). The app was installed and launched on Connor's iPhone on 2026-09-05 following [device-install.md](device-install.md); archiving for TestFlight is the only step not yet exercised.
 
