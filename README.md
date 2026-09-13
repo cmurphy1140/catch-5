@@ -2,6 +2,22 @@
 
 A SwiftUI iPhone app for Catch 5 (Pitch with Fives) under the house rules in `docs/catch-five-rules.md`: partnerships, first to 25, and a 9-and-out bid.
 
+## Related repositories
+
+This is one of two repositories, and they are deliberately separate.
+
+| Repository | What it is |
+|---|---|
+| **catch-5** (this one) | The single-game subset: Catch 5 on its own. UI and gameplay polish happens here first. |
+| [plug-and-pitch](https://github.com/cmurphy1140/plug-and-pitch) | The multi-preset app, where a match carries a versioned rule set so a variant is a preset rather than a rewrite. Catch 5 and the planned 9–5 are both presets there. |
+
+This repository is the narrower one, and its work is **later ingested into
+plug-and-pitch**. Work lands here first and is brought across; plug-and-pitch
+is not a fork to be merged back into this one. It sits on an older base
+(`c2172db`) than this repository's `main`, so check both before assuming a
+feature is missing. Local checkouts sit side by side at
+`~/Desktop/Projects/catch-5` and `~/Desktop/Projects/plug-and-pitch`.
+
 ## Current Status
 
 Feature complete for single-player: a pure Swift rules engine, three computer opponents, and a SwiftUI table with coaching built in. It runs in the iOS simulator on this Mac; installing on a phone is the next step (`docs/device-install.md`).

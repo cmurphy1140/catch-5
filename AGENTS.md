@@ -1,5 +1,17 @@
 # Catch 5
 
+## The two repositories
+
+Do not confuse these, and do not merge one into the other by hand:
+
+- **catch-5** (this repository, `~/Desktop/Projects/catch-5`) is the single-game subset. Catch 5 UI and gameplay polish happens here first.
+- **plug-and-pitch** (`~/Desktop/Projects/plug-and-pitch`, `git@github.com:cmurphy1140/plug-and-pitch.git`) is the multi-preset app, where a versioned rule set makes a variant a preset rather than a rewrite.
+
+This repository is **later ingested into plug-and-pitch**. Work flows that way
+only; plug-and-pitch is not a branch to merge back. It sits on an older Catch 5
+base (`c2172db`) than this repository’s `main`, so check both before assuming
+a feature is missing.
+
 ## Current Status
 Single-player Catch 5 is feature complete: pure Swift rules engine, three computer opponents (Easy and Standard), replay-log save/resume, and a SwiftUI table with hints, tap-to-explain, hand review, undo, scoreboard, match history, settings, a five-lesson tutorial, the living documentation read natively in the app, Dynamic Type and VoiceOver. A new player signs in once (name, face, difficulty) and gets a one-page skippable intro; a returning player lands on the main menu (Continue game, New match, How to play, a Beginner mode toggle, and a hamburger dropdown with Settings, Statistics and How Catch 5 is built); the table's menu pauses to a three-action card. The three computer seats are a fixed cast (Hazel, Otto, Rue) with drawn portraits. 149 tests pass. The gameplay screen is a table-first layout on felt under an oak header (seats around the pile, fanned hand, cards that travel, gold reserved for five meanings), with every text style two Dynamic Type steps above the system setting. The layout is tuned and verified for the iPhone 16 family (393 pt wide); other sizes get a scroll fallback but are not verified. The app runs in the simulator via `scripts/build-simulator.py` and on Connor's iPhone via `xcodebuild` plus `devicectl` (`docs/device-install.md`).
 
