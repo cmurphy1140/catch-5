@@ -22,6 +22,8 @@ flowchart LR
 
 `Package.swift` declares five targets. Read it as a dependency list: `CatchFiveUI` depends on `CatchFive`, the app depends on `CatchFiveUI`, and nothing depends on the app. The arrows in the diagram only ever point right; the engine never knows a screen exists.
 
+One environment note: this repository lives under the iCloud-synced Desktop, so the folder carries the `com.apple.fileprovider.ignore#P` extended attribute (set September 13, 2026) to keep iCloud out of `.git` and the working tree. After cloning to a synced location, reapply it with `xattr -w 'com.apple.fileprovider.ignore#P' 1 <repo folder>`.
+
 ## The six commands
 
 | Command | What it does | When to use |

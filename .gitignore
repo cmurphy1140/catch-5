@@ -8,3 +8,6 @@ build/
 work/
 .vscode/
 .swiftpm/
+
+# Local task notes are separate from generated work/ output.
+notes/

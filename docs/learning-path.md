@@ -18,6 +18,10 @@ This is the front door to the living documentation. Each linked page is kept in 
 | 10 | [device-install.md](device-install.md) | Putting the app on your own iPhone: what this Mac is missing, the one-time setup, and the build-and-install commands |
 | 11 | [redesign-plan.md](redesign-plan.md) | The table-first redesign: research findings, the design tokens, what changed in each view, the risks that shaped it, and the screenshot matrix that verified it |
 
+## Finding supporting material
+
+The [project README](../README.md) explains the folder structure. [Historical notes](history/README.md) preserve earlier briefs and merge handoffs. Dated specifications and plans remain under `docs/superpowers/`; they are planning records, not proof that the proposed changes were implemented. Local task notes live in `notes/`, apart from generated build output in `work/`.
+
 ## Swift vocabulary used in these pages
 
 You will meet these words constantly. Each is defined once here and used without explanation elsewhere.

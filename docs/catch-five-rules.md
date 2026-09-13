@@ -1,5 +1,7 @@
 # Catch 5 house rules
 
+### Connor's rules: inherited from the family table, written down by him, and his is the last word.
+
 Four players, two partnerships seated opposite; standard 52-card deck. First team to 25 wins. If both reach 25 on the same hand, the bidding team wins.
 
 Before the first hand each player draws a card and the highest deals; equal ranks go by suit, clubs lowest and spades highest. After that the deal passes to the left.
