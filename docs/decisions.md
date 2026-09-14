@@ -473,3 +473,28 @@ D36 is taken by the cast, login and menu work on the parallel branch.
 **Over:** Leaving strategy parked (D22), or tuning heuristics against the benchmark alone. D22's six ideas were measured against a computer opponent; the family plays against people, and the decisions that annoy a person are the ones worth fixing first.
 
 **Why:** Connor named bad bot decisions as the app's biggest miss versus the real table. Each flagged hand is a small, reproducible, human-judged case, which is the cheapest evidence there is.
+
+## D59. The computer is measured against Connor's table, not against Pitch (2026-09-14)
+
+**Chosen:** The sin hunt judges the computer by the house rules and Connor's own bidding table, recorded here because they are unwritten rules at a real table:
+
+| Holding in one suit | The table bids |
+|---|---|
+| three or more, including that suit's five | 5 |
+| ace and king | 3 |
+| ace and queen | 2 |
+| ace and jack | 2 |
+
+These are floors, not ceilings: bidding higher to keep the auction away from the other side is a legitimate move, so only underbidding counts. Alongside them: the trump Five is sacred and is never risked into a trick the other side takes; a low trump is a surrendered point only when nothing lower can still appear; a ten counts because Game is scored on captured card value, where a ten is worth more than an ace.
+
+**Over:** Judging it by general Pitch strategy. The first detectors watched only the Five and Jack, which is the Pitch reflex, and missed High, Low and Game entirely — all three of which this variant awards to the capturing team.
+
+**Why:** Connor is the rules authority (`docs/catch-five-rules.md`), and the goal is a computer that plays like his family, not one that plays textbook Pitch. A test written from general domain knowledge can be wrong about the specific game while the implementation is right.
+
+## D60. Bad decisions are counted only when they could never have worked (2026-09-14)
+
+**Chosen:** Every sin detector asks a counterfactual before counting: was the seat forced, was a cheaper card available, could anyone still to play have beaten the partner, could this card ever have taken the trick. A test may ask these with all four hands in view; the strategy may not.
+
+**Over:** Counting outcomes. The first sweep reported 523 findings; after the counterfactuals, 96 survived. Overtaking a partner fell from 373 to zero, because taking a trick from a partner who might still lose it is ordinary good play and `chooseCard` already penalises the rest.
+
+**Why:** A bet that lost is not a mistake, and a detector that cannot tell the difference measures nothing. The numbers only became actionable once they stopped counting bad luck.
