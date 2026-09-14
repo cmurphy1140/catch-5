@@ -81,7 +81,9 @@ struct ScoreBarView: View {
             Text("—").opacity(0.6)
             Text(contract.bidder)
         }
-        .font(.system(.subheadline, design: .serif).weight(.semibold))
+        // The contract carries the same weight as the score it is played against, so it reads at
+        // the scores' size rather than a step below them.
+        .font(.system(.title3, design: .serif).weight(.semibold))
         .foregroundStyle(.gold)
         .lineLimit(1).minimumScaleFactor(0.7)
         .accessibilityElement(children: .ignore)

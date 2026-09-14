@@ -12,7 +12,7 @@ struct HandOutcome: Equatable {
     /// Rules that decided something on this hand, in the words a player would use.
     let notes: [String]
 
-    init(bidderTeam: Int, bid: Int, isNineAndOut: Bool, points: [Int], gameValues: [Int],
+    init(bidderTeam: Int, bid: Int, isNineAndOut: Bool, points: [Int], gameValues: [Int], gameTeam: Int,
          fiveTeam: Int?, jackTeam: Int?, before: [Int], after: [Int], names: [String]) {
         let defenders = 1 - bidderTeam
         func team(_ t: Int) -> String { "\(names[t]) + \(names[t + 2])" }
@@ -30,8 +30,12 @@ struct HandOutcome: Equatable {
         }
 
         var notes: [String] = []
+        // Game is the point this table argues about, so name the count and the winner every hand,
+        // not only when it ties. `gameTeam` is the engine's own verdict; the rule is not restated here.
         if gameValues[0] == gameValues[1] {
-            notes.append("Game tied \(gameValues[0])–\(gameValues[1]): the tie goes to the bidding team.")
+            notes.append("Game tied \(gameValues[0])–\(gameValues[1]): the tie goes to the bidding team, \(team(bidderTeam)).")
+        } else {
+            notes.append("Game \(gameValues[gameTeam])–\(gameValues[1 - gameTeam]): \(team(gameTeam)) took the point.")
         }
         if fiveTeam == nil { notes.append("The trump Five was not dealt, so its 5 points were out of play.") }
         if jackTeam == nil { notes.append("The trump Jack was not dealt, so its point was out of play.") }
@@ -45,6 +49,7 @@ struct HandOutcome: Equatable {
     init(summary: HandSummary, before: [Int], names: [String]) {
         self.init(bidderTeam: summary.bidder % 2, bid: summary.bid, isNineAndOut: summary.isNineAndOut,
                   points: summary.result.points, gameValues: summary.result.gameValues,
+                  gameTeam: summary.result.gameTeam,
                   fiveTeam: summary.result.fiveTeam, jackTeam: summary.result.jackTeam,
                   before: before, after: summary.scores, names: names)
     }
