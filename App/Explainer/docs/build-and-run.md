@@ -24,7 +24,7 @@ flowchart LR
 
 One environment note: this repository lives under the iCloud-synced Desktop, so the folder carries the `com.apple.fileprovider.ignore#P` extended attribute (set September 13, 2026) to keep iCloud out of `.git` and the working tree. After cloning to a synced location, reapply it with `xattr -w 'com.apple.fileprovider.ignore#P' 1 <repo folder>`.
 
-## The six commands
+## The seven commands
 
 | Command | What it does | When to use |
 |---|---|---|
@@ -34,6 +34,7 @@ One environment note: this repository lives under the iCloud-synced Desktop, so 
 | `... python3 scripts/build-simulator.py` | Produces `work/simulator-build/CatchFive.app` for the iOS simulator | To run the real app |
 | `scripts/install-phone.sh` | Builds signed, installs and launches on the connected iPhone | Every time you want the latest build on the phone, and weekly to renew a free-team install ([device-install.md](device-install.md)) |
 | `python3 scripts/export-docs.py` | Renders every explainer page to PDF and every Mermaid diagram to PNG in `work/docs-export/` | To upload the pages to Claude Design or share them outside GitHub |
+| `swift scripts/contrast-sample.swift <png> <x0> <y0> <x1> <y1> [label]` | Reports the contrast against ivory of a region of a simulator screenshot, sampling real pixels | To check a background that is drawn in code, where the colour literal is not what lands on screen |
 
 `DEVELOPER_DIR` points the `swift` command at Xcode's toolchain rather than the command-line-tools copy, which lacks the iOS SDK.
 
