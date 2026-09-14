@@ -19,9 +19,12 @@ private func view(cards: [Card], phase: HandPhase = .playing, seat: Int = 0,
 @Test func computerRaisesWithStrongSuitAndChoosesIt() {
     let cards = [Card(.spades, .ace), Card(.spades, .king), Card(.spades, .jack),
                  Card(.spades, .five), Card(.clubs, .two), Card(.diamonds, .three)]
-    #expect(ComputerPlayer.decide(view(cards: cards, phase: .bidding, highestBid: 3, bidder: 1)) == .bid(4))
+    // Four spades including the five is a 5 bid at Connor's table, so it says 5 rather than the 4
+    // that would merely have cleared the auction: the smallest raise invites the next player in.
+    #expect(ComputerPlayer.decide(view(cards: cards, phase: .bidding, highestBid: 3, bidder: 1)) == .bid(5))
     #expect(ComputerPlayer.decide(view(cards: cards, phase: .choosingTrump)) == .chooseTrump(.spades))
     #expect(ComputerPlayer.decide(view(cards: cards, phase: .bidding, highestBid: 3, bidder: 2)) == .bid(nil))
+    // The dealer is the exception: bidding last and able to match, taking it at 3 beats naming 5.
     #expect(ComputerPlayer.decide(view(cards: cards, phase: .bidding, dealer: 0, highestBid: 3, bidder: 1)) == .bid(3))
 }
 
@@ -146,7 +149,8 @@ struct RepeatableRandom: RandomNumberGenerator {
     #expect(ComputerPlayer.estimate([Card(.hearts, .five), Card(.hearts, .ace)], suit: .hearts)
             > ComputerPlayer.estimate([Card(.hearts, .five), Card(.clubs, .ace)], suit: .hearts))
     #expect(ComputerPlayer.estimate([Card(.clubs, .ace)], suit: .hearts) == 0)
-    #expect(ComputerPlayer.decide(view(cards: strong, phase: .bidding, highestBid: 3, bidder: 1)) == .bid(4))
+    // The estimate is only half the call: this shape meets a house floor of 5, and the floor wins.
+    #expect(ComputerPlayer.decide(view(cards: strong, phase: .bidding, highestBid: 3, bidder: 1)) == .bid(5))
 }
 
 /// Guards the bidding calibration: computers should compete for most hands and usually make their contract.
@@ -177,7 +181,8 @@ struct RepeatableRandom: RandomNumberGenerator {
 @Test func adviceNamesTheActionAndExplainsIt() throws {
     let strong = [Card(.spades, .ace), Card(.spades, .king), Card(.spades, .five), Card(.hearts, .two)]
     let bid = try #require(ComputerPlayer.advise(view(cards: strong, phase: .bidding, highestBid: 3, bidder: 1)))
-    #expect(bid.action == .bid(4))
+    // Three spades including the five is a 5 bid at the table, and the reason says which suit.
+    #expect(bid.action == .bid(5))
     #expect(bid.reason.contains("spades"))
     let pass = try #require(ComputerPlayer.advise(view(cards: strong, phase: .bidding, highestBid: 3, bidder: 2)))
     #expect(pass.action == .bid(nil))

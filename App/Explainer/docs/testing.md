@@ -51,7 +51,7 @@ flowchart BT
     L1 --> L2 --> L3 --> L4 --> L5 --> L5b --> L5c --> L6 --> L7
 ```
 
-Total: 158 automated tests, about 3.5 s (the strategy benchmark is most of that). Every layer above the first uses the real code beneath it; nothing is mocked. If `trickWinner` broke, the failure would show up in one small trick test *and* in the 208-hand simulation, and the small one tells you exactly what changed.
+Total: 159 automated tests, about 3.5 s (the strategy benchmark is most of that). Every layer above the first uses the real code beneath it; nothing is mocked. If `trickWinner` broke, the failure would show up in one small trick test *and* in the 208-hand simulation, and the small one tells you exactly what changed.
 
 The cast, login and menu are covered at the model layer: `Settings` migration and round trip, `matchInProgress`, `signIn` and `seatSummary`; the screens themselves are checked by the simulator screenshot pass.
 

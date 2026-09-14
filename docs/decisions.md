@@ -498,3 +498,23 @@ These are floors, not ceilings: bidding higher to keep the auction away from the
 **Over:** Counting outcomes. The first sweep reported 523 findings; after the counterfactuals, 96 survived. Overtaking a partner fell from 373 to zero, because taking a trick from a partner who might still lose it is ordinary good play and `chooseCard` already penalises the rest.
 
 **Why:** A bet that lost is not a mistake, and a detector that cannot tell the difference measures nothing. The numbers only became actionable once they stopped counting bad luck.
+
+## D61. The computer bids the table's number for a shape, not the cheapest raise (2026-09-14)
+
+**Chosen:** `ComputerPlayer.houseBid(for:)` encodes Connor's bidding floors, read per suit and bid on the best:
+
+| Holding in one suit | Floor |
+|---|---|
+| ace and queen, or ace and jack | 2 |
+| ace and king | 3 |
+| ace, king and queen | 4 |
+| five or more with two controls, no five | 4 |
+| three or more including that suit's five | 5 |
+
+`bidAdvice` bids `max(smallest legal raise, floor)` rather than the smallest legal raise. The dealer is the exception: bidding last and able to match, a dealer who can take the contract at the minimum gains nothing by naming a bigger number.
+
+**Over:** Correcting the point estimate. Three attempts at better arithmetic — a Five discount, a refill draw credit, a trump-floor ruff penalty — moved the benchmark by noise or not at all.
+
+**Why:** The bots' valuations were never the problem. They bid the cheapest raise that cleared the auction, so ace-king opened at 2 and handed the hand to anyone willing to say 3. A floor is a statement about the *shape*, independent of what the auction currently costs, and no per-hand point estimate contains that.
+
+**Measured, two independent seed ranges.** Win rate 0.647 → 0.675 and 0.625 → 0.653; margin 5.050 → 5.727 and 4.785 → 5.357. Underbids against the table's floors fell 481 → 84. The cost is real and recorded in the ratchets: badly-missed contracts 71 → 88, surrendered counters 14 → 19, because winning more auctions means playing more contracts.
