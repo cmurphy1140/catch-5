@@ -666,6 +666,23 @@ Ideas Connor wants kept, not scheduled. No requirement IDs; they earn one when c
 - **Opponent personalities.** Hazel, Otto and Rue each get a bidding temperament and a line or two of table talk, drawn only from public events the way the existing moods are (D-numbered mood decision). No hidden-card knowledge, no new rules.
 - **Moments worth a small fuss.** Making 9-and-out; catching the Five off the bidder; setting the bidder; winning Game by one card value. A single restrained cue each, within the one-haptic policy, never a modal.
 
+### E.6 Pinned by Connor, September 14, 2026
+
+- **A loading screen.** The app currently has a native launch screen showing the icon. This is the
+  idea of a proper one with something to look at while the table is set: cards being shuffled, the
+  box opening, the felt unrolling. It must not add a wait that is not already there; an artificial
+  delay to show off an animation is the opposite of the point.
+- **Talking strategy with your partner.** A way, between hands, to tell your partner how you want
+  them to play: lead trumps early, save the Five for me, bid more boldly, stop overtaking me.
+  Standing instructions, not table talk during a hand, which at a real table is cheating. Each
+  instruction would become a modifier on that seat's scoring in `ComputerPlayer`, applied to the
+  partner only. It teaches the game's strategy vocabulary by letting a player use it, gives Otto a
+  character you can argue with, and reuses the same terms the bot bank (D58) is already tuning.
+  Open questions: whether instructions persist across matches, whether opponents may be instructed
+  (they may not), and whether the partner may refuse.
+- **A different view from the table** was raised and dropped the same day as overkill. Recorded so
+  it is not proposed again without a reason.
+
 ## F. Delivery and verification
 
 ### F.1 Agreed boundaries and routine implementation choices
