@@ -152,6 +152,38 @@ public enum ComputerPlayer {
         return points
     }
 
+    /// Connor's table bids a hand by its best suit, September 14, 2026. Unwritten rules at a real
+    /// table, written down here so the computer can be measured against them. They are floors, not
+    /// ceilings: bidding higher to keep the auction away from the other side is a legitimate move.
+    ///
+    /// | Holding in one suit | Bid |
+    /// |---|---|
+    /// | ace and queen, or ace and jack | 2 |
+    /// | ace and king | 3 |
+    /// | ace, king and queen | 4 |
+    /// | five or more with two controls, no five | 4 |
+    /// | three or more including that suit's five | 5 |
+    ///
+    /// The five drives the number; length on its own tops out at 4, and the five in a short suit counts
+    /// for nothing because it cannot be protected. Four to the five still floors at 5 — the extra card
+    /// buys latitude to bid higher, not a new floor. A hand already outbid passes rather than chasing.
+    public static func houseBid(for cards: [Card]) -> Int? {
+        var best: Int?
+        for suit in Suit.allCases {
+            let held = cards.filter { $0.suit == suit }
+            let ranks = Set(held.map(\.rank))
+            let controls = ranks.filter { $0.rawValue >= Rank.jack.rawValue }.count
+            var floor: Int?
+            if held.count >= 3 && ranks.contains(.five) { floor = 5 }
+            else if held.count >= 5 && controls >= 2 { floor = 4 }
+            else if ranks.contains(.ace) && ranks.contains(.king) && ranks.contains(.queen) { floor = 4 }
+            else if ranks.contains(.ace) && ranks.contains(.king) { floor = 3 }
+            else if ranks.contains(.ace) && (ranks.contains(.queen) || ranks.contains(.jack)) { floor = 2 }
+            if let floor, floor > (best ?? 0) { best = floor }
+        }
+        return best
+    }
+
     private static func bidAdvice(_ view: PlayerView) -> Advice {
         if let bidder = view.bidder, bidder % 2 == view.seat % 2 {
             return Advice(action: .bid(nil), reason: "Pass: your partner already holds the bid at \(view.highestBid ?? 0), and bidding against a partner only raises the price.")
@@ -162,10 +194,24 @@ public enum ComputerPlayer {
         let worth = estimate(view.cards, suit: suit)
         let hand = "your best suit is \(suit.rawValue), worth about \(tenths(worth)) points"
         // Bid up to the whole-point estimate; benchmarking showed a safety margin costs more than it saves.
-        let confidence = Int(worth.rounded(.down))
-        if needed <= min(confidence, 9) {
+        // The house floor overrides it upward: the table bids some shapes by name, whatever the estimate
+        // makes of them, and a hand that meets one is never passed while its number is still there.
+        let floor = houseBid(for: view.cards)
+        let confidence = max(Int(worth.rounded(.down)), floor ?? 0)
+        // Bid the table's number for the shape, not the cheapest raise that clears the auction: ace
+        // and king is a three bid even when two would win it, because the smallest legal raise hands
+        // the hand back to anyone willing to say one more.
+        //
+        // The dealer is the exception. Bidding last and able to match, the dealer who can take the
+        // contract at `needed` gains nothing by naming a bigger one — same contract, higher target,
+        // and nobody left to outbid them.
+        let called = isDealer ? needed : max(needed, min(floor ?? 0, confidence))
+        if called <= min(confidence, 9) {
             let how = view.highestBid == nil ? "opens the bidding" : (isDealer ? "matches the high bid as dealer" : "is the smallest raise")
-            return Advice(action: .bid(needed), reason: "Bid \(needed): \(hand), and \(needed) \(how).")
+            if let floor, called > needed, called <= floor {
+                return Advice(action: .bid(called), reason: "Bid \(called): \(suit.rawValue) like this is a \(floor) bid at the table whatever the count says, above the \(needed) that would have been enough.")
+            }
+            return Advice(action: .bid(called), reason: "Bid \(called): \(hand), and \(called) \(how).")
         }
         if isDealer && view.highestBid == nil {
             return Advice(action: .bid(2), reason: "Bid 2: everyone passed, so the dealer must open at two even though \(hand).")

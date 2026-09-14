@@ -125,6 +125,7 @@ func huntBotSins(seeds: Range<Int>) throws -> [BotSin] {
             if case let .bid(amount) = action {
                 sins += biddingSins(cards: match.hand.hands[seat], bid: amount,
                                     highestBid: match.hand.auction.highestBid,
+                                    isDealer: seat == match.hand.auction.dealer,
                                     seat: seat, seed: seed, hand: handsSeen + 1)
             }
 
@@ -216,34 +217,15 @@ func trickSins(_ trick: CompletedTrick, context: [PlayInContext], trump: Suit,
     return sins
 }
 
-/// Connor's table bids a hand by its best suit, September 14, 2026. Unwritten rules at a real
-/// table, written down here so the computer can be measured against them. They are floors, not
-/// ceilings: bidding higher to keep the auction away from the other side is a legitimate move.
-///
-/// | Holding in one suit | Bid |
-/// |---|---|
-/// | three or more, including that suit's five | 5 |
-/// | ace and king | 3 |
-/// | ace and queen | 2 |
-/// | ace and jack | 2 |
-func houseBid(for cards: [Card]) -> Int? {
-    var best: Int?
-    for suit in Suit.allCases {
-        let held = cards.filter { $0.suit == suit }
-        let ranks = Set(held.map(\.rank))
-        var floor: Int?
-        if held.count >= 3 && ranks.contains(.five) { floor = 5 }
-        else if ranks.contains(.ace) && ranks.contains(.king) { floor = 3 }
-        else if ranks.contains(.ace) && (ranks.contains(.queen) || ranks.contains(.jack)) { floor = 2 }
-        if let floor, floor > (best ?? 0) { best = floor }
-    }
-    return best
-}
 
 /// Passing or underbidding a hand the table would have bid, while that number was still there to
 /// take. A hand already bid past is not a sin to pass on.
-func biddingSins(cards: [Card], bid: Int?, highestBid: Int?, seat: Int, seed: Int, hand: Int) -> [BotSin] {
-    guard let floor = houseBid(for: cards), (highestBid ?? 0) < floor, (bid ?? 0) < floor else { return [] }
+func biddingSins(cards: [Card], bid: Int?, highestBid: Int?, isDealer: Bool,
+                 seat: Int, seed: Int, hand: Int) -> [BotSin] {
+    // The dealer bids last and may match, so a dealer taking the contract at the minimum is not
+    // underbidding — naming a bigger number would buy the same contract at a higher target.
+    guard !(isDealer && bid != nil) else { return [] }
+    guard let floor = ComputerPlayer.houseBid(for: cards), (highestBid ?? 0) < floor, (bid ?? 0) < floor else { return [] }
     let said = bid.map { "bid \($0)" } ?? "passed"
     return [BotSin(kind: .underbidAGoodHand, seed: seed, hand: hand, seat: seat,
                    detail: "\(said) on a hand the table bids \(floor)")]
@@ -306,17 +288,49 @@ private func setSins(_ summary: HandSummary, seed: Int) -> [BotSin] {
 }
 
 @Test func noMoreCountersAreThrownAwayThanTheDayTheHuntWasBuilt() throws {
-    // A ratchet, not a target. Fourteen counters are surrendered today: 12 Jacks and 2 Fives, each
-    // thrown at a trick it could not take with a cheaper card in hand. The goal is zero — Connor's
-    // table treats the Five as sacred and the Jack is a point like any other — but the likeliest
-    // cure is not tuning `chooseCard`. It is giving the strategy the discard counts it has never
-    // had, so it can tell a loaded opponent from an empty one. Lower this number when that lands.
+    // A ratchet, not a target. Nineteen counters are surrendered today: 15 Jacks and 4 Fives, each
+    // thrown at a trick it could not take with a cheaper card in hand. It rose from 14 when the bots
+    // started bidding the table's floors — they win more auctions, so they play more contracts and
+    // have more chances to err. The benchmark says the trade is worth it; this number says what it
+    // cost. The goal is still zero: Connor's table treats the Five as sacred.
     let counters = try huntBotSins(seeds: 1..<121)
         .filter { $0.kind == .surrenderedTheFive || $0.kind == .surrenderedTheJack }
-    #expect(counters.count <= 14, "regression: \(counters.count) counters thrown away")
+    #expect(counters.count <= 19, "regression: \(counters.count) counters thrown away")
 
     // Tens and low trumps have their own floors, kept apart because they are worth different points.
     let all = try huntBotSins(seeds: 1..<121)
-    #expect(all.filter { $0.kind == .surrenderedATen }.count <= 14)
-    #expect(all.filter { $0.kind == .surrenderedTheLow }.count <= 19)
+    #expect(all.filter { $0.kind == .surrenderedATen }.count <= 12)
+    #expect(all.filter { $0.kind == .surrenderedTheLow }.count <= 17)
+}
+
+@Test func theHouseBidLadderReadsAHandTheWayConnorsTableDoes() {
+    func spades(_ ranks: Rank...) -> [Card] { ranks.map { Card(.spades, $0) } }
+
+    // The five drives the number. Three to it is a 5, and four to it still floors at 5 — the extra
+    // card buys latitude to bid higher rather than a new floor.
+    #expect(ComputerPlayer.houseBid(for: spades(.five, .nine, .two)) == 5)
+    #expect(ComputerPlayer.houseBid(for: spades(.ace, .jack, .nine, .five)) == 5)
+
+    // Length on its own stops at 4, however many controls ride with it.
+    #expect(ComputerPlayer.houseBid(for: spades(.ace, .king, .jack, .nine, .four)) == 4)
+    #expect(ComputerPlayer.houseBid(for: spades(.ace, .king, .queen)) == 4)
+    #expect(ComputerPlayer.houseBid(for: spades(.ace, .king)) == 3)
+    #expect(ComputerPlayer.houseBid(for: spades(.ace, .queen)) == 2)
+    #expect(ComputerPlayer.houseBid(for: spades(.ace, .jack)) == 2)
+
+    // The five in a short suit is worth nothing: it cannot be protected. Nor is a lone ace a bid.
+    #expect(ComputerPlayer.houseBid(for: [Card(.spades, .five), Card(.hearts, .ace), Card(.clubs, .two)]) == nil)
+    #expect(ComputerPlayer.houseBid(for: [Card(.spades, .ace), Card(.hearts, .two), Card(.clubs, .three)]) == nil)
+
+    // A hand is read by its best suit, not its longest.
+    #expect(ComputerPlayer.houseBid(for: [Card(.spades, .ace), Card(.spades, .king),
+                           Card(.hearts, .five), Card(.hearts, .nine), Card(.hearts, .two)]) == 5)
+
+    // Floors are entry points, not commitments: once the auction passes the number, passing is right.
+    let aceKing = spades(.ace, .king)
+    #expect(biddingSins(cards: aceKing, bid: nil, highestBid: nil, isDealer: false, seat: 0, seed: 1, hand: 1).count == 1)
+    #expect(biddingSins(cards: aceKing, bid: nil, highestBid: 4, isDealer: false, seat: 0, seed: 1, hand: 1).isEmpty)
+    #expect(biddingSins(cards: aceKing, bid: 3, highestBid: nil, isDealer: false, seat: 0, seed: 1, hand: 1).isEmpty)
+    // A dealer taking the contract at the minimum is playing correctly, not underbidding.
+    #expect(biddingSins(cards: aceKing, bid: 2, highestBid: nil, isDealer: true, seat: 0, seed: 1, hand: 1).isEmpty)
 }
