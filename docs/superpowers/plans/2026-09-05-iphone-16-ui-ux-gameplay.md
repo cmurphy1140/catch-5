@@ -218,7 +218,7 @@ When useful, capture one before/after and a short explanation of why the change 
 
 | Increment | Status on September 13 | Next check |
 |---|---|---|
-| Baseline reconciliation | Done September 13: plan, spec and rules on `main`; `swift build` and `swift test` 149 of 149 verified on that tree; iCloud excluded; stale branches removed | Increment 1, first slice |
+| Baseline reconciliation | Done September 13: plan, spec and rules on `main` (PR #42); `swift build` and `swift test` 149 of 149 verified on that tree; iCloud excluded; stale branches removed; current build played on the simulator and installed on Connor's iPhone | Increment 1, first slice |
 | Ordinary turn clarity | Proposed first visible slice | Beginner trump captions, same-state before/after |
 | Hand result clarity | Proposed | Compact real-data sketch; preserve factual detail |
 | Optional learning | Proposed | One lesson first, verify entry/exit isolation |

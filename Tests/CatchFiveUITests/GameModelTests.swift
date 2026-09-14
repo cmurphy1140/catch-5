@@ -110,6 +110,17 @@ import Testing
     #expect(settings.delay(leadingTrick: true) > quick)
 }
 
+@Test func aFinishedTrickStaysLongerAtARelaxedPaceAndTheAppStartsThere() {
+    // A trick gone before it can be read was the complaint; the hold follows the chosen pace.
+    #expect(Settings().playSpeed == .relaxed)
+    var settings = Settings(playSpeed: .quick)
+    let quick = settings.trickHold
+    settings.playSpeed = .normal
+    let normal = settings.trickHold
+    settings.playSpeed = .relaxed
+    #expect(settings.trickHold > normal && normal > quick)
+}
+
 @Test func settingsRoundTripThroughDiskAndTolerateMissingKeys() throws {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: url) }
@@ -504,7 +515,7 @@ import Testing
     // The frown's middle sits `dip` above its corners.
     let band = HeaderBandShape(dip: 20).path(in: CGRect(x: 0, y: 0, width: 300, height: 100)).boundingRect
     #expect(band.maxY == 100 && band.minY == 0)
-    #expect(Theme.Motion.dealHold > Theme.Motion.trickHold)
+    #expect(Theme.Motion.dealHold > Settings(playSpeed: .normal).trickHold)
 }
 
 @MainActor @Test func rootOpensOnLoginUntilSignedInThenOnTheTable() {
@@ -820,7 +831,7 @@ import Testing
     try Data(#"{"playerName":"Connor","playerPortrait":{"skin":"violet","hair":"bob","hairColor":"silver","feature":"none","hat":"none","shirt":"plum"},"playSpeed":"warp","difficulty":"brutal"}"#.utf8).write(to: url)
     let tolerant = try SettingsStore.read(from: url)
     #expect(tolerant.playerName == "Connor" && tolerant.hasSignedIn)
-    #expect(tolerant.playerPortrait == Cast.defaultPlayerPortrait && tolerant.playSpeed == .normal && tolerant.difficulty == .standard)
+    #expect(tolerant.playerPortrait == Cast.defaultPlayerPortrait && tolerant.playSpeed == .relaxed && tolerant.difficulty == .standard)
     // A file written after sign-in keeps a deliberately typed "West"; only pre-cast files migrate.
     try Data(#"{"playerName":"Connor","seatNames":["Connor","West","Otto","Rue"]}"#.utf8).write(to: url)
     #expect(try SettingsStore.read(from: url).seatNames == ["Connor", "West", "Otto", "Rue"])

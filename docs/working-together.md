@@ -154,3 +154,12 @@ Local notes from before this log existed sit in the gitignored `notes/` folder o
 - Checks: `git fsck` clean of bad refs; link check over changed pages; `git diff --check`; `swift test --filter Explainer`; rules parity test. Full `swift test` 149 of 149 was verified earlier the same day on this tree by the previous session; not rerun here.
 - Skipped: no Swift changed, so no simulator build for this commit.
 - Next: PR, CI, squash-merge; delete stale branches; current build to the simulator and Connor's phone; then Increment 1, first slice (beginner trump captions).
+
+### 2026-09-13, evening: cleanup landed, game on the phone (same session)
+
+- Base: `main` at `2a43bb8` (PR #42 squash-merged, CI green); working tree clean apart from this entry and the plan's progress row.
+- Changed: origin now has only `main` (seven stale branches deleted); local stale branches and the unused engine worktree removed; GitHub description corrected; plug-and-pitch paused at `20334a4`. No Swift changed.
+- Checks: simulator build installed and played to the first trick on `Catch 5 Wood` (three screenshots in `~/Desktop/Screenshots/`); signed device build with Xcode 27 RC installed and launched on Connor's iPhone 16 Pro after he trusted the developer profile.
+- Skipped: full `swift test` not rerun (149 of 149 verified on this code earlier today).
+- Next: Increment 1, first slice (beginner trump captions), from `main` on a `ui/` branch. Environment notes for whoever goes next: Xcode 27 RC lives at `~/Desktop/Personal/Xcode.app` (should move to `/Applications`); `/Applications/Xcode.app` is 26.6 and its app cannot open on macOS 27; the new `devicectl` prints hardware UDIDs, so `scripts/install-phone.sh` auto-detection needs its pattern updated and `DEVELOPER_DIR` pointed at Xcode 27.
+
