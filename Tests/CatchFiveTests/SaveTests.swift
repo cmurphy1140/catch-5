@@ -116,3 +116,73 @@ private func advance(_ match: inout Match, count: Int) throws {
     #expect(try MatchSave.encode(restored) == saved)
     #expect(restored.hand.currentTrick.count == 3)
 }
+
+@Test func failedSaveKeepsThePreviousFileAndOneRetryWritesTheAcceptedMoveOnce() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer {
+        try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: directory.path)
+        try? FileManager.default.removeItem(at: directory)
+    }
+    let url = directory.appendingPathComponent("match.json")
+    var match = try readyMatch()
+    try MatchSave.write(match, to: url)
+    let previous = try Data(contentsOf: url)
+    let previousActions = match.actionCount
+
+    // The next move is accepted by the rules; the folder turns unwritable before it can be saved.
+    try advance(&match, count: 1)
+    #expect(match.actionCount == previousActions + 1)
+    try FileManager.default.setAttributes([.posixPermissions: 0o500], ofItemAtPath: directory.path)
+    #expect(throws: (any Error).self) { try MatchSave.write(match, to: url) }
+
+    // The accepted move is still in memory, and the older save is intact rather than half written.
+    #expect(match.actionCount == previousActions + 1)
+    #expect(try Data(contentsOf: url) == previous)
+    #expect(try MatchSave.read(from: url).actionCount == previousActions)
+
+    // A retry writes exactly the state already in memory: the move is stored once, not replayed.
+    try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: directory.path)
+    try MatchSave.write(match, to: url)
+    #expect(try Data(contentsOf: url) == MatchSave.encode(match))
+    #expect(try MatchSave.read(from: url).actionCount == previousActions + 1)
+    #expect(match.actionCount == previousActions + 1)
+
+    // Saving the same match again is a replacement, never a second copy of the move.
+    try MatchSave.write(match, to: url)
+    let reread = try MatchSave.read(from: url)
+    #expect(reread.actionCount == previousActions + 1)
+    #expect(try MatchSave.encode(reread) == MatchSave.encode(match))
+    #expect(reread.hand.hands == match.hand.hands)
+    #expect(reread.hand.currentTrick == match.hand.currentTrick)
+}
+
+@Test func corruptSavesSurviveTheFailedReadSoTheyCanBeSetAside() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let url = directory.appendingPathComponent("match.json")
+
+    // Nonsense in the save file, and a save cut short mid-write, are both refused.
+    let nonsense = Data("not a game".utf8)
+    try nonsense.write(to: url)
+    #expect(throws: SaveError.invalidData) { try MatchSave.read(from: url) }
+    #expect(try Data(contentsOf: url) == nonsense)   // reading never rewrites or clears the file
+
+    let whole = try MatchSave.encode(readyMatch())
+    let truncated = Data(whole.prefix(whole.count / 2))
+    try truncated.write(to: url)
+    #expect(throws: SaveError.invalidData) { try MatchSave.read(from: url) }
+    #expect(try Data(contentsOf: url) == truncated)
+
+    // Set the unreadable file aside, then start fresh: the new save is a clean match at hand one,
+    // and the corrupt bytes are still there, byte for byte, to look at later.
+    let aside = directory.appendingPathComponent("match-corrupt.json")
+    try FileManager.default.moveItem(at: url, to: aside)
+    try MatchSave.write(Match(deck: saveDeck, dealer: 3), to: url)
+    let fresh = try MatchSave.read(from: url)
+    #expect(fresh.actionCount == 0)
+    #expect(fresh.hand.phase == .bidding)
+    #expect(fresh.handNumber == 1 && fresh.scores == [0, 0] && fresh.history.isEmpty)
+    #expect(try Data(contentsOf: aside) == truncated)
+}
