@@ -60,7 +60,7 @@ private let docsFolder = URL(fileURLWithPath: #filePath).deletingLastPathCompone
 @Test func everyChapterParsesAndItsDiagramsAreCounted() throws {
     let path = try String(contentsOf: docsFolder.appendingPathComponent("learning-path.md"), encoding: .utf8)
     let chapters = ExplainerLibrary.chapters(from: MarkdownDocument.parse(path))
-    #expect(chapters.count == 11)
+    #expect(chapters.count == 12)   // screen-flow joined the reading order
     #expect(chapters.first?.file == "build-and-run" && chapters.last?.file == "redesign-plan")
     #expect(chapters.allSatisfy { !$0.summary.isEmpty })
     for chapter in chapters {
