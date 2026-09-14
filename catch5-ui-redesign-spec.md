@@ -703,6 +703,29 @@ together: the first supplies the numbers, the second gives the player somewhere 
   whether it resets each hand automatically, whether it can be corrected downward, and whether it
   appears at all outside beginner mode.
 
+### E.8 The deck-box direction, agreed September 14, 2026
+
+Connor found a concept treating the app as a premium deck box: deep burgundy boards, gold foil rules,
+embossed card suits, cloth texture, with green felt visible inside the frame. Agreed scope, after
+his correction that it is neither a full re-skin nor pure refinement:
+
+**The frame becomes the box.** Header band (currently drawn oak), screen edge, reading sheets, and
+the main menu, which becomes the closed box with its title in gold foil.
+
+**The game stays on felt.** Playing surface, ivory cards, green backs, seat tiles and portraits,
+auction pills, gold's five meanings, large text, and the table-first layout.
+
+Why this split holds: it changes what surrounds the game without touching what a player reads while
+deciding. The two surfaces it touches, the header and the main menu, are the two already under
+active work, and the felt is the part Connor said he liked.
+
+The aesthetic north star in `AGENTS.md` was amended the same day; it previously named drawn oak for
+the header and reading sheets, which is precisely what changes.
+
+Pipeline agreed: explore in Claude Design, implement directly in SwiftUI. The Figma MCP is installed
+but unused for now — it reads designs back and only earns its place if a Figma file is going to be
+maintained, which is a decision for later.
+
 ## F. Delivery and verification
 
 ### F.1 Agreed boundaries and routine implementation choices

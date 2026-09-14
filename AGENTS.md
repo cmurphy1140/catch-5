@@ -39,7 +39,21 @@ Codex is no longer used; mentions of it in historical documents describe their o
 7. **Handoffs are small and current.** A writer ends by stating base commit, branch, changed files, checks run, unresolved issues and the next concrete action, and updates its row in the plan's progress table. The coordinator folds that into the shared plan.
 
 ## Aesthetic North Star
-A readable, welcoming card table: felt in play, drawn oak (grain running across the screen, no image) for the frown-shaped header band and the reading sheets, ivory cards, green card backs, gold accents, seats with no fill, solid dark pills for the auction, one solid gold button per screen. Text runs large.
+A readable, welcoming card table, sitting inside a good deck box. Amended September 14, 2026: the
+**frame** around the game becomes the box; the **game** stays on felt. The game is not being
+re-skinned, its surroundings are.
+
+**The box, and everything around the play area.** Deep burgundy boards with a gold foil rule and
+embossed card suits, cloth-textured. This replaces the drawn oak on the frown-shaped header band and
+the reading sheets. The main menu is the box itself, closed, the title in gold foil. A deck someone
+has owned for thirty years, not a casino app.
+
+**The table, unchanged.** Felt where play happens, ivory cards, green card backs, seats with no fill
+and their drawn portraits, solid dark pills for the auction, one solid gold button per screen. Gold
+stays reserved for its established meanings and is never decoration. Text runs large.
+
+Anything not named above stays as it is. Before changing a visual, capture the current screen and
+compare the same states afterwards.
 
 ## Living documentation
 `docs/learning-path.md` indexes the explainer pages (build-and-run, architecture, game-flow, types-and-functions, testing, decisions, code-map, roadmap, tutorial-spec, device-install) with Mermaid diagrams. Any commit that adds, renames or removes a type, function, phase or test must update the matching page in the same commit, and new design choices get a numbered entry in `docs/decisions.md`. `scripts/export-docs.py` renders the pages to PDF and PNG in `work/docs-export/` for Claude Design.
