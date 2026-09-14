@@ -1,0 +1,207 @@
+# Ideas kept, not scheduled
+
+Everything worth remembering that nobody has agreed to build. Split out of the requirements spec on
+September 14, 2026: a requirement is something the app must do, an idea is something it might.
+
+**Nothing here is authorised.** An idea earns a requirement identifier when it is chosen, and only
+then does it move into [the spec](../catch5-ui-redesign-spec.md).
+
+Add freely. Connor volunteers these as they occur to him and they are captured the same day, with
+the open questions attached so the thinking is not lost.
+
+Revisit these after the core flow works comfortably. Implement only the subset chosen for a
+later pass. Keep existing useful behavior; do not remove working polish to match this schedule.
+
+### E.1 Interaction refinements
+
+**D1 — Keep the hand steady.**
+When hints, bid controls, or status messages appear, avoid unexpected movement of cards under
+the player's thumb. Reserve space or use bounded help surfaces. Normal dealing, drawing, and
+re-fanning after a card leaves can still move cards intentionally.
+
+Future check: open and close hints during selection; confirm the selected card and its touch
+position remain predictable. This extends R21/R25; fixing currently hidden controls remains core.
+
+**D2 — Distinguish selected from recommended.**
+Lift the player's selected card; use a separate subtle marker for a beginner recommendation.
+Give each state an accessible description and avoid relying only on color. A suggested card
+must never look already chosen or auto-commit a move.
+
+Future check: request a hint while a different card is selected; both states remain understandable.
+
+**D3 — Give each decision one obvious next action.**
+Use specific confirmation labels such as “Play J♠,” “Discard 3,” and “Deal next hand.” Keep
+secondary choices available without competing with the next action. This generalizes the
+existing discard and results labels; it does not add another control wherever one already exists.
+
+Future check: each phase can answer “What will this button do?” without additional instructions.
+
+**D6 — Explore a simpler select/deselect/confirm model.**
+Proposed replacement for R15's second-tap-to-play behavior:
+
+1. Tap a legal card to select and lift it.
+2. Tap the selected card again to deselect it.
+3. Tap another card to change selection; in discard, toggle membership in the discard set.
+4. Commit only with the labeled Play or Discard button.
+
+This is an interaction experiment for a later pass, not an instruction to implement now. If
+adopted, update R15, the shared-mode behavior, and any drag gesture together. A drag must not
+silently bypass explicit confirmation. Never support second-tap play and second-tap deselection
+at the same time. Validate convenience and accidental-move frequency before choosing the model.
+
+### E.2 Feedback and motion
+
+**D4 — Briefly explain consequences.**
+Use short outcome messages such as “Otto won the trick” or “Contract missed · −4,” using the
+actual engine result and score change. Reuse the existing status area rather than adding a
+permanent HUD label. Keep the factual outcome available in results after the message disappears.
+
+Future check: messages clarify what happened without blocking play or requiring a review screen.
+
+The following earlier motion requirements retain their IDs, but new animation work is deferred.
+Build against settled geometry, respect Reduce Motion, and do not delay core usability fixes.
+
+**R18 — Add bidding animations.**
+
+- Bid value change: number rolls/counts rather than hard-cutting.
+- Bid committed: a chip flies from the bidding control to the bidder's avatar and settles there,
+  staying visible as the bid badge.
+- Pass: avatar's badge fades in as a muted "Pass" then dims the avatar slightly.
+- Winning bid: brief gold pulse on the winner's avatar before transitioning to trump selection.
+- Keep all of these ≤ 350ms. Bidding is a rhythm — don't add drag to it.
+
+**R5 — Dealing and discard animations.**
+
+*Opening deal:*
+- Cards fly one at a time from the deck position to each player in seat order.
+- ~60–80ms stagger per card, ~250ms per card flight, spring easing.
+- Opponent cards land face-down; player's cards flip face-up on arrival, or fan up together at the end.
+- Full deal completes in roughly 1.5–2.0s. **Must be skippable** — any tap fast-forwards to the
+  final state. Non-negotiable: this animation plays every hand, so it can never feel like a wall.
+
+*Discard:*
+- Selected cards fly from the hand to the discard pile position (R3), staggered ~50ms.
+- Hand closes the gap and re-fans after the last card leaves.
+
+*Replacement draw:*
+- New cards fly from deck to hand, reusing the deal animation timing.
+
+Implementation notes: prefer `matchedGeometryEffect` between hand and pile namespaces over manual
+offset math. Respect `@Environment(\.accessibilityReduceMotion)` — when on, cross-fade instead of
+fly, keeping the same durations so game logic timing is unaffected.
+
+### E.3 Reading, teaching, and developer-learning refinements
+
+The following earlier refinements are retained for a later pass. Core readable text and complete
+hint access remain required under R22/R26; a broader visual or editorial redesign can wait.
+
+**R27 — Shorten teaching and use consistent player names. Medium.**
+
+- Present one immediate lesson instruction or decision at a time. Put supporting rules and tactics
+  behind an expansion control instead of requiring a long read before the first interaction.
+- Use the same player names as the table: “Rue is dealing. Tap the player who receives cards first.”
+  If compass directions matter to the lesson, introduce “Rue (East)” explicitly before using East.
+- Keep lesson progress and navigation discoverable; long lesson tabs must scroll without trapping
+  the reader or concealing the current lesson.
+- In results, follow R7–R10's collapsed structure. Within an expanded trick, show cards and outcome
+  first, then a concise explanation. Avoid a third disclosure level.
+
+**Acceptance:** The learner can identify the next action and referenced player without translating
+between unexplained names/directions or reading a long introductory block.
+
+**R28 — Unify reading surfaces and typography. Medium.**
+
+- Preserve green felt, ivory cards, muted gold, and serif titles. Keep wood as table framing;
+  reduce its visual prominence behind tutorials, statistics, and results using quiet opaque surfaces.
+- Define shared typography roles, panel colors, spacing, dividers, and control styles. Serif titles
+  and sans-serif body text can coexist deliberately; avoid unrelated screen-by-screen treatments.
+- Apply R16's flat grouped rows instead of adding nested cards or capsule backings. This is a
+  readability refinement within the existing identity, not a new visual theme.
+
+**Acceptance:** Compare table, tutorial, statistics, and results side by side. Shared roles look
+consistent and wood texture does not compete with body text.
+
+**R29 expansion — revisit the build process.** Keep the main-menu entry and existing content
+now. Later, expand its architecture overview, a real card-action walkthrough, design tradeoffs,
+verification examples, and source references as described in R29. Keep details collapsible and
+repo-grounded so learning stays useful without adding clutter to gameplay.
+
+### E.4 Lightweight usability observation
+
+**D5 — Watch a new player use it without coaching.**
+Ask someone unfamiliar with the app to start a match, make a bid, play a card, leave, and resume
+the saved match. Observe before explaining. Note hesitation, wrong taps, missed controls, and
+places where they misunderstand the next action; choose the next refinement from those findings.
+
+A short session is enough to identify candidates. Do not present a single person's experience
+as proof that the design works for everyone. Any discovered blocking usability bug moves back
+to core fixes; optional polish stays in this group.
+
+---
+
+### E.5 Pinned by Connor, September 13, 2026
+
+Ideas Connor wants kept, not scheduled. No requirement IDs; they earn one when chosen.
+
+- **Opponent personalities.** Hazel, Otto and Rue each get a bidding temperament and a line or two of table talk, drawn only from public events the way the existing moods are (D-numbered mood decision). No hidden-card knowledge, no new rules.
+- **Moments worth a small fuss.** Making 9-and-out; catching the Five off the bidder; setting the bidder; winning Game by one card value. A single restrained cue each, within the one-haptic policy, never a modal.
+
+### E.6 Pinned by Connor, September 14, 2026
+
+- **A loading screen.** The app currently has a native launch screen showing the icon. This is the
+  idea of a proper one with something to look at while the table is set: cards being shuffled, the
+  box opening, the felt unrolling. It must not add a wait that is not already there; an artificial
+  delay to show off an animation is the opposite of the point.
+- **Talking strategy with your partner.** A way, between hands, to tell your partner how you want
+  them to play: lead trumps early, save the Five for me, bid more boldly, stop overtaking me.
+  Standing instructions, not table talk during a hand, which at a real table is cheating. Each
+  instruction would become a modifier on that seat's scoring in `ComputerPlayer`, applied to the
+  partner only. It teaches the game's strategy vocabulary by letting a player use it, gives Otto a
+  character you can argue with, and reuses the same terms the bot bank (D58) is already tuning.
+  Open questions: whether instructions persist across matches, whether opponents may be instructed
+  (they may not), and whether the partner may refuse.
+- **A different view from the table** was raised and dropped the same day as overkill. Recorded so
+  it is not proposed again without a reason.
+
+### E.7 Counting at the table, pinned September 14, 2026
+
+Two ideas from Connor about the information a real Catch 5 table shares out loud. They belong
+together: the first supplies the numbers, the second gives the player somewhere to keep them.
+
+- **Every seat announces how many cards it discards.** Once trump is named each player discards
+  their non-trumps and draws back to six, so the count they announce says how many trumps they
+  held. At a real table this is said aloud and everyone uses it: whether the bidder is strong or
+  bluffing, whether leading trumps helps your partner or the other side, and whether the Five can
+  be sneaked. The app currently shows only the human's own count, and the engine pools every
+  discard into one pile with no record of who threw what, so the computer plays blind to
+  information every person at the table has. Engine side first: record the counts, carry them in
+  `PlayerView`, teach the strategy to read them. Then the table announces each one.
+- **A trump counter the player increments themselves.** A place to keep a tally of trumps played,
+  which the app never advances on its own. This does not conflict with R4 (no automatic number
+  tracking) or R20 (no card-count displays): counting stays the player's skill, and the app only
+  offers somewhere to write it down, the way a notepad differs from a calculator. Open questions:
+  whether it resets each hand automatically, whether it can be corrected downward, and whether it
+  appears at all outside beginner mode.
+
+### E.8 The deck-box direction, agreed September 14, 2026
+
+Connor found a concept treating the app as a premium deck box: deep burgundy boards, gold foil rules,
+embossed card suits, cloth texture, with green felt visible inside the frame. Agreed scope, after
+his correction that it is neither a full re-skin nor pure refinement:
+
+**The frame becomes the box.** Header band (currently drawn oak), screen edge, reading sheets, and
+the main menu, which becomes the closed box with its title in gold foil.
+
+**The game stays on felt.** Playing surface, ivory cards, green backs, seat tiles and portraits,
+auction pills, gold's five meanings, large text, and the table-first layout.
+
+Why this split holds: it changes what surrounds the game without touching what a player reads while
+deciding. The two surfaces it touches, the header and the main menu, are the two already under
+active work, and the felt is the part Connor said he liked.
+
+The aesthetic north star in `AGENTS.md` was amended the same day; it previously named drawn oak for
+the header and reading sheets, which is precisely what changes.
+
+Pipeline agreed: explore in Claude Design, implement directly in SwiftUI. The Figma MCP is installed
+but unused for now — it reads designs back and only earns its place if a Figma file is going to be
+maintained, which is a decision for later.

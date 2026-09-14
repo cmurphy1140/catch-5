@@ -10,7 +10,7 @@
 
 **Tech stack:** Existing Swift 6, SwiftUI, Swift Testing, Xcode and local build scripts. Keep current iOS 17/macOS 14 package floors; the review device is not a new support policy.
 
-**Spec:** [Catch Five UI/UX requirements](../../../catch5-ui-redesign-spec.md), reconciled by the current working agreement there. [House rules](../../catch-five-rules.md) govern gameplay. This plan defines order, deliverables, and checks; the spec retains requirement identifiers.
+**Spec:** [Catch Five UI/UX requirements](../../../catch5-ui-redesign-spec.md), which holds R1–R32 and nothing else since the September 14 split; unscheduled ideas are in [docs/ideas.md](../../ideas.md). [House rules](../../catch-five-rules.md) govern gameplay. This plan defines order, deliverables, and checks; the spec retains requirement identifiers.
 
 **Authorization:** Planning and documentation only in this session. No application implementation has begun under this plan.
 
