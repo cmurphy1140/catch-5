@@ -165,7 +165,15 @@ import Testing
     for _ in 0..<3 { model.stepComputer() }
     let nonTrumps = model.humanCards.filter { $0.suit != .hearts }.count
     model.send(.chooseTrump(.hearts))
-    #expect(model.notice == (nonTrumps == 0 ? "You kept all six cards." : "You discarded \(nonTrumps) and drew \(nonTrumps)."))
+    // Every seat announces its count, the way a real table does; six each afterwards, so a seat that
+    // threw n kept 6 - n trumps. The human's own number is what it always was.
+    let announcement = try #require(model.notice)
+    #expect(announcement.hasPrefix("Discarded: "))
+    #expect(announcement.contains(nonTrumps == 0 ? "You none" : "You \(nonTrumps)"))
+    for seat in 1..<4 {
+        let count = model.match.hand.discardCounts[seat]
+        #expect(announcement.contains(count == 0 ? "\(model.seatNames[seat]) none" : "\(model.seatNames[seat]) \(count)"))
+    }
     model.send(.play(model.humanCards[0]))
     #expect(model.notice == nil)
 }
@@ -417,7 +425,7 @@ import Testing
     model.send(.bid(9))
     model.send(.chooseTrump(.hearts))
     let notice = try #require(model.notice)
-    #expect(notice.hasPrefix("You discarded") || notice == "You kept all six cards.")
+    #expect(notice.hasPrefix("Discarded: ") && notice.contains("You "))
     #expect(model.describe(.nineAndOut) == "Bid 9 and out")
     // Play a card: the notice belongs to the previous action and clears.
     model.send(.play(try #require(model.humanCards.first)))
@@ -807,7 +815,7 @@ import Testing
     let suit = try #require(Suit.allCases.max { a, b in model.humanCards.filter { $0.suit == a }.count < model.humanCards.filter { $0.suit == b }.count })
     let kept = model.humanCards.filter { $0.suit == suit }.count
     model.send(.chooseTrump(suit))
-    #expect(model.notice == (kept == 6 ? "You kept all six cards." : "You discarded \(6 - kept) and drew \(6 - kept)."))
+    #expect(try #require(model.notice).contains(kept == 6 ? "You none" : "You \(6 - kept)"))
 }
 
 @Test func rootRoutesSignedInPlayersWhoSkippedTheIntroBackToIt() {

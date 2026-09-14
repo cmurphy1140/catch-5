@@ -136,31 +136,40 @@ public final class GameModel: ObservableObject {
     public func send(_ action: PlayerAction) {
         guard isHumanTurn else { return }
         notice = nil
-        let discards = discardCount(for: action)
+        let announces = namesTrump(action)
         if perform({ try match.apply(action, seat: 0) }) {
-            notice = discards.map(discardNotice)
+            if announces { notice = discardAnnouncement() }
             lastHumanAction = action
         }
     }
     public func stepComputer() {
         guard match.winner == nil, let seat = match.hand.nextSeat, seat != 0 else { return }
-        var discards: Int?
+        var announces = false
         perform {
             let view = try PlayerView(match: match, seat: seat)
             guard let action = ComputerPlayer.decide(view, difficulty: settings.difficulty) else { return }
-            discards = discardCount(for: action)
+            announces = namesTrump(action)
             try match.apply(action, seat: seat)
         }
-        if let discards { notice = discardNotice(discards) }
+        if announces { notice = discardAnnouncement() }
     }
 
-    /// How many of the human's cards leave when `action` names trump; nil for any other action.
-    private func discardCount(for action: PlayerAction) -> Int? {
-        guard case let .chooseTrump(suit) = action, match.hand.phase == .choosingTrump else { return nil }
-        return match.hand.hands[0].filter { $0.suit != suit }.count
+    /// True when `action` is the one that names trump, after which every seat discards and refills.
+    private func namesTrump(_ action: PlayerAction) -> Bool {
+        if case .chooseTrump = action { return match.hand.phase == .choosingTrump }
+        return false
     }
-    private func discardNotice(_ count: Int) -> String {
-        count == 0 ? "You kept all six cards." : "You discarded \(count) and drew \(count)."
+
+    /// What the table says once trump is named. At a real table every player announces how many cards
+    /// they are throwing, and everyone counts from it: six each afterwards, so a seat that threw n kept
+    /// 6 − n trumps. Said once, like the table says it — the app never keeps the tally (spec R4, R20).
+    public func discardAnnouncement() -> String {
+        let counts = match.hand.discardCounts
+        let spoken = (0..<4).map { seat in
+            let who = seat == 0 ? "You" : seatNames[seat]
+            return counts[seat] == 0 ? "\(who) none" : "\(who) \(counts[seat])"
+        }
+        return "Discarded: " + spoken.joined(separator: " · ")
     }
 
     /// Wording for a seat's most recent auction call, or nil if that seat has not called yet.
