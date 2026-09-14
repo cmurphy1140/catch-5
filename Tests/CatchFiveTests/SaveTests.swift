@@ -186,3 +186,19 @@ private func advance(_ match: inout Match, count: Int) throws {
     #expect(fresh.handNumber == 1 && fresh.scores == [0, 0] && fresh.history.isEmpty)
     #expect(try Data(contentsOf: aside) == truncated)
 }
+
+@Test func discardCountsComeBackFromAReplayedSaveWithoutAnArchiveChange() throws {
+    // The counts are derived while trump is named, not stored, so replay recomputes them and a
+    // version 1 archive written before they existed still loads. No migration, no version bump.
+    var match = try readyMatch()
+    try advance(&match, count: 1)
+    let counts = match.hand.discardCounts
+    #expect(counts.reduce(0, +) > 0 && counts.allSatisfy { (0...6).contains($0) })
+
+    let restored = try MatchSave.decode(MatchSave.encode(match))
+    #expect(restored.hand.discardCounts == counts)
+    // The rewind path rebuilds from the same deal, so it agrees too.
+    #expect(try match.rewound(toActionCount: match.actionCount).hand.discardCounts == counts)
+    // An archive written before the counts existed carries no new key, so it decodes unchanged.
+    #expect(try MatchSave.encode(restored) == MatchSave.encode(match))
+}

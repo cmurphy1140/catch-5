@@ -29,6 +29,7 @@ classDiagram
         +[[Card]] hands
         +[Card] stock
         +[Card] discarded
+        +[Int] discardCounts
         +Suit? trump
         +Int? nextSeat
         +[Play] currentTrick
@@ -145,7 +146,8 @@ classDiagram
 | `HandError` | invalidDeck, wrongPhase, notBidWinner, cardNotHeld, mustFollowSuit | |
 | `Hand.init(deck:dealer:)` | requires 52 unique cards; deals two packets of three | `dealSixEachInTwoPacketsStartingLeftOfDealer`, `rejectInvalidDecks` |
 | `Hand.bid` | forwards to `Auction`; moves to `choosingTrump` when the dealer has acted | `trumpSelectionRequiresFinishedAuctionAndWinningSeat` |
-| `Hand.chooseTrump` | bid winner only; discards non-trumps, refills to six from stock | `refillKeepsTrumpsAndDiscardsOnlyInitialNonTrumps` |
+| `Hand.chooseTrump` | bid winner only; discards non-trumps, refills to six from stock, and records how many each seat threw | `refillKeepsTrumpsAndDiscardsOnlyInitialNonTrumps`, `everySeatsDiscardCountIsRecordedAndPublicWithoutRevealingTheCards` |
+| `Hand.discardCounts` | how many cards each seat threw when trump was named, which every player says aloud at a real table; a seat that discarded n kept 6 − n trumps. Derived from the deal, so a replayed save recomputes it and no archive version changes | `everySeatsDiscardCountIsRecordedAndPublicWithoutRevealingTheCards`, `discardCountsComeBackFromAReplayedSaveWithoutAnArchiveChange` |
 | `Hand.play` | full validation, copy-mutate-commit; fourth card resolves the trick, sixth trick scores | `illegalPlayLeavesStateUnchanged`, `completeHandsConserveCardsAndFinishAfterSixTricks` (208 hands) |
 | `Hand.legalMoves(seat:)` | empty unless it is that seat's turn in `playing` | UI greying relies on this through `allows` |
 
@@ -165,7 +167,7 @@ classDiagram
 
 | Name | Purpose | Proven by |
 |---|---|---|
-| `PlayerView` | own cards plus public facts, including every auction call and every completed trick; `init(match:seat:)` copies only what the seat may know | `changingHiddenCardsDoesNotChangeComputerDecision`, `computerSeesPublicAuctionCalls`, `computerSeesCompletedTricksButNotHiddenHands` |
+| `PlayerView` | own cards plus public facts, including every auction call, every completed trick and every seat's discard count; `init(match:seat:)` copies only what the seat may know — the counts cross the boundary, the discarded cards never do | `changingHiddenCardsDoesNotChangeComputerDecision`, `computerSeesPublicAuctionCalls`, `computerSeesCompletedTricksButNotHiddenHands` |
 | `PlayerView.init(match:replaying:inCompletedTrick:)` | rebuilds the view a seat had just before an earlier play, from public information and that seat's remaining cards | `replayedViewExplainsEveryComputerPlayExactly` |
 | `PlayerAction` | nineAndOut, bid(Int?), chooseTrump(Suit), play(Card) | |
 | `Advice` | an action plus its reasoning in plain words | `adviceNamesTheActionAndExplainsIt` |

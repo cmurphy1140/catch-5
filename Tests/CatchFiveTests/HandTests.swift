@@ -120,3 +120,31 @@ private func allCards(_ hand: Hand) -> [Card] {
         }
     }
 }
+
+@Test func everySeatsDiscardCountIsRecordedAndPublicWithoutRevealingTheCards() throws {
+    // At a real table each player says how many cards they are discarding once trump is named, and
+    // everyone counts from it. The number is public; the cards themselves never are.
+    let deck = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }
+    var hand = try Hand(deck: deck, dealer: 3)
+    #expect(hand.discardCounts == [0, 0, 0, 0])   // nothing to announce before trump is named
+
+    var held: [[Card]] = []
+    for offset in 1...4 {
+        let seat = (3 + offset) % 4
+        try hand.bid(seat: seat, amount: seat == 0 ? 2 : nil)
+    }
+    let bidder = try #require(hand.auction.winner)
+    held = hand.hands
+    try hand.chooseTrump(seat: bidder, suit: .spades)
+
+    // Each count is exactly the non-trumps that seat threw, and together they are the whole pile.
+    for seat in 0..<4 {
+        #expect(hand.discardCounts[seat] == held[seat].filter { $0.suit != .spades }.count)
+    }
+    #expect(hand.discardCounts.reduce(0, +) == hand.discarded.count)
+    // Six cards each afterwards, so a count of n says that seat kept 6 - n trumps.
+    for seat in 0..<4 {
+        #expect(hand.hands[seat].count == 6)
+        #expect(6 - hand.discardCounts[seat] == held[seat].filter { $0.suit == .spades }.count)
+    }
+}

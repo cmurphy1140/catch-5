@@ -12,10 +12,14 @@ public struct PlayerView: Sendable {
     public let calls: [AuctionCall]
     /// Every card already played this hand is public knowledge.
     public let completedTricks: [CompletedTrick]
+    /// How many cards each seat threw when trump was named, announced aloud at a real table. A seat
+    /// that discarded n kept 6 - n trumps. Public information: the count crosses this boundary, the
+    /// discarded cards themselves never do.
+    public let discardCounts: [Int]
 
     public init(seat: Int, cards: [Card], phase: HandPhase, nextSeat: Int?, dealer: Int,
                 highestBid: Int?, bidder: Int?, trump: Suit?, trick: [Play], calls: [AuctionCall] = [],
-                completedTricks: [CompletedTrick] = []) {
+                completedTricks: [CompletedTrick] = [], discardCounts: [Int] = [0, 0, 0, 0]) {
         self.seat = seat
         self.cards = cards
         self.phase = phase
@@ -27,6 +31,7 @@ public struct PlayerView: Sendable {
         self.trick = trick
         self.calls = calls
         self.completedTricks = completedTricks
+        self.discardCounts = discardCounts
     }
 }
 
@@ -38,7 +43,8 @@ extension PlayerView {
                   nextSeat: match.winner == nil ? hand.nextSeat : nil,
                   dealer: hand.auction.dealer, highestBid: hand.auction.highestBid,
                   bidder: hand.auction.winner, trump: hand.trump, trick: hand.currentTrick,
-                  calls: hand.auction.calls, completedTricks: hand.completedTricks)
+                  calls: hand.auction.calls, completedTricks: hand.completedTricks,
+                  discardCounts: hand.discardCounts)
     }
 }
 
@@ -67,7 +73,8 @@ extension PlayerView {
         self.init(seat: play.seat, cards: cards, phase: .playing, nextSeat: play.seat,
                   dealer: hand.auction.dealer, highestBid: hand.auction.highestBid,
                   bidder: hand.auction.winner, trump: hand.trump, trick: trick,
-                  calls: hand.auction.calls, completedTricks: earlier)
+                  calls: hand.auction.calls, completedTricks: earlier,
+                  discardCounts: hand.discardCounts)
     }
 }
 
