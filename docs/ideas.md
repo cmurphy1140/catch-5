@@ -322,3 +322,10 @@ entered by the player or it does not exist.
 **Open questions**, in addition to E.7's three. Whether the Game pad and the trump counter are one
 pad or two. Whether a differential needs an undo for a mis-tap, given that a wrong number is worse
 than no number. Whether the after-the-hand coach belongs in the existing hand review or beside it.
+
+**What the September 14 research says about this.** Three deep-research runs judged an *automatic*
+card tracker, which is not what this is; one of them proposed a player-entered count checked by the
+software as the better design, which is this pad plus a verification step. They still disagree on
+whether to build it at all soon: one says keep it outside the next six increments until a real novice
+is seen abandoning the game over memory load, another says build it as a beginner-only fading
+scaffold. See the [playability research](history/2026-09-14-playability-research.md).
