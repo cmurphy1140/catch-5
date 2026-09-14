@@ -17,6 +17,11 @@ public struct Hand: Sendable {
     public private(set) var hands: [[Card]] = [[], [], [], []]
     public private(set) var stock: [Card]
     public private(set) var discarded: [Card] = []
+    /// How many cards each seat threw when trump was named, which at a real table every player says
+    /// out loud. The count is public and the cards are not: a seat that discarded n kept 6 - n
+    /// trumps, which is how a player judges the bidder and tracks who runs out of trump. Zero for
+    /// every seat until trump is chosen. Derived from the deal, so a replayed save recomputes it.
+    public private(set) var discardCounts: [Int] = [0, 0, 0, 0]
     public private(set) var trump: Suit?
     public private(set) var nextSeat: Int?
     public private(set) var currentTrick: [Play] = []
@@ -54,7 +59,9 @@ public struct Hand: Sendable {
         trump = suit
         for offset in 1...4 {
             let player = (auction.dealer + offset) % 4
-            discarded.append(contentsOf: hands[player].filter { $0.suit != suit })
+            let thrown = hands[player].filter { $0.suit != suit }
+            discardCounts[player] = thrown.count
+            discarded.append(contentsOf: thrown)
             hands[player].removeAll { $0.suit != suit }
             let needed = 6 - hands[player].count
             hands[player].append(contentsOf: stock.prefix(needed))
