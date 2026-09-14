@@ -37,7 +37,7 @@ public struct Settings: Codable, Equatable, Sendable {
         seatNames[0] = trimmed
     }
 
-    public init(playSpeed: PlaySpeed = .normal, seatNames: [String] = Settings.defaultSeatNames,
+    public init(playSpeed: PlaySpeed = .relaxed, seatNames: [String] = Settings.defaultSeatNames,
                 haptics: Bool = true, difficulty: Difficulty = .standard, hasSeenRules: Bool = false,
                 completedLessons: Set<Int> = [], playerName: String? = nil,
                 playerPortrait: Portrait = Cast.defaultPlayerPortrait, beginnerMode: Bool = true) {
@@ -57,7 +57,7 @@ public struct Settings: Codable, Equatable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         // A value this build does not recognise (a newer build's enum case) falls back to its default rather
         // than throwing the whole file away, which would sign the player out.
-        playSpeed = (try? container.decodeIfPresent(PlaySpeed.self, forKey: .playSpeed)) ?? nil ?? .normal
+        playSpeed = (try? container.decodeIfPresent(PlaySpeed.self, forKey: .playSpeed)) ?? nil ?? .relaxed
         haptics = (try? container.decodeIfPresent(Bool.self, forKey: .haptics)) ?? nil ?? true
         difficulty = (try? container.decodeIfPresent(Difficulty.self, forKey: .difficulty)) ?? nil ?? .standard
         hasSeenRules = (try? container.decodeIfPresent(Bool.self, forKey: .hasSeenRules)) ?? nil ?? false
@@ -82,7 +82,18 @@ public struct Settings: Codable, Equatable, Sendable {
         return result
     }
 
+    /// How long a finished trick stays on the table, winner ringed, before it collapses. It follows
+    /// the chosen pace: the complaint it answers is that a trick is gone before you have read it.
+
     /// Pause before a computer acts: longer before a lead so the last trick can be read.
+    public var trickHold: Duration {
+        switch playSpeed {
+        case .relaxed: .milliseconds(1400)
+        case .normal: .milliseconds(900)
+        case .quick: .milliseconds(500)
+        }
+    }
+
     public func delay(leadingTrick: Bool) -> Duration {
         switch playSpeed {
         case .relaxed: leadingTrick ? .milliseconds(1800) : .milliseconds(1000)

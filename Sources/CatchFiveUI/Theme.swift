@@ -121,8 +121,6 @@ public enum Theme {
         public static let reduced = Animation.easeInOut(duration: 0.2)
         /// The halo on the seat to act breathes in and out for as long as that seat is deciding.
         public static let pulse = Animation.easeInOut(duration: 1.2).repeatForever(autoreverses: true)
-        /// How long a finished trick stays on the table, winner ringed, before it collapses.
-        public static let trickHold: Duration = .milliseconds(900)
         public static let shakeAmplitude = 6.0
         public static let toastSeconds = 4.0
         /// After trump is named: discards rise toward the table and fade, then the refill deals in

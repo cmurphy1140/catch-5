@@ -341,11 +341,17 @@ struct TableSurface: View {
                     actionButton(suit.glyph, action: .chooseTrump(suit), font: .largeTitle.weight(.bold),
                                  labelColor: suit.isRed ? Color.suitRed : .ivory)
                         .accessibilityLabel("\(suit.rawValue), \(model.trumpPreview(for: suit) ?? "")")
-                    // One short caption line so the auction still fits without scrolling (D34): the suit and, in
-                    // beginner mode, what it keeps (spec R30); the draw count is implied and VoiceOver reads it all.
-                    Text(coaching ? (model.trumpPreview(for: suit).flatMap { $0.split(separator: " · ").first }.map { "\(suit.rawValue) · \($0)" } ?? suit.rawValue) : suit.rawValue)
-                        .font(.caption2.weight(.semibold)).opacity(0.8)
-                        .lineLimit(1).minimumScaleFactor(0.6)
+                    // The suit on one line and, in beginner mode, what it keeps on a second (spec R30), so no
+                    // caption is ever shrunk to fit its column; the draw count is implied and VoiceOver reads it all.
+                    // A single row of pills leaves room for two short lines even on the smallest phone (D34).
+                    VStack(spacing: 1) {
+                        Text(suit.rawValue)
+                        if coaching, let keeps = model.trumpPreview(for: suit)?.split(separator: " · ").first {
+                            Text(keeps)
+                        }
+                    }
+                    .font(.caption2.weight(.semibold)).opacity(0.8)
+                    .lineLimit(1)
                 }
                 .accessibilityElement(children: .contain)
             }

@@ -229,7 +229,7 @@ public struct TableView: View {
         if collapsedTricks > hand.completedTricks.count { collapsedTricks = hand.completedTricks.count }
         let step = TableScheduler.plan(hand: hand, collapsedTricks: collapsedTricks)
         if step.hold {
-            try? await Task.sleep(for: Theme.Motion.trickHold)
+            try? await Task.sleep(for: model.settings.trickHold)
             guard !Task.isCancelled else { return }
             withAnimation(motion(Theme.Motion.collapse)) { collapsedTricks = hand.completedTricks.count }
         }
