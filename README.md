@@ -28,6 +28,7 @@ The [device installation guide](docs/device-install.md) records an earlier local
 - To run the app: [build and run](docs/build-and-run.md) or [install on a phone](docs/device-install.md).
 - For Claude Code session instructions: [AGENTS.md](AGENTS.md). `CLAUDE.md` links to that same file, so edit only `AGENTS.md`.
 - For how sessions work together, the copy-ready prompts and the session log: [working together](docs/working-together.md).
+- For ideas kept but not scheduled: [ideas](docs/ideas.md).
 
 ## Where things live
 
