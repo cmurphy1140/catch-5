@@ -256,3 +256,69 @@ remote-Mac step is worth setting up before the increments that would use it exis
 **The document's own framing is stale in one respect.** It is written around Codex, which
 `AGENTS.md` records as no longer used. The shape survives the tool; the idea above is written for
 whichever session is doing the work.
+
+### E.10 Counting tools you operate yourself, pinned September 14, 2026
+
+E.7 pinned a trump counter the player increments themselves. Talking it through on September 14
+turned that one idea into a family, and produced the test that decides whether any of them belongs:
+
+> The app may hold a number you computed. It may never compute a number you would have to hold.
+
+Notepad, not calculator. The corollary is the useful half: **inference is the skill, arithmetic under
+memory pressure is the tedium**, and the tedium crowds out the skill. A player loses track of Game
+because they are busy adding, not because they cannot tell who is ahead.
+
+**A Game pad, kept as a differential.** Game is one point, to whichever side captured the greater
+card value (10 = 10, ace 4, king 3, queen 2, jack 1, everything else nothing). The rule that decides
+the design is that **the pool cannot be known**: undealt cards stay out of play, every player
+discards non-trumps and draws back to six, so the Game value actually in play varies each hand and
+no one at the table can total it. A full deck holds eighty; a hand holds an unknowable fraction of
+that. Absolute counting is therefore meaningless and only one question is answerable — *are we
+ahead?* So the pad is one signed number. Take a ten, tap plus ten; they take an ace, tap minus four;
+`+7` means seven up on Game with tricks still to play. One number, one tap per counter, and every
+input stays the player's: noticing that the card fell and to whom is exactly the part that is skill.
+The hand-end card already names the Game count and its winner every hand, so this is about the part
+of the hand where nothing is shown, not about the result.
+
+**Void marks.** When a seat fails to follow suit, everyone at a real table clocks it. Tap the seat,
+mark the suit. This is the purest case of the test: public information the player saw, held by the
+app so it need not be carried in the head. The app deriving voids would break R4; the player
+recording them does not.
+
+**After the hand, what you could have known.** The one worth building first, and it is not live at
+all. At hand end, say what the hand made knowable: *"By trick four Rue had shown void in hearts and
+clubs, so the Five was safe to lead."* It reads the replay log the bot bank (D58) already needs,
+never touches a live decision, so it sits outside R4 and R20 rather than in tension with them, and it
+makes a player better instead of making bookkeeping easier. It is also the version that gets a family
+member learning without Connor at their shoulder.
+
+**The boundary that is easy to cross by accident.** A private mark is bookkeeping. Anything that
+*tells the partner* during a hand is a rules change wearing a feature's clothes, and E.6 already
+draws that line at table talk. Discard counts are announceable because the house rules make them
+public; "the last trump is gone" is not.
+
+**How it is reached, which is the open question.** Connor's first instinct was a toggle for advanced
+players, which is a direct answer to E.7's question of whether the counter appears outside beginner
+mode. Two readings, and they disagree:
+
+- **An affordance, not a mode.** A pencil glyph on the status line beside last trick and hint, which
+  already sit there at a 44 pt hit area, opening the pad on demand. Zero footprint until reached for,
+  so the clutter objection needs no switch to answer. It leaves D56's single guidance setting intact,
+  and it does not hide the notepad from the people learning to count — the spec calls counting a
+  skill of the game, and a skill needs practice. A real table has no modes; anyone may pick up a
+  pencil.
+- **A setting for advanced players.** Right if the pad has to be *visible* to be useful — a
+  differential glanced at mid-trick without opening anything. Persistent screen space is furniture,
+  and furniture does need a switch. The cost is that the guidance toggle stops meaning one thing,
+  since beginner mode off currently means a cleaner table, not a fuller one.
+
+Which is correct depends on whether the pad works when it is closed, and that is settled by drawing
+or prototyping it, not by arguing it.
+
+**What none of these become.** No display of cards remaining or seen (R20), no tally the app advances
+on its own (R4), no derived voids, and no hint delivered to a partner mid-hand. Every number here is
+entered by the player or it does not exist.
+
+**Open questions**, in addition to E.7's three. Whether the Game pad and the trump counter are one
+pad or two. Whether a differential needs an undo for a mis-tap, given that a wrong number is worse
+than no number. Whether the after-the-hand coach belongs in the existing hand review or beside it.
