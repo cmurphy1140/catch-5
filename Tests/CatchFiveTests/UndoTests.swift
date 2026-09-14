@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import CatchFive
 
@@ -53,4 +54,63 @@ private func playedMatch() throws -> Match {
     #expect(match.undoPoint(forSeat: 0) == nil)   // nothing of seat 0's in this hand yet
     try match.bid(seat: 1, amount: nil)
     #expect(match.undoPoint(forSeat: 1) == match.actionCount - 1)
+}
+
+private func actingSeat(of action: SavedAction) -> Int? {
+    switch action {
+    case let .nineAndOut(seat), let .bid(seat, _), let .trump(seat, _), let .play(seat, _): return seat
+    case .nextHand: return nil
+    }
+}
+
+@Test func undoAfterAResumeTakesBackOneHumanTurnAndTheMatchSavesAndReloadsIdentically() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let url = directory.appendingPathComponent("match.json")
+
+    let match = try playedMatch()
+    try MatchSave.write(match, to: url)
+    let resumed = try MatchSave.read(from: url)
+    #expect(try MatchSave.encode(resumed) == MatchSave.encode(match))
+
+    // A resume keeps the undo boundary exactly where it was before the app closed.
+    let point = try #require(resumed.undoPoint(forSeat: 0))
+    #expect(point == match.undoPoint(forSeat: 0))
+    #expect(actingSeat(of: resumed.actions[point]) == 0)
+    #expect(resumed.actions.dropFirst(point + 1).allSatisfy { actingSeat(of: $0) != 0 })
+    #expect(resumed.actionCount - point == 5)   // seat 0's lead and the four computer actions after it
+
+    // Undoing on the resumed match takes back that turn and only what followed it.
+    let undone = try resumed.rewound(toActionCount: point)
+    #expect(undone.actionCount == point)
+    #expect(undone.hand.nextSeat == 0)
+    #expect(undone.hand.phase == .playing)
+    #expect(undone.hand.currentTrick.isEmpty && undone.hand.completedTricks.isEmpty)
+    #expect(undone.hand.hands[0].count == 6)
+    #expect(try MatchSave.encode(undone) == MatchSave.encode(match.rewound(toActionCount: point)))
+
+    // The undone match saves and reloads identically; nothing of the taken-back turn comes back.
+    try MatchSave.write(undone, to: url)
+    let reloaded = try MatchSave.read(from: url)
+    #expect(try MatchSave.encode(reloaded) == MatchSave.encode(undone))
+    #expect(reloaded.actionCount == point)
+    #expect(reloaded.hand.hands == undone.hand.hands)
+    #expect(reloaded.hand.currentTrick == undone.hand.currentTrick)
+    #expect(reloaded.hand.stock == undone.hand.stock)
+    #expect(reloaded.hand.discarded == undone.hand.discarded)
+    #expect(reloaded.scores == undone.scores)
+
+    // Seat 0 can now choose a different card, and the save records the new one only.
+    var second = reloaded
+    let choices = second.hand.legalMoves(seat: 0)
+    #expect(choices.count > 1)
+    let different = try #require(choices.last)
+    #expect(different != resumed.hand.completedTricks.first?.plays.first?.card)
+    try second.play(seat: 0, card: different)
+    try MatchSave.write(second, to: url)
+    let afterRedo = try MatchSave.read(from: url)
+    #expect(afterRedo.actionCount == point + 1)
+    #expect(afterRedo.hand.currentTrick.map(\.card) == [different])
+    #expect(afterRedo.hand.hands[0].count == 5)
 }
