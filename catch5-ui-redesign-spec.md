@@ -683,6 +683,26 @@ Ideas Connor wants kept, not scheduled. No requirement IDs; they earn one when c
 - **A different view from the table** was raised and dropped the same day as overkill. Recorded so
   it is not proposed again without a reason.
 
+### E.7 Counting at the table, pinned September 14, 2026
+
+Two ideas from Connor about the information a real Catch 5 table shares out loud. They belong
+together: the first supplies the numbers, the second gives the player somewhere to keep them.
+
+- **Every seat announces how many cards it discards.** Once trump is named each player discards
+  their non-trumps and draws back to six, so the count they announce says how many trumps they
+  held. At a real table this is said aloud and everyone uses it: whether the bidder is strong or
+  bluffing, whether leading trumps helps your partner or the other side, and whether the Five can
+  be sneaked. The app currently shows only the human's own count, and the engine pools every
+  discard into one pile with no record of who threw what, so the computer plays blind to
+  information every person at the table has. Engine side first: record the counts, carry them in
+  `PlayerView`, teach the strategy to read them. Then the table announces each one.
+- **A trump counter the player increments themselves.** A place to keep a tally of trumps played,
+  which the app never advances on its own. This does not conflict with R4 (no automatic number
+  tracking) or R20 (no card-count displays): counting stays the player's skill, and the app only
+  offers somewhere to write it down, the way a notepad differs from a calculator. Open questions:
+  whether it resets each hand automatically, whether it can be corrected downward, and whether it
+  appears at all outside beginner mode.
+
 ## F. Delivery and verification
 
 ### F.1 Agreed boundaries and routine implementation choices
