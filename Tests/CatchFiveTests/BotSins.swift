@@ -188,8 +188,13 @@ func trickSins(_ trick: CompletedTrick, context: [PlayInContext], trump: Suit,
         // card that never took the lead was thrown at a trick it could not win.
         let lost = !play.tookTheLead && trick.winner % 2 != play.seat % 2
         if lost {
+            // Feeding a card to a partner who holds the trick is "sneaking", and it is how points
+            // reach your own side. That the partner was then overtrumped is a bet that lost. The
+            // Five is the exception: Connor's table treats it as sacred and never risks it at all.
+            let fedToPartner = play.leaderBefore.map { $0 % 2 == play.seat % 2 && $0 != play.seat } ?? false
             let kind: BotSin.Kind?
             if play.card.suit == trump && play.card.rank == .five { kind = .surrenderedTheFive }
+            else if fedToPartner { kind = nil }
             else if play.card.suit == trump && play.card.rank == .jack { kind = .surrenderedTheJack }
             else if play.isCertainlyLow { kind = .surrenderedTheLow }
             else if play.card.rank == .ten { kind = .surrenderedATen }
@@ -309,4 +314,9 @@ private func setSins(_ summary: HandSummary, seed: Int) -> [BotSin] {
     let counters = try huntBotSins(seeds: 1..<121)
         .filter { $0.kind == .surrenderedTheFive || $0.kind == .surrenderedTheJack }
     #expect(counters.count <= 14, "regression: \(counters.count) counters thrown away")
+
+    // Tens and low trumps have their own floors, kept apart because they are worth different points.
+    let all = try huntBotSins(seeds: 1..<121)
+    #expect(all.filter { $0.kind == .surrenderedATen }.count <= 14)
+    #expect(all.filter { $0.kind == .surrenderedTheLow }.count <= 19)
 }
