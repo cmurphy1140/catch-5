@@ -193,6 +193,17 @@ classDiagram
 | `PlayReview`, `TrickReview`, `HandReview(match:)` | every play of the finished hand's tricks next to the standard strategy's advice from the same rebuilt view (D24); `agreement(forSeat:)` counts matches | `reviewReconstructsEveryPlayWithAdvice` |
 | `SeatPerformance`, `Match.performance(forSeat:)` | plays agreed and contracts made over the whole match, rebuilt by replaying to each hand boundary; nothing extra is saved | `performanceCountsHumanPlaysAndContractsAcrossHands` |
 
+## Tests/CatchFiveTests/BotSins.swift
+
+The sin hunt (D58): a sweep that finds the computer's bad decisions so each one can become a fixture.
+
+| Type or function | What it does | Test |
+|---|---|---|
+| `BotSin`, `BotSin.Kind` | one bad decision, with the seed, hand and seat that produced it; the kinds are the ones Connor named at the table | `theDetectorNamesAnOvertakenPartnerAndASurrenderedCounterAndForgivesTheForced` |
+| `leaderSoFar(_:trump:)` | who holds a part-played trick; `trickWinner` answers only once all four cards are down | `theDetectorNamesAnOvertakenPartnerAndASurrenderedCounterAndForgivesTheForced` |
+| `trickSins(_:context:trump:seed:hand:)` | a counter surrendered, or a partner overtaken, judged only where the seat had a choice | `theDetectorNamesAnOvertakenPartnerAndASurrenderedCounterAndForgivesTheForced` |
+| `huntBotSins(seeds:)` | plays seeded matches with the standard player in all four seats and reports every sin | `botSinsAcrossManySeededMatchesAreCountedAndReported` |
+
 ## Sources/CatchFive/MatchSave.swift
 
 | Name | Purpose | Proven by |
