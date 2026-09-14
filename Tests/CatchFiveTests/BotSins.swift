@@ -12,9 +12,9 @@ import Testing
 /// judgement call made on the numbers rather than guessed at here.
 struct BotSin: CustomStringConvertible {
     enum Kind: String, CaseIterable {
-        /// The trump Five or Jack handed to the other side when another card was legal.
+        /// The trump Five or Jack thrown into a trick it could not even take the lead in.
         case gaveAwayACounter
-        /// Took the trick off its own partner, who was already winning it, with a choice in hand.
+        /// Took the trick off a partner whose card no remaining card could beat: nothing was gained.
         case overtookThePartner
         /// Bid, then finished two or more points short of the contract.
         case bidAndWasBadlySet
@@ -38,13 +38,18 @@ func leaderSoFar(_ plays: [Play], trump: Suit) -> Int? {
     return candidates.max { $0.card.rank.rawValue < $1.card.rank.rawValue }?.seat
 }
 
-/// One play, with the two facts a detector needs that the finished trick no longer remembers:
-/// who was winning when it was made, and whether the seat had any choice at all.
+/// One play, with the facts a detector needs that the finished trick no longer remembers: who was
+/// winning when it was made, whether the seat had any choice, and — from outside the game, where a
+/// test may look at every hand — whether the leader's card was already safe from everyone still to play.
 struct PlayInContext {
     let seat: Int
     let card: Card
     let hadAChoice: Bool
     let leaderBefore: Int?
+    /// True when no card left in a later seat's hand could have beaten the card then leading.
+    let leaderWasSafe: Bool
+    /// True when this card took the lead as it was played. A card that did not cannot win the trick.
+    let tookTheLead: Bool
 }
 
 /// Plays `seeds` matches with the standard player in all four seats and reports every sin it sees.
@@ -72,11 +77,15 @@ func huntBotSins(seeds: Range<Int>) throws -> [BotSin] {
             // Capture what the seat could see before the card leaves its hand.
             if case let .play(card) = action, let trump = match.hand.trump {
                 let before = match.hand.currentTrick
+                let leader = leaderSoFar(before, trump: trump)
                 context.append(PlayInContext(
                     seat: seat,
                     card: card,
                     hadAChoice: match.hand.legalMoves(seat: seat).count > 1,
-                    leaderBefore: leaderSoFar(before, trump: trump)))
+                    leaderBefore: leader,
+                    leaderWasSafe: leader.map { leaderIsSafe(before, from: seat, hands: match.hand.hands, trump: trump, leader: $0) } ?? false,
+                    tookTheLead: before.isEmpty || beats(card, before.first(where: { $0.seat == leader })?.card ?? card,
+                                                        led: before[0].card.suit, trump: trump)))
             }
 
             let tricksBefore = match.hand.completedTricks.count
@@ -97,6 +106,29 @@ func huntBotSins(seeds: Range<Int>) throws -> [BotSin] {
     return sins
 }
 
+/// Could anybody still to play, this seat included, have beaten the card currently leading? A test
+/// may ask this with every hand in view, which the strategy itself may not. When the answer is no,
+/// the trick was already won and taking it off a partner gains nothing.
+func leaderIsSafe(_ trick: [Play], from seat: Int, hands: [[Card]], trump: Suit, leader: Int) -> Bool {
+    guard let leading = trick.first(where: { $0.seat == leader })?.card else { return false }
+    let led = trick[0].card.suit
+    let played = Set(trick.map(\.seat))
+    for other in 0..<4 where !played.contains(other) {
+        if legalCards(in: hands[other], led: led).contains(where: { beats($0, leading, led: led, trump: trump) }) {
+            return false
+        }
+    }
+    return true
+}
+
+/// Does `card` take the trick from `leading`? Trump beats a non-trump; otherwise only a higher card
+/// of the same suit does, and a card off both trump and the led suit beats nothing.
+func beats(_ card: Card, _ leading: Card, led: Suit, trump: Suit) -> Bool {
+    if card.suit == trump { return leading.suit != trump || card.rank.rawValue > leading.rank.rawValue }
+    if leading.suit == trump || card.suit != leading.suit { return false }
+    return card.rank.rawValue > leading.rank.rawValue
+}
+
 /// Sins visible once a trick is complete: a counter surrendered, or a partner overtaken.
 func trickSins(_ trick: CompletedTrick, context: [PlayInContext], trump: Suit,
                        seed: Int, hand: Int) -> [BotSin] {
@@ -104,17 +136,20 @@ func trickSins(_ trick: CompletedTrick, context: [PlayInContext], trump: Suit,
     for play in context {
         guard play.hadAChoice else { continue }   // forced is never a mistake
 
+        // Playing a counter to try to win a trick and being overtrumped is a bet that lost, not a
+        // mistake. Playing one that did not even take the lead is five points thrown at nothing.
         let isCounter = play.card.suit == trump && (play.card.rank == .five || play.card.rank == .jack)
-        if isCounter, trick.winner % 2 != play.seat % 2 {
+        if isCounter, !play.tookTheLead, trick.winner % 2 != play.seat % 2 {
             sins.append(BotSin(kind: .gaveAwayACounter, seed: seed, hand: hand, seat: play.seat,
-                               detail: "played the \(play.card.name) into a trick seat \(trick.winner) took"))
+                               detail: "threw the \(play.card.name) under the trick seat \(trick.winner) took"))
         }
 
-        // The partner was already winning and this card took it away from them.
+        // Overtaking a partner who might still lose the trick is ordinary good play. Only taking it
+        // from a partner nobody left could beat is indefensible: the trick was already won.
         if let leader = play.leaderBefore, leader % 2 == play.seat % 2, leader != play.seat,
-           trick.winner == play.seat {
+           trick.winner == play.seat, play.leaderWasSafe {
             sins.append(BotSin(kind: .overtookThePartner, seed: seed, hand: hand, seat: play.seat,
-                               detail: "overtook partner \(leader) with the \(play.card.name)"))
+                               detail: "overtook partner \(leader), whose card was already safe, with the \(play.card.name)"))
         }
     }
     return sins
@@ -140,18 +175,26 @@ private func setSins(_ summary: HandSummary, seed: Int) -> [BotSin] {
     ], winner: 0)
     #expect(leaderSoFar(Array(trick.plays.prefix(2)), trump: .spades) == 0)
 
-    let overtaking = [PlayInContext(seat: 2, card: Card(.spades, .king), hadAChoice: true, leaderBefore: 0)]
+    let overtaking = [PlayInContext(seat: 2, card: Card(.spades, .king), hadAChoice: true, leaderBefore: 0, leaderWasSafe: true, tookTheLead: true)]
     let taken = CompletedTrick(plays: trick.plays, winner: 2)
     let overtook = trickSins(taken, context: overtaking, trump: .spades, seed: 1, hand: 1)
     #expect(overtook.count == 1 && overtook[0].kind == .overtookThePartner)
 
+    // The same overtake, when someone left could still have beaten the partner, is good play.
+    let contested = [PlayInContext(seat: 2, card: Card(.spades, .king), hadAChoice: true, leaderBefore: 0, leaderWasSafe: false, tookTheLead: true)]
+    #expect(trickSins(taken, context: contested, trump: .spades, seed: 1, hand: 1).isEmpty)
+
     // The trump Five handed to the other side, with another card in hand, is the counter sin.
-    let surrender = [PlayInContext(seat: 1, card: Card(.spades, .five), hadAChoice: true, leaderBefore: 0)]
+    let surrender = [PlayInContext(seat: 1, card: Card(.spades, .five), hadAChoice: true, leaderBefore: 0, leaderWasSafe: false, tookTheLead: false)]
     let lost = trickSins(trick, context: surrender, trump: .spades, seed: 1, hand: 1)
     #expect(lost.count == 1 && lost[0].kind == .gaveAwayACounter)
 
+    // The same Five played to take the lead, then overtrumped, is a bet that lost rather than waste.
+    let gambled = [PlayInContext(seat: 1, card: Card(.spades, .five), hadAChoice: true, leaderBefore: 0, leaderWasSafe: false, tookTheLead: true)]
+    #expect(trickSins(trick, context: gambled, trump: .spades, seed: 1, hand: 1).isEmpty)
+
     // The same play with no choice in hand is not a mistake, and is not counted as one.
-    let forced = [PlayInContext(seat: 1, card: Card(.spades, .five), hadAChoice: false, leaderBefore: 0)]
+    let forced = [PlayInContext(seat: 1, card: Card(.spades, .five), hadAChoice: false, leaderBefore: 0, leaderWasSafe: false, tookTheLead: false)]
     #expect(trickSins(trick, context: forced, trump: .spades, seed: 1, hand: 1).isEmpty)
 }
 
