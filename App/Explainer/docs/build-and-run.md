@@ -24,22 +24,23 @@ flowchart LR
 
 One environment note: this repository lives under the iCloud-synced Desktop, so the folder carries the `com.apple.fileprovider.ignore#P` extended attribute (set September 13, 2026) to keep iCloud out of `.git` and the working tree. After cloning to a synced location, reapply it with `xattr -w 'com.apple.fileprovider.ignore#P' 1 <repo folder>`.
 
-## The six commands
+## The seven commands
 
 | Command | What it does | When to use |
 |---|---|---|
-| `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test` | Compiles every target and runs all tests (96 as of this page) | After every change |
+| `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test` | Compiles every target and runs the whole suite | After every change |
 | `... swift test --filter <name>` | Runs one test by function name | While working on one rule |
 | `... swift run catch-five-demo` | Plays a fixed five-hand match in the terminal and prints every trick | To watch the engine without the app. Add `--computer` for shuffled computer play, `--save-roundtrip` to see save/restore mid-trick |
 | `... python3 scripts/build-simulator.py` | Produces `work/simulator-build/CatchFive.app` for the iOS simulator | To run the real app |
 | `scripts/install-phone.sh` | Builds signed, installs and launches on the connected iPhone | Every time you want the latest build on the phone, and weekly to renew a free-team install ([device-install.md](device-install.md)) |
 | `python3 scripts/export-docs.py` | Renders every explainer page to PDF and every Mermaid diagram to PNG in `work/docs-export/` | To upload the pages to Claude Design or share them outside GitHub |
+| `swift scripts/contrast-sample.swift <png> <x0> <y0> <x1> <y1> [label]` | Reports the contrast against ivory of a region of a simulator screenshot, sampling real pixels | To check a background that is drawn in code, where the colour literal is not what lands on screen |
 
 `DEVELOPER_DIR` points the `swift` command at Xcode's toolchain rather than the command-line-tools copy, which lacks the iOS SDK.
 
 ## Why there is a Python build script
 
-Normally `xcodebuild` (or Xcode's Run button) compiles an iOS app. On this Mac the installed Xcode expects an iOS 26.5 platform that is not downloaded, so `xcodebuild` cannot find a destination. The script does the same job by hand.
+Normally `xcodebuild` (or Xcode's Run button) compiles an iOS app. It was once the case that this Mac had no iOS platform installed and `xcodebuild` could find no destination, which is why this script exists. That is no longer true, verified September 14 2026: `xcodebuild -showdestinations` lists simulators across iOS 26.5 and 27.0. The script is kept because it stays useful — it calls `swiftc` against the simulator SDK directly, needs no project file and no destination resolution, and builds the app in about twenty seconds.
 
 ```mermaid
 flowchart TD
@@ -53,11 +54,11 @@ flowchart TD
 
 Each `swiftc` call is the compiler invoked directly, with `-target arm64-apple-ios17.0-simulator` so the binary is built for the simulator, and `-swift-version 6`. The `-I` and `-L` flags tell later steps where to find the `.swiftmodule` and `.a` files from earlier steps.
 
-`project.yml` and `CatchFive.xcodeproj` exist for the day Xcode's iOS platform is installed ([device-install.md](device-install.md)); `xcodegen` regenerates the project from the YAML. They are not used by the script, but the script does copy three things the store build also uses: the `App/Explainer` folder of bundled documentation pages, the icon, scaled from `App/Assets.xcassets/AppIcon.appiconset/icon-1024.png` (rendered by `swift scripts/make-icon.swift <output>`), and `App/PrivacyInfo.xcprivacy`.
+`project.yml` and `CatchFive.xcodeproj` are what `scripts/install-phone.sh` builds from when the app goes to a real phone ([device-install.md](device-install.md)); `xcodegen` regenerates the project from the YAML. Neither is used by `build-simulator.py`, but that script does copy three things the store build also uses: the `App/Explainer` folder of bundled documentation pages, the icon, scaled from `App/Assets.xcassets/AppIcon.appiconset/icon-1024.png` (rendered by `swift scripts/make-icon.swift <output>`), and `App/PrivacyInfo.xcprivacy`.
 
 ## Toward the App Store
 
-Everything the archive needs is in the repository: the asset catalog with a 1024-pixel alpha-free icon, the privacy manifest (no tracking, no required-reason APIs), and `project.yml` with the bundle id, version 1.0, the card-games category and the icon setting. What this Mac cannot do is archive or sign for devices, because Xcode's iOS platform is not installed. On a Mac that has it:
+Everything the archive needs is in the repository: the asset catalog with a 1024-pixel alpha-free icon, the privacy manifest (no tracking, no required-reason APIs), and `project.yml` with the bundle id, version 1.0, the card-games category and the icon setting. Signing for a device works here: `scripts/install-phone.sh` built, signed, installed and launched on Connor's iPhone 16 Pro (iOS 27.0) with Xcode 27.0 on September 14 2026, on a free personal team, so the install stops opening after seven days. Archiving for the App Store is a different operation and has not been run:
 
 ```bash
 xcodegen generate && xcodebuild -scheme CatchFiveApp -destination 'generic/platform=iOS' archive -archivePath work/CatchFive.xcarchive

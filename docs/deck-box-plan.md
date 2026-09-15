@@ -106,26 +106,38 @@ exactly and propose only the box column.
 The box needs, at minimum: a burgundy board colour, a lit and a shadowed variant of it, a foil gold
 (which may or may not be `#E8BF6B`), and an embossing tone. Naming them is part of the canvas's job.
 
-### The oak it replaces is the app's weakest contrast, which helps
+### The oak's weak spot is the reading sheets, not the header band
 
-Ivory text sits straight on the header band and the reading sheets, so their background sets the
-floor for readability. Measured against `#FAF5E3`:
+Ivory text sits straight on both surfaces, so their background sets the floor for readability. The
+rows below marked *drawn* are sampled from rendered frames (iPhone 16 Pro simulator, iOS 26.5, dark,
+September 14 2026), not computed from the colour literals. That distinction is the whole point:
+`WoodGrainView` lays a three-stop gradient, twenty-eight tonal bands, several hundred grain strokes
+and a vignette on top of each other, so no pixel on screen is ever the bare literal. Glyph pixels and
+their antialiased edges are excluded from every sample.
 
-| Background | Contrast with ivory |
+| Surface | Contrast with ivory `#FAF5E3` |
 |---|---|
-| `Wood.light` `#B3824A`, the lit end of the oak gradient | **3.10:1 — below the 4.5:1 floor** |
-| `Wood.base` `#8A5E33` | 5.16:1 |
-| `Wood.felt` `#1A4030` | 10.57:1 |
-| A deep burgundy, `#4A1420` to `#7E2A3C` | 8.4:1 to 13.6:1 |
+| Header band, behind the score and contract text — *drawn* | 6.90:1 median — passes |
+| Header band, brightest pixel anywhere: the top-left corner, under the status bar, where no app text sits — *drawn* | 3.43:1 |
+| Reading sheet, title and subtitle on bare wood — *drawn* | **4.4:1 median, 3.84:1 floor, half the area below 4.5:1** |
+| Reading sheet, body copy on the dark inlay panel — *drawn* | 10.75:1 median — passes |
+| A deep burgundy, `#4A1420` to `#7E2A3C` — *computed* | 13.6:1 to 8.4:1 |
 
-The oak's lit end already fails for body text; the felt does not. Any burgundy dark enough to read as
-a deck box clears the floor with room to spare, so the box direction improves the two surfaces it
-touches rather than trading readability for looks. That range is the canvas's starting point, not its
-answer — the board still has to sit beside the felt without either muddying the other.
+The header band is not the problem. The vignette and the grain darken it well past the floor wherever
+text actually sits, and `Theme.swift` says as much in the comment above `Wood`: the base stays
+mid-dark and the grain carries the lighter look. The reading sheets are the problem. Their headings
+sit on bare wood at the lit end of the radial vignette, where about half the area behind the text
+falls under 4.5:1 and the brightest background reaches 3.84:1; only the dark inlay panel beneath the
+body copy rescues the rest of the page.
+
+So the box direction fixes a real failure on the reading sheets and leaves the header band no worse.
+Any burgundy dark enough to read as a deck box clears the floor on both. That range is the canvas's
+starting point, not its answer — the board still has to sit beside the felt without either muddying
+the other.
 
 ## 4. Artboards
 
-One canvas, iPhone 16 at 393 × 852 pt, dark. Nine artboards in three rows.
+One canvas, iPhone 16 at 393 × 852 pt, dark. Ten artboards in three rows.
 
 **Row 1 — the material.** Nothing from the app; just the box.
 1. **Board study.** Burgundy cloth-textured board at 1:1 and at 3:1, with the foil rule and one
@@ -193,7 +205,9 @@ seeded stipple of light and dark flecks on a 4 pt grid so it reads as fibre rath
 PALETTE YOU ARE DESIGNING (the box side)
 Propose and name: a burgundy board, a lit and a shadowed variant, a foil gold, an embossing tone.
 The burgundy must sit against the felt without either one muddying the other, and must hold ivory
-text at 4.5:1 or better, because body text sits straight on it.
+text at 4.5:1 or better. On the reading screens the title and subtitle sit directly on the board with
+no panel behind them, while body copy sits on a dark inset panel; the bare-board heading is the case
+to prove, because that is exactly where the oak it replaces currently fails.
 
 THE GOLD QUESTION, WHICH IS THE HARDEST CONSTRAINT
 In the game, gold has exactly five meanings and no decorative use at all: the dealer badge, the trump
