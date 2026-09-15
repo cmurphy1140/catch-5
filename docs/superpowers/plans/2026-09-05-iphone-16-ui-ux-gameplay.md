@@ -216,21 +216,25 @@ When useful, capture one before/after and a short explanation of why the change 
 
 ## 8. Current progress and next action
 
-| Increment | Status on September 13 | Next check |
+| Increment | Status on September 14, 2026 | Next check |
 |---|---|---|
-| Baseline reconciliation | Done September 13: plan, spec and rules on `main` (PR #42); `swift build` and `swift test` 149 of 149 verified on that tree; iCloud excluded; stale branches removed; current build played on the simulator and installed on Connor's iPhone | Increment 1, first slice |
-| Ordinary turn clarity | Proposed first visible slice | Beginner trump captions, same-state before/after |
-| Hand result clarity | Proposed | Compact real-data sketch; preserve factual detail |
+| Baseline reconciliation | Done September 13: plan, spec and rules on `main` (PR #42); `swift build` and `swift test` 149 of 149 verified on that tree; iCloud excluded; stale branches removed; current build played on the simulator and installed on Connor's iPhone. The suite has since grown to 159 tests, verified three times on September 14 | Done; nothing outstanding |
+| Ordinary turn clarity | Done September 14: beginner trump captions on two lines, and `relaxed` as the default pace with a beat after a trick completes (PR #43, CI green, squash-merged). Later slices of this increment — the table-menu affordance and the six-card hit regions — were not taken | Increment 2, the compact hand result |
+| Hand result clarity | Started, not finished. The Game count is now named out loud in the result (PR #44). The compact result itself is open as issue #53 | Compact real-data sketch; preserve factual detail |
 | Optional learning | Proposed | One lesson first, verify entry/exit isolation |
 | Touch/continuity | Partially covered by existing behavior; remaining verification pending | Resolve commitment mismatch only when this task starts |
 | Accessibility/feedback | Existing facilities; full current validation pending | Larger text, VoiceOver, actual phone feedback |
 | Family observation | Not performed | A willing player and available phone, when convenient |
 
-**Active sessions, September 13, 2026:** one Claude Code session in the main checkout, holding both writer roles in turn; the coordinator is Connor's planning chat. A second session joins on the engine side when Connor opens one. Sessions leave word in the log at the end of [working together](../../working-together.md); the coordinator updates this table.
+**Engine track, outside this table.** The bot bank (D58) is underway on its own branches: PRs #45, #46, #47, #49, #63, #67 and #79 merged September 14. Remaining engine work is tracked as issues #51, #54, #55 and #72–#78, not as rows here. Other UI work that merged September 14 but belongs to the counting ideas rather than to an increment: every seat announcing what it discarded (PR #69).
 
-**Next recommended implementation request (UI writer):** “Start Increment 1 of the Catch Five family UI plan from `main` in your own worktree. Improve only beginner trump-caption readability. Keep normal mode, suit order, rules, saves, and the approved main menu unchanged. Show before/after and verify relevant checks. Leave changes uncommitted; don't push.” Within the UI track, run increments in order: 1 and 2 both touch `TableSurface.swift`.
+**Active sessions, September 14, 2026:** one Claude Code session in the main checkout, holding both writer roles in turn; the coordinator is Connor's planning chat. A second session joins on the engine side when Connor opens one. Sessions leave word in the log at the end of [working together](../../working-together.md); the coordinator updates this table.
 
-**Next recommended implementation request (engine writer, when opened):** “Start the bot bank. Take the first hand Connor flagged, rebuild it from the replay log as a deterministic fixture in `Tests/CatchFiveTests/`, write the test that names the bad decision, then improve `ComputerPlayer` only enough to pass it without lowering the mirrored benchmark. Engine files only. Leave changes uncommitted; don't push.”
+Cloud sessions also merged PRs #82, #83 and #84 on September 14 and left no entry in that log, which is how this table came to be a day behind. A session that merges anything writes a log entry, wherever it runs.
+
+**Next recommended implementation request (UI writer):** “Start Increment 2 of the Catch Five family UI plan from `main` in your own worktree, taking issue #53, the compact hand result. Keep the contract outcome, both teams' score changes and Deal next hand visible; put the rest behind at most two disclosure levels. Reuse the existing outcome data rather than recalculating scores in the view. Show before/after and verify relevant checks. Leave changes uncommitted; don't push.” Within the UI track, run increments in order: 1 and 2 both touch `TableSurface.swift`.
+
+**Next recommended implementation request (engine writer, when opened):** “Continue the bot bank, which is underway — seven PRs merged September 14. Take the highest-priority open engine issue (#72 or #78, both P1), rebuild its hand from the replay log as a deterministic fixture in `Tests/CatchFiveTests/`, write the test that names the bad decision, then improve `ComputerPlayer` only enough to pass it without lowering the mirrored benchmark. Engine files only. Leave changes uncommitted; don't push.”
 
 ## 9. Source and maintenance boundaries
 
