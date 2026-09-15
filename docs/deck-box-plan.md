@@ -125,7 +125,7 @@ answer — the board still has to sit beside the felt without either muddying th
 
 ## 4. Artboards
 
-One canvas, iPhone 16 at 393 × 852 pt, dark. Nine artboards in three rows.
+One canvas, iPhone 16 at 393 × 852 pt, dark. Ten artboards in three rows.
 
 **Row 1 — the material.** Nothing from the app; just the box.
 1. **Board study.** Burgundy cloth-textured board at 1:1 and at 3:1, with the foil rule and one
@@ -155,6 +155,29 @@ One canvas, iPhone 16 at 393 × 852 pt, dark. Nine artboards in three rows.
     carries its own boundary and nobody redesigns a card by accident.
 
 ## 5. The prompt
+
+### How to run it
+
+Settled 2026-09-15, because the first attempt stopped on exactly these questions rather than on
+anything about the design.
+
+- **A project, not a design system.** Design systems are libraries you attach to a prompt — the chip
+  beside the prompt box — and this canvas is the exploration that *invents* the palette, so it has
+  nothing to borrow from yet. Once the board, its lit and shadowed variants, the foil gold and the
+  emboss tone are named and settled, promoting those five into a design system is worth doing,
+  because every later screen reuses them. That is the second step, after the canvas returns.
+- **Detach whatever design system is attached, first.** The prompt box carries one by default.
+  Leaving `Classical` or any other in place fights the brief: it supplies a palette and a type voice
+  that the box is supposed to propose for itself.
+- **Template: mobile app design.** Most of the ten artboards are iPhone screens at 393 × 852. The
+  two material studies in row 1 are not screens and sit beside them on the same canvas, which is what
+  the prompt already asks for.
+- **Paste the whole prompt in one message.** It is interdependent — the split, the five meanings of
+  gold, the do-not-touch list and the artboard list all constrain each other, and an artboard drawn
+  before it has read them is drawn against rules it does not have. Ask for all ten, then iterate on
+  artboards 3, 4 and 5, which are the ones that decide the gold question.
+- **Connecting the codebase is optional.** Section 3 already carries the palette as `Theme.swift`
+  draws it, so the canvas does not need to read the repository. Connect it only to check a value.
 
 Copy this into Claude Design.
 
@@ -291,6 +314,11 @@ every surface below is shot twice, before and after, on the same device and the 
 **Settled 2026-09-14.** Connor drives Claude Design himself with the section 5 prompt, as he did for
 the tutorial on 2026-09-04. Gold is not decided in prose: the canvas draws both title treatments and
 the header-over-felt artboard settles it.
+
+**Settled 2026-09-15.** How to run it — project, no attached design system, the mobile app design
+template, the prompt pasted whole — is written at the top of section 5. The tutorial is a thinner
+precedent than it looks: `docs/export/Tutorial.dc.html` is a single screen at 393 × 852, and this is
+ten artboards on one canvas, which is why none of it was obvious the first time.
 
 **Still open, and answerable on the canvas rather than before it:**
 
