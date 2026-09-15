@@ -52,7 +52,7 @@ flowchart LR
     Card -- "Main menu" --> Menu
 ```
 
-Dependencies only point downward. The engine module imports nothing but the Swift standard library and Foundation. That is not a style preference; it is what lets all 149 tests run on the Mac in a few seconds with no simulator.
+Dependencies only point downward. The engine module imports nothing but the Swift standard library and Foundation. That is not a style preference; it is what lets all 159 tests run on the Mac in a few seconds with no simulator.
 
 ## MVVM, mapped to this repo
 

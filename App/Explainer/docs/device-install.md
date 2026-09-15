@@ -1,6 +1,6 @@
 # Installing on your iPhone
 
-What it takes to run Catch 5 on a phone you own, and the one thing this Mac is still missing. Checked on 2026-09-04 against this Mac: Xcode 26.6, the iOS 26.5 SDK present, `xcodegen` installed, an iPhone 16 Pro already paired, and no code-signing identity yet.
+What it takes to run Catch 5 on a phone you own. Checked on 2026-09-04 against this Mac: Xcode 26.6, the iOS 26.5 SDK present, `xcodegen` installed, and an iPhone 16 Pro already paired, but no code-signing identity at that point. That last gap has since closed: on 2026-09-14 the app was built, signed, installed and launched on that iPhone 16 Pro running iOS 27.0, using Xcode 27.0, confirmed running by `devicectl`. This page records what the install takes, not which build is currently on the phone.
 
 ## Where things stand
 
