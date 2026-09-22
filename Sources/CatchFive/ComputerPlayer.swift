@@ -258,10 +258,17 @@ public enum ComputerPlayer {
             guard card.suit == trump else { return points }
             if card.rank == .five { points += 5 }
             if card.rank == .jack { points += 1 }
-            let elsewhere = unseen.union(hand.filter { $0 != card })
-                .filter { $0.suit == trump }.map(\.rank.rawValue)
-            if !elsewhere.contains(where: { $0 > card.rank.rawValue }) { points += 1 }
-            if !elsewhere.contains(where: { $0 < card.rank.rawValue }) { points += 1 }
+            let unseenAndHand = unseen.union(hand.filter { $0 != card }).filter { $0.suit == trump }.map(\.rank.rawValue)
+            let deckTrumps = Rank.allCases.map { $0.rawValue }
+            let seenTrumps = Set(deckTrumps).subtracting(unseen.filter { $0.suit == trump }.map(\.rank.rawValue)).subtracting(hand.filter { $0.suit == trump }.map(\.rank.rawValue))
+            
+            let higherInUnseenOrHand = unseenAndHand.contains(where: { $0 > card.rank.rawValue })
+            let higherInSeen = seenTrumps.contains(where: { $0 > card.rank.rawValue })
+            if !higherInUnseenOrHand && !higherInSeen { points += 1 }
+            
+            let lowerInUnseenOrHand = unseenAndHand.contains(where: { $0 < card.rank.rawValue })
+            let lowerInSeen = seenTrumps.contains(where: { $0 < card.rank.rawValue })
+            if !lowerInUnseenOrHand && !lowerInSeen { points += 1 }
             return points
         }
 
