@@ -4,7 +4,7 @@ import Foundation
 import Testing
 
 private let docsFolder = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-    .appendingPathComponent("docs")
+    .appendingPathComponent("App/Explainer/docs")
 
 @Test func markdownParserCoversEveryConstructTheDocsUse() {
     let source = """
@@ -75,15 +75,13 @@ private let docsFolder = URL(fileURLWithPath: #filePath).deletingLastPathCompone
     #expect(glossary.count > 10 && glossary.first?.term == "`struct`")
 }
 
-@Test func explainerBundleMatchesTheDocsAndTheirDiagrams() throws {
-    // The app bundles a copy of each chapter and one PNG per Mermaid fence; both must match the docs
-    // in the same commit, or the reader drifts from the pages it explains.
-    let bundle = docsFolder.deletingLastPathComponent().appendingPathComponent("App/Explainer")
+@Test func explainerBundleHasAPNGForEveryDiagram() throws {
+    // The app bundles one PNG per Mermaid fence of each chapter (rendered by scripts/export-docs.py --app);
+    // a fence without its picture would show the reader an empty diagram.
+    let bundle = docsFolder.deletingLastPathComponent()
     let path = try String(contentsOf: docsFolder.appendingPathComponent("learning-path.md"), encoding: .utf8)
     for chapter in ExplainerLibrary.chapters(from: MarkdownDocument.parse(path)) + [ExplainerLibrary.contentsChapter] {
         let source = try String(contentsOf: docsFolder.appendingPathComponent("\(chapter.file).md"), encoding: .utf8)
-        let bundled = try String(contentsOf: bundle.appendingPathComponent("docs/\(chapter.file).md"), encoding: .utf8)
-        #expect(bundled == source, Comment(rawValue: "\(chapter.file).md is stale in App/Explainer; run scripts/export-docs.py --app"))
         let diagrams = MarkdownDocument.parse(source).diagramCount
         for index in stride(from: 1, through: diagrams, by: 1) {
             let png = bundle.appendingPathComponent("diagrams/\(chapter.file)-\(index).png")

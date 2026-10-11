@@ -55,6 +55,8 @@ Total on 2026-10-07: 263 automated tests (93 engine, 170 view model), under 10 s
 
 `NineAndOutAnswerTests` (3 tests, D102) holds the closeout audit's blocker shut: a computer dealer, Easy or Standard, answers a standing 9 and out with a pass, never a plain 9 the engine refuses and never a match, which the house rule forbids (D103). `nineAndOutOvercallsNineAndDealerCannotMatch` in `BiddingTests` proves the engine refuses a second 9 and out from a non-dealer and from the dealer, and `aDealerFacingNineAndOutIsToldToPassAndCannotMatch` in `GameModelTests` that the human dealer is told to pass and cannot send one.
 
+Since the written record moved to the vault (2026-10-08), the explainer tests read `App/Explainer/docs`, the copies the app ships, and `explainerBundleHasAPNGForEveryDiagram` checks one PNG per Mermaid fence there. `docs/catch-five-rules.md` stays in the repo because `RulesText` must quote it verbatim and CI has no vault; the record holds a pointer to it.
+
 The D71 measurement plays a 40-match sample by default. The full 2400 mirrored matches whose numbers D71 records take about 18 s more:
 
 ```bash
