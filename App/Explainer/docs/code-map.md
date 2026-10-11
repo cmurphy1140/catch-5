@@ -110,6 +110,26 @@ Responsibility: PlayerView answers “what can this player know?” ComputerPlay
 Try `swift run catch-five-demo --computer` for a narrated match with fresh shuffled decks.
 
 
+## One Tap Path
+
+```text
+SystemAtWorkTests (stands in for the tap at HandFanView.swift:208)
+  -> GameModel.send(.play(card))                  // GameModel.swift:226
+    -> notice = nil                                // announcement 1
+    -> perform                                     // GameModel.swift:538
+      -> Match.apply(.play, seat: 0)               // ComputerPlayer.swift:403
+        -> Match.play -> Hand.play                 // Match.swift:56, Hand.swift:73
+      -> match replaced                            // announcement 2: $match hands out the new value while model.match still reads the old
+      -> errorMessage, refusal, dealerDraw, hint, explanation cleared   // announcements 3 to 7
+      -> persist()
+      -> revision += 1                             // announcement 8, GameModel.swift:552
+    -> lastHumanAction = action                    // announcement 9
+  -> the run loop turns -> HandFanView body runs again (1 -> 2)
+  -> TableView's .task(id: SchedulerKey(revision:paused:)) restarts -> advance() -> stepComputer()   // TableView.swift:292, 415, 454
+```
+
+Every announcement comes before its value is stored: that is `@Published`'s `willSet`. The recorded version with the real numbers is `work/trace/one-tap.md` after one click on "Catch 5 Trace" (D104).
+
 ### UI audit preview (September 30, 2026)
 
 `TableSurface.bidChoices(_:lowest:)` shares the numeric bid controls between the wide row and compact four-column grid. `bidding` chooses the fitting layout with `ViewThatFits`; action validation remains in the existing `actionButton`. `HandSummaryView.score` now labels total and per-hand change. These branch changes require native build and play verification; see D96.

@@ -854,3 +854,11 @@ These are floors, not ceilings: bidding higher to keep the auction away from the
 **Over:** keeping the dealer's right to take over a 9 and out (D10), which is not how the family plays.
 
 **Why:** the rules must match the table the game is written for. `nineAndOutOvercallsNineAndDealerCannotMatch`, `aStandingNineAndOutIsOnlyEverPassed` and `aDealerFacingNineAndOutIsToldToPassAndCannotMatch` hold it.
+
+## D104. Tracing is test-only (2026-10-11)
+
+**Chosen:** the "system at work" trace of one tap lives entirely in the test target. `Tests/CatchFiveUITests/TraceHarness.swift` listens to `GameModel`'s `@Published` fields from outside (`TapTrace`), hosts the real `HandFanView` in an unshown Mac window to count body runs and render frames (`TraceStage`), and writes `work/trace/one-tap.md` with a Mermaid sequence diagram: the announcements of one `send` in one box, the values on notes. `SystemAtWorkTests.swift` is the one test that plays the card; the run config "Catch 5 Trace" runs it and copies the report to the vault when `CATCH5_VAULT` is set. No file in `Sources/` or `App/` changes.
+
+**Over:** a `#if DEBUG` probe at the tap site (`HandFanView.swift:208`), which never fires in a test and would ship a trace hook toward family phones; `ImageRenderer`, which draws but never re-runs a body; Instruments, which needs the simulator and shows calls, not values.
+
+**Why:** the spike showed everything the lesson needs is observable from outside: nine announcements per `send`, each before its value changes, and a body that runs again once the run loop turns. `traceReportHoldsTheBoxAndTheNotes` and `traceStageHostsTheHandAndRendersAFrame` hold the harness; the one-tap test holds the trail.

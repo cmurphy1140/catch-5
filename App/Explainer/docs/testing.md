@@ -57,6 +57,12 @@ Total on 2026-10-07: 263 automated tests (93 engine, 170 view model), under 10 s
 
 Since the written record moved to the vault (2026-10-08), the explainer tests read `App/Explainer/docs`, the copies the app ships, and `explainerBundleHasAPNGForEveryDiagram` checks one PNG per Mermaid fence there. `docs/catch-five-rules.md` stays in the repo because `RulesText` must quote it verbatim and CI has no vault; the record holds a pointer to it.
 
+`TraceHarness.swift` (2 tests, D104) and the one-tap test in `SystemAtWorkTests.swift` trace one tap on the real `GameModel` from outside: listeners on its `@Published` fields, the real `HandFanView` hosted in an unshown Mac window to count body runs, two PNG frames and a Markdown report with a Mermaid sequence diagram, all under `work/trace/` (ignored). The run config "Catch 5 Trace" runs the one-tap test and copies the report to the vault when `CATCH5_VAULT` is set:
+
+```bash
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --filter systemAtWork
+```
+
 The D71 measurement plays a 40-match sample by default. The full 2400 mirrored matches whose numbers D71 records take about 18 s more:
 
 ```bash

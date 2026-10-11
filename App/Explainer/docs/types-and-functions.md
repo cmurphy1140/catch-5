@@ -325,6 +325,16 @@ The sin hunt (D58): a sweep that finds the computer's bad decisions so each one 
 | `HandSummaryView` | the hand-end card: the `HandOutcome` headline in gold, the two score lines, then who took High, Low, Jack, Five, Game, then the deciding-rule notes, using the configured seat names |
 | colour extensions | `.ivory`, `.felt`, `.gold` |
 
+## Tests/CatchFiveUITests/TraceHarness.swift
+
+The system-at-work trace (D104): test-only, nothing in `Sources/` knows it exists.
+
+| Type or function | What it does | Test |
+|---|---|---|
+| `TraceFolder` | `work/trace/` beside `Package.swift`, found from `#filePath`; `prepare()` creates it | `traceStageHostsTheHandAndRendersAFrame` |
+| `TapTrace`, `TapTrace.Entry` | one tap's trail: `hop` for a call, `announced` for a @Published announcement and the value the sink was handed, `before`/`after` for a number read on each side of the send; `markdown` and `mermaid` draw the report, the announcements of one send in one box and the values on notes; `report()` writes `work/trace/<name>.md` | `traceReportHoldsTheBoxAndTheNotes` |
+| `TraceStage` | hosts the real `HandFanView` in an unshown `NSWindow`; `bodyRuns` counts the wrapper's body evaluations; `settle(upTo:)` turns the run loop until the body runs again or the deadline passes; `frame(_:)` renders the view to `work/trace/<name>-<label>.png` | `traceStageHostsTheHandAndRendersAFrame` |
+
 ## Sources/CatchFiveDemo
 
 `main.swift` plays a fixed, deterministic match (`swift run catch-five-demo`) and `ComputerDemo.swift` a shuffled computer match (`--computer`). Both call the real `Match`; they contain no rules of their own.
