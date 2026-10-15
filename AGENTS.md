@@ -59,7 +59,7 @@ compare the same states afterwards.
 `docs/learning-path.md` indexes the explainer pages (build-and-run, architecture, game-flow, types-and-functions, testing, decisions, code-map, roadmap, tutorial-spec, device-install) with Mermaid diagrams. Any commit that adds, renames or removes a type, function, phase or test must update the matching page in the same commit, and new design choices get a numbered entry in `docs/decisions.md`. `scripts/export-docs.py` renders the pages to PDF and PNG in `work/docs-export/` for Claude Design.
 
 ## Verification
-Run `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test`.
+Run `scripts/check.sh` (it runs `swift test` for the engine and view-model suites and prints the counts). Set `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` first if needed.
 
 ## Local resource coordination
 Before running builds, tests, simulator launches, screenshots, or Xcode previews, check whether the other writer is already performing a resource-heavy operation, and take the verification turn described above. Pause Xcode previews when they are not needed, and stop simulator or build processes started for the task when they are no longer required.
