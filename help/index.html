@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Catch 5 on your iPhone</title>
+<style>
+  /* Layout: one calm reading column, steps grouped by device, a help chat that opens as a sheet. */
+  :root {
+    --bg: #FFFCF0; --raised: #F2F0E5; --card: #E6E4D9; --border: #CECDC3;
+    --text: #100F0F; --muted: #6F6E69; --tap: #9D4310; --link: #205EA6;
+    --done: #536907; --warn: #8E6B01; --bad: #AF3029;
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
+    --round: ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) { :root {
+    --bg: #100F0F; --raised: #1C1B1A; --card: #282726; --border: #403E3C;
+    --text: #CECDC3; --muted: #878580; --tap: #FEA573; --link: #86CDFE;
+    --done: #BAD06B; --warn: #F8CB58; --bad: #FD7562; color-scheme: dark } }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 var(--sans); -webkit-text-size-adjust: 100%; }
+  .page { max-width: 640px; margin: 0 auto; padding-block: max(40px, env(safe-area-inset-top)) 120px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: grid; gap: 36px; }
+
+  header { display: grid; grid-template-columns: auto 1fr; gap: 18px; align-items: center; }
+  .card5 { width: 56px; height: 78px; border: 1.5px solid var(--border); border-radius: 7px;
+    background: var(--raised); display: grid; place-items: center; position: relative;
+    font: 600 30px/1 var(--round); color: var(--muted); }
+  .card5::before, .card5::after { content: "5"; position: absolute; font-size: 11px; font-weight: 600; }
+  .card5::before { top: 5px; left: 6px; }
+  .card5::after { bottom: 5px; right: 6px; transform: rotate(180deg); }
+  h1 { font: 700 30px/1.15 var(--round); margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+  .lede { margin: 6px 0 0; color: var(--muted); max-width: 60ch; }
+
+  .needs { background: var(--raised); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }
+  .needs h2 { margin: 0 0 8px; }
+  .needs ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+  .needs p { margin: 12px 0 0; color: var(--muted); font-size: 14px; }
+
+  h2 { font: 600 13px/1.3 var(--sans); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0; }
+  section { display: grid; gap: 14px; }
+
+  ol.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .step { display: grid; grid-template-columns: 28px 1fr; gap: 14px; padding: 14px 16px;
+    border: 1px solid var(--border); border-radius: 12px; background: var(--bg); }
+  .step > div { min-width: 0; }
+  .tick { width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--border);
+    background: transparent; color: var(--muted); font: 600 13px/1 var(--round); cursor: pointer;
+    display: grid; place-items: center; padding: 0; margin-top: 1px; font-variant-numeric: tabular-nums; }
+  .step.is-done { background: var(--raised); }
+  .step.is-done .tick { border-color: var(--done); background: var(--done); color: var(--bg); }
+  .step.is-done .tick span { display: none; }
+  .step.is-done .tick::after { content: "✓"; font-size: 14px; }
+  .step.is-done h3 { color: var(--muted); }
+  h3 { font: 600 16px/1.35 var(--sans); margin: 0 0 4px; }
+  .step p { margin: 0; }
+  .step p + p { margin-top: 6px; }
+  .if { color: var(--muted); font-size: 14px; }
+
+  .tap { color: var(--tap); font-weight: 600; }
+  .trail { display: inline-flex; flex-wrap: wrap; gap: 4px; align-items: center; font-size: 14px;
+    background: var(--card); border-radius: 6px; padding: 1px 8px; }
+  .trail i { font-style: normal; color: var(--text); }
+  code { font: 14px var(--mono); background: var(--card); padding: 1px 6px; border-radius: 5px; overflow-wrap: anywhere; }
+  a { color: var(--link); text-underline-offset: 2px; overflow-wrap: anywhere; }
+
+  .keep { display: grid; gap: 10px; }
+  .keep div { border-left: 2px solid var(--border); padding-left: 14px; }
+  .keep p { margin: 0; }
+  .help { border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; display: grid; gap: 8px; }
+  .help p { margin: 0; }
+  .help b { color: var(--warn); font-weight: 600; }
+  footer { color: var(--muted); font-size: 13px; display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; }
+  .linkish { font: inherit; color: var(--link); background: none; border: 0; padding: 0; cursor: pointer; }
+
+  button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+  /* Help chat */
+  .ask-btn { position: fixed; z-index: 5;
+    right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom));
+    display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--raised); color: var(--text);
+    font: 600 15px/1 var(--sans); cursor: pointer; box-shadow: 0 6px 20px rgb(0 0 0 / .12); }
+  .ask-btn svg { width: 18px; height: 18px; stroke: var(--muted); }
+  dialog.chat { border: 1px solid var(--border); border-radius: 16px; padding: 0; background: var(--bg); color: var(--text);
+    width: min(520px, calc(100vw - 24px)); height: min(680px, calc(100dvh - 24px)); max-height: none; max-width: none; }
+  dialog.chat[open] { display: grid; grid-template-rows: auto 1fr auto; }
+  dialog.chat::backdrop { background: rgb(0 0 0 / .35); }
+  .chat-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .chat-head h2 { font: 600 16px/1.2 var(--sans); text-transform: none; letter-spacing: 0; color: var(--text); }
+  .chat-head p { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+  .icon-btn { width: 30px; height: 30px; border-radius: 50%; border: 0; background: var(--card); color: var(--text); cursor: pointer; display: grid; place-items: center; flex: none; }
+  .icon-btn svg { width: 14px; height: 14px; stroke: currentColor; }
+  .log { overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .msg { max-width: 85%; padding: 10px 14px; border-radius: 14px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 15px; }
+  .msg.her { align-self: flex-end; background: var(--card); }
+  .msg.bot { align-self: flex-start; background: var(--raised); border: 1px solid var(--border); }
+  .msg img { display: block; max-width: 100%; max-height: 180px; border-radius: 8px; margin-bottom: 6px; }
+  .msg.note { align-self: center; background: none; color: var(--muted); font-size: 13px; text-align: center; padding: 4px 8px; }
+  .msg.err { color: var(--bad); }
+  .compose { border-top: 1px solid var(--border); padding: 12px 16px max(12px, env(safe-area-inset-bottom)); display: grid; gap: 8px; }
+  .compose textarea, .compose input[type="password"] { width: 100%; font: 16px/1.4 var(--sans); color: var(--text); background: var(--raised);
+    border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; resize: none; }
+  .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .row .grow { flex: 1; }
+  .pill { font: 600 14px/1 var(--sans); border-radius: 999px; padding: 9px 14px; cursor: pointer; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+  .pill.main { background: var(--tap); border-color: var(--tap); color: var(--bg); }
+  .pill:disabled { opacity: .5; cursor: default; }
+  .shot { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+  .shot img { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); }
+  .fine { font-size: 12px; color: var(--muted); margin: 0; }
+  @media (prefers-reduced-motion: no-preference) { .step, .tick { transition: background .15s, border-color .15s; } }
+</style>
+</head>
+<body>
+<main class="page">
+  <header>
+    <div class="card5" aria-hidden="true">5</div>
+    <div>
+      <h1>Catch 5 on your iPhone</h1>
+      <p class="lede">Connor's card game, installed for free outside the App Store. It takes about 30 minutes, once. Do it on a FaceTime call with Connor, or use Ask for help at the bottom of the screen.</p>
+    </div>
+  </header>
+
+  <div class="needs">
+    <h2>Before you start</h2>
+    <ul>
+      <li>Your Mac and your iPhone, both on Wi-Fi</li>
+      <li>The cable that charges your iPhone</li>
+      <li>Your iPhone passcode</li>
+      <li>Your Apple Account email and password</li>
+    </ul>
+    <p>The Apple Account is used to sign Catch 5 for your phone. It doesn't have to be your main one; a spare free Apple Account works too.</p>
+  </div>
+
+  <section aria-labelledby="mac">
+    <h2 id="mac">On your Mac</h2>
+    <ol class="steps">
+      <li class="step" data-step="1"><button class="tick" aria-pressed="false" aria-label="Mark step 1 done"><span>1</span></button><div>
+        <h3>Download iloader</h3>
+        <p>Go to <a href="https://github.com/nab138/iloader/releases" target="_blank" rel="noopener">github.com/nab138/iloader/releases</a> and download the Mac file ending in <code>.dmg</code> from the newest release. Open it and drag iloader into Applications.</p>
+        <p class="if">If your Mac says it can't be opened: <span class="trail">System Settings <i>›</i> Privacy &amp; Security</span>, scroll down, and click <span class="tap">Open Anyway</span>.</p>
+      </div></li>
+      <li class="step" data-step="2"><button class="tick" aria-pressed="false" aria-label="Mark step 2 done"><span>2</span></button><div>
+        <h3>Plug your iPhone into the Mac</h3>
+        <p>When your iPhone asks, tap <span class="tap">Trust</span> and enter your passcode.</p>
+      </div></li>
+      <li class="step" data-step="3"><button class="tick" aria-pressed="false" aria-label="Mark step 3 done"><span>3</span></button><div>
+        <h3>Open iloader and sign in</h3>
+        <p>Use your Apple Account. Capital letters matter.</p>
+      </div></li>
+      <li class="step" data-step="4"><button class="tick" aria-pressed="false" aria-label="Mark step 4 done"><span>4</span></button><div>
+        <h3>Install SideStore</h3>
+        <p>Pick your iPhone, then click <span class="tap">Install SideStore (Stable)</span>. Wait until it says it's finished. SideStore is the app that keeps Catch 5 working.</p>
+      </div></li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="phone">
+    <h2 id="phone">On your iPhone</h2>
+    <ol class="steps">
+      <li class="step" data-step="5"><button class="tick" aria-pressed="false" aria-label="Mark step 5 done"><span>5</span></button><div>
+        <h3>Trust the app</h3>
+        <p>Open <span class="trail">Settings <i>›</i> General <i>›</i> VPN &amp; Device Management</span>. Under Developer App, tap your Apple Account, then <span class="tap">Trust</span>, then <span class="tap">Trust</span> again.</p>
+        <p class="if">If you see Allow &amp; Restart instead, tap it and enter your passcode.</p>
+      </div></li>
+      <li class="step" data-step="6"><button class="tick" aria-pressed="false" aria-label="Mark step 6 done"><span>6</span></button><div>
+        <h3>Turn on Developer Mode</h3>
+        <p>Open <span class="trail">Settings <i>›</i> Privacy &amp; Security</span>, scroll to the very bottom, and switch on <span class="tap">Developer Mode</span>. The phone restarts. When it's back, tap <span class="tap">Turn On</span> and enter your passcode.</p>
+        <p class="if">iPhones on iOS 16 or newer need this. If it isn't there on iOS 16 or newer, stop here and call Connor. (On iOS 15 there's no Developer Mode; skip this step.)</p>
+      </div></li>
+      <li class="step" data-step="7"><button class="tick" aria-pressed="false" aria-label="Mark step 7 done"><span>7</span></button><div>
+        <h3>Get LocalDevVPN</h3>
+        <p>Search the App Store for <b>LocalDevVPN</b> and install it. It's free. Open it, tap <span class="tap">Connect</span>, and allow it when your iPhone asks to add a VPN.</p>
+        <p class="if">It only talks to your own phone. SideStore needs it switched on to install or renew apps.</p>
+      </div></li>
+      <li class="step" data-step="8"><button class="tick" aria-pressed="false" aria-label="Mark step 8 done"><span>8</span></button><div>
+        <h3>Open SideStore once</h3>
+        <p>Sign in with the same Apple Account. Go to <span class="trail">My Apps</span> and tap the <span class="tap">7 DAYS</span> button next to SideStore. If it asks about a certificate, tap <span class="tap">Yes</span> or <span class="tap">Refresh Now</span>.</p>
+        <p class="if">Your phone may jump back to the Home Screen. That's normal; SideStore is ready again in a few seconds.</p>
+      </div></li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="game">
+    <h2 id="game">Add Catch 5</h2>
+    <ol class="steps">
+      <li class="step" data-step="9"><button class="tick" aria-pressed="false" aria-label="Mark step 9 done"><span>9</span></button><div>
+        <h3>Save the file Connor sends</h3>
+        <p>Connor sends you a file called <code>CatchFive.ipa</code>. Open it on your iPhone and choose <span class="tap">Save to Files</span>.</p>
+      </div></li>
+      <li class="step" data-step="10"><button class="tick" aria-pressed="false" aria-label="Mark step 10 done"><span>10</span></button><div>
+        <h3>Install it with SideStore</h3>
+        <p>Make sure LocalDevVPN says Connected. In SideStore, open <span class="trail">My Apps</span>, tap <span class="tap">+</span> at the top, and pick <code>CatchFive.ipa</code>. When it finishes, Catch 5 is on your Home Screen. Deal yourself in.</p>
+      </div></li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="keep">
+    <h2 id="keep">Keeping it working</h2>
+    <div class="keep">
+      <div><p>Apps installed this way last 7 days, SideStore included. SideStore renews itself and Catch 5 in the background while you're on Wi-Fi and LocalDevVPN is on.</p></div>
+      <div><p>To renew by hand: open LocalDevVPN and tap Connect, then in SideStore's <span class="trail">My Apps</span> tap the days number next to SideStore, then the one next to Catch 5.</p></div>
+      <div><p>If SideStore itself won't open, it ran out and can't renew itself. Plug your iPhone into the Mac, open iloader, and do step 4 again.</p></div>
+      <div><p>When Connor sends a new version, add it the same way as step 10.</p></div>
+    </div>
+  </section>
+
+  <div class="help">
+    <h2>If something goes wrong</h2>
+    <p><b>"No Wi-Fi or VPN connection."</b> Check that LocalDevVPN says Connected and Wi-Fi is on. Turn off any ad-blocker apps. Tap refresh again; it sometimes takes a few tries. Then close and reopen SideStore and LocalDevVPN.</p>
+    <p><b>It stopped working after an iPhone update.</b> The link between SideStore and your phone may need redoing. Plug into the Mac, open iloader, and call Connor.</p>
+  </div>
+
+  <footer>
+    <span>From Connor · free, no App Store account needed</span>
+    <button type="button" class="linkish" id="reset">Clear my ticks</button>
+  </footer>
+</main>
+
+<button type="button" class="ask-btn" id="open-chat" aria-haspopup="dialog">
+  <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>
+  Ask for help
+</button>
+
+<dialog class="chat" id="chat" aria-labelledby="chat-title">
+  <div class="chat-head">
+    <div>
+      <h2 id="chat-title">Ask for help</h2>
+      <p>Answers questions about the steps. It can't see or touch your phone.</p>
+    </div>
+    <button type="button" class="icon-btn" id="close-chat" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="log" id="log" aria-live="polite"></div>
+  <form class="compose" id="compose">
+    <div id="code-row" hidden>
+      <label for="code" class="fine">Connor gave you an access code. Type it once; this phone remembers it.</label>
+      <div class="row" style="margin-top:6px">
+        <input type="password" id="code" class="grow" autocomplete="off" placeholder="Access code">
+        <button type="button" class="pill main" id="save-code">Save</button>
+      </div>
+    </div>
+    <div id="ask-row">
+      <textarea id="text" rows="2" placeholder="Ask anything, like “where is Developer Mode?”" aria-label="Your question"></textarea>
+      <div class="shot" id="shot" hidden><span id="shot-thumb"></span><span>Screenshot attached</span><button type="button" class="linkish" id="shot-remove">Remove</button></div>
+      <div class="row" style="margin-top:8px">
+        <label class="pill" for="file">Add screenshot</label>
+        <input type="file" id="file" accept="image/*" hidden>
+        <span class="grow"></span>
+        <button type="submit" class="pill main" id="send">Send</button>
+      </div>
+      <p class="fine" style="margin-top:8px">Screenshots go to Claude, an AI made by Anthropic, so it can read them. Crop out passwords and codes first.</p>
+    </div>
+  </form>
+</dialog>
+
+<script>
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} },
+  };
+
+  // Ticks
+  const KEY = "catch5-guide-done";
+  let done = [];
+  try { done = JSON.parse(store.get(KEY) || "[]"); } catch (e) {}
+  const paint = () => document.querySelectorAll(".step").forEach(li => {
+    const on = done.includes(li.dataset.step);
+    li.classList.toggle("is-done", on);
+    li.querySelector(".tick").setAttribute("aria-pressed", on);
+  });
+  document.querySelectorAll(".tick").forEach(b => b.addEventListener("click", () => {
+    const s = b.closest(".step").dataset.step;
+    done = done.includes(s) ? done.filter(x => x !== s) : [...done, s];
+    store.set(KEY, JSON.stringify(done)); paint();
+  }));
+  document.getElementById("reset").addEventListener("click", () => { done = []; store.set(KEY, "[]"); paint(); });
+  paint();
+
+  // Help chat
+  const $ = id => document.getElementById(id);
+  const dialog = $("chat"), log = $("log"), text = $("text"), send = $("send");
+  const history = []; // {role, text}; screenshots are sent once and not resent
+  let shot = null, busy = false;
+  const NOTES = {
+    "[[refused]]": "The helper can't answer that one. Try asking a different way, or call Connor.",
+    "[[cut]]": "(The answer was cut short. Ask it to keep going.)",
+    "[[busy]]": "The helper is busy right now. Wait a minute and try again, or call Connor.",
+    "[[error]]": "Something went wrong on the helper's side. Try again, or call Connor.",
+  };
+
+  const bubble = (cls, body, img) => {
+    const d = document.createElement("div");
+    d.className = "msg " + cls;
+    if (img) { const i = document.createElement("img"); i.src = img; i.alt = "Your screenshot"; d.append(i); }
+    d.append(document.createTextNode(body));
+    log.append(d); log.scrollTop = log.scrollHeight;
+    return d;
+  };
+  const needCode = on => { $("code-row").hidden = !on; $("ask-row").hidden = on; (on ? $("code") : text).focus(); };
+
+  $("open-chat").addEventListener("click", () => {
+    dialog.showModal();
+    if (!log.children.length) bubble("bot", "Hi! Ask me about any step, or add a screenshot of what you're seeing and I'll tell you what to tap.");
+    needCode(!store.get("catch5-help-code"));
+  });
+  $("close-chat").addEventListener("click", () => dialog.close());
+  $("save-code").addEventListener("click", () => {
+    const v = $("code").value.trim();
+    if (!v) return;
+    store.set("catch5-help-code", v); $("code").value = ""; needCode(false);
+  });
+  $("code").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); $("save-code").click(); } });
+  text.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); $("compose").requestSubmit(); } });
+
+  // Shrink a screenshot to at most 1568 px on its long side, as JPEG.
+  async function shrink(file) {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((ok, bad) => { const i = new Image(); i.onload = () => ok(i); i.onerror = bad; i.src = url; });
+      const s = Math.min(1, 1568 / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.naturalWidth * s); c.height = Math.round(img.naturalHeight * s);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      const dataUrl = c.toDataURL("image/jpeg", 0.82);
+      return { dataUrl, b64: dataUrl.split(",")[1] };
+    } finally { URL.revokeObjectURL(url); }
+  }
+  $("file").addEventListener("change", async e => {
+    const f = e.target.files[0]; e.target.value = "";
+    if (!f) return;
+    try {
+      shot = await shrink(f);
+      if (shot.b64.length > 2000000) { shot = null; bubble("note err", "That picture is too big. Try a plain screenshot instead."); return; }
+      const thumb = new Image(); thumb.src = shot.dataUrl; thumb.alt = "Screenshot to send";
+      $("shot-thumb").replaceChildren(thumb); $("shot").hidden = false;
+    } catch (err) { shot = null; bubble("note err", "That picture couldn't be opened. Try a screenshot instead."); }
+  });
+  $("shot-remove").addEventListener("click", () => { shot = null; $("shot").hidden = true; });
+
+  $("compose").addEventListener("submit", async e => {
+    e.preventDefault();
+    const q = text.value.trim();
+    if (busy || (!q && !shot)) return;
+    const code = store.get("catch5-help-code");
+    if (!code) return needCode(true);
+
+    busy = true; send.disabled = true;
+    const sent = shot;
+    const mine = bubble("her", q || "(screenshot)", sent && sent.dataUrl);
+    history.push({ role: "user", text: q || "Here is a screenshot of my screen. What should I do?" });
+    text.value = ""; shot = null; $("shot").hidden = true;
+    const msgs = history.slice(-19).map((m, i, a) => i === a.length - 1 && sent ? { ...m, image: sent.b64 } : m);
+    const out = bubble("bot", "…");
+
+    let answer = "";
+    try {
+      const res = await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json", "x-help-code": code }, body: JSON.stringify({ messages: msgs }) });
+      if (!res.ok) {
+        const why = await res.text();
+        history.pop(); out.remove(); mine.remove();
+        if (res.status === 401) { store.set("catch5-help-code", null); bubble("note err", "That access code didn't work. Check it with Connor and type it again."); needCode(true); }
+        else if (res.status === 429) bubble("note err", "Too many questions at once. Wait a minute and try again.");
+        else bubble("note err", why || "The helper couldn't answer. Try again, or call Connor.");
+        if (q) text.value = q;
+        return;
+      }
+      const reader = res.body.getReader(), dec = new TextDecoder();
+      for (;;) {
+        const { value, done: end } = await reader.read();
+        if (end) break;
+        answer += dec.decode(value, { stream: true });
+        out.textContent = answer.replace(/\n?\[\[\w+\]\]$/, "") || "…";
+        log.scrollTop = log.scrollHeight;
+      }
+      const marker = (answer.match(/\[\[\w+\]\]$/) || [])[0];
+      answer = answer.replace(/\n?\[\[\w+\]\]$/, "").trim();
+      if (answer) { out.textContent = answer; history.push({ role: "assistant", text: answer }); }
+      else { out.remove(); history.pop(); }
+      if (marker) bubble("note" + (marker === "[[cut]]" ? "" : " err"), NOTES[marker]);
+    } catch (err) {
+      // The connection dropped: undo the turn and put her question back to resend.
+      out.remove(); mine.remove(); history.pop();
+      bubble("note err", "The connection dropped. Check your Wi-Fi and send it again.");
+      if (q) text.value = q;
+    } finally {
+      busy = false; send.disabled = false; text.focus();
+    }
+  });
+</script>
+</body>
+</html>
