@@ -21,6 +21,7 @@ struct MainMenuView: View {
     /// The guest's note waits on the table as a place card until she opens it (D137, D138); after that it is in her
     /// notebook.
     @State private var openNote = false
+    @State private var shownCode: GuestPrompt?
     @AppStorage("guestNote.seen") private var noteSeen = false
     @Environment(\.openURL) private var openURL
     @State private var showPlay = false
@@ -32,8 +33,13 @@ struct MainMenuView: View {
 
     /// One of a guest build's own suggestions under the Ask anything bar (D136).
     struct GuestPrompt: Decodable, Equatable {
+        /// The whole question, asked of the helper when there is no link and read out by VoiceOver.
         let text: String
         var url: URL?
+        /// A word or two for the chip (D139); the whole question is too long for one row.
+        var label: String?
+        /// True when the link is one to hand round the table: the chip shows it as a code to scan.
+        var code: Bool?
     }
 
     /// The guest's suggestions, from the git-ignored data asset `GuestPrompts`; empty in every other build.
@@ -136,7 +142,8 @@ struct MainMenuView: View {
                 .accessibilityLabel("Ask anything")
                 .accessibilityHint("Opens a chat with the game's helper")
                 // Small things to ask, fainter than the bar; a tap opens the chat with that one already asked (D132).
-                // A guest build may carry its own (D136): whole questions, one to a line, and one with a link opens it.
+                // A guest build may carry its own (D136, D139): a short label each, in the same row; one with a link opens it
+                // or shows it as a code to scan.
                 if Self.guestPrompts.isEmpty {
                     HStack(spacing: 6) {
                         ForEach(Array(zip(["A joke", "Team name", "Snacks", "Teach me"], FrontDesk.starters)), id: \.1) { label, question in
@@ -150,14 +157,23 @@ struct MainMenuView: View {
                     }
                     .buttonStyle(.plain).opacity(0.85)
                 } else {
-                    VStack(spacing: 5) {
+                    HStack(spacing: 6) {
                         ForEach(Self.guestPrompts, id: \.text) { prompt in
-                            Button(prompt.text) { if let url = prompt.url { openURL(url) } else { openSupport(asking: prompt.text) } }
-                                .font(.footnote.weight(.medium)).lineLimit(1).minimumScaleFactor(0.7)
-                                .padding(.horizontal, 12).frame(minHeight: 28)
-                                .background(.ultraThinMaterial.opacity(0.55), in: Capsule())
-                                .contentShape(Capsule().inset(by: -2))
-                                .accessibilityHint(prompt.url == nil ? "Asks the helper" : "Opens a web page")
+                            Button {
+                                if prompt.code == true, prompt.url != nil { withAnimation(Theme.Motion.overlay) { shownCode = prompt } }
+                                else if let url = prompt.url { openURL(url) } else { openSupport(asking: prompt.text) }
+                            } label: {
+                                HStack(spacing: 5) {
+                                    if prompt.code == true { Image(systemName: "qrcode").imageScale(.small) }
+                                    Text(prompt.label ?? prompt.text)
+                                }
+                            }
+                            .font(.footnote.weight(.medium)).lineLimit(1).minimumScaleFactor(0.8)
+                            .padding(.horizontal, 11).frame(minHeight: 30)
+                            .background(.ultraThinMaterial.opacity(0.55), in: Capsule())
+                            .contentShape(Capsule().inset(by: -7))
+                            .accessibilityLabel(prompt.text)
+                            .accessibilityHint(prompt.code == true ? "Shows a code to scan" : prompt.url == nil ? "Asks the helper" : "Opens a web page")
                         }
                     }
                     .buttonStyle(.plain).opacity(0.85)
@@ -172,7 +188,7 @@ struct MainMenuView: View {
                            (model.mode == .solo ? "Them" : model.teamNames(1), model.match.scores[1])] : []
                     scene.resizable().scaledToFit()
                         .overlay { BookScore(hand: model.match.handNumber, lines: scores) }
-                        .frame(height: Self.guestPrompts.isEmpty ? 250 : 205)
+                        .frame(height: 250)
                         .padding(.leading, -24).padding(.bottom, -20)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         // The main action is written on the wood in the open corner, its underline running on as an arrow
@@ -279,6 +295,13 @@ struct MainMenuView: View {
         .sheet(isPresented: $showNotebook) { NotebookView() }
         .sheet(isPresented: $showStatistics) { StatisticsView(stats: model.statistics, records: model.records) { showStatistics = false } }
         .fullScreenCoverOrSheet(isPresented: $showExplainer) { ExplainerView { showExplainer = false } }
+        .overlay {
+            if let prompt = shownCode, let url = prompt.url {
+                GuestCodeCard(title: prompt.label ?? prompt.text, url: url, onOpen: { openURL(url) }) {
+                    withAnimation(Theme.Motion.overlay) { shownCode = nil }
+                }.transition(.opacity)
+            }
+        }
         .overlay {
             if openNote, let note = GuestNote.current {
                 GuestNoteCard(note: note) { withAnimation(Theme.Motion.overlay) { openNote = false; noteSeen = true } }.transition(.opacity)

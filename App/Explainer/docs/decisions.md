@@ -1114,3 +1114,10 @@ notebook as "A note for you".
 Amends D137. A pop-up interrupts and is closed by reflex; her own guests found their cards at their seats. So the note
 waits on the opening page as `GuestPlaceCard`, a small scalloped card with her name in the open corner by her book. She
 taps it, the note opens, and from then on the place card is gone and the note is in her notebook.
+
+## D139. Guest suggestions are a word or two, and a link can be a code (2026-11-10)
+
+Amends D136. Whole questions took three lines and pushed the guest's scene down. Each suggestion now carries a short
+`label` and they share one row, as the default chips do; the whole question is still what the helper is asked and what
+VoiceOver reads. A suggestion marked `code` shows its link as a QR code on a slip of paper (`GuestCodeCard`), because a
+link worth sharing is one the others at the table scan from her phone; Open still opens it here.
