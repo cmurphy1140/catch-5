@@ -16,7 +16,7 @@ enum TableFeedback {
             case .trickLost: .impact(weight: .light, intensity: 0.7)
             case .trickWon: .impact(weight: .medium, intensity: 0.9)
             case .handEnded: .impact(weight: .medium)
-            case .matchLost: .error
+            case .matchLost: .impact(flexibility: .soft, intensity: 0.9)
             case .matchWon: .success
             }
         }
@@ -41,7 +41,7 @@ enum TableFeedback {
     }
 
     /// What changed between two snapshots, reduced to the one cue that matters.
-    static func cue(from before: Snapshot, to after: Snapshot) -> Cue? {
+    static func cue(from before: Snapshot, to after: Snapshot, mode: PlayMode = .solo) -> Cue? {
         let trickWinner = after.tricks > before.tricks ? after.lastTrickWinner : nil
         let handEnded = after.hands > before.hands
         let matchWinner = after.winner != before.winner ? after.winner : nil
@@ -50,13 +50,14 @@ enum TableFeedback {
             if case .play = last { return .play }
             return .call
         }()
-        return cue(action: action, trickWinner: trickWinner, handEnded: handEnded, matchWinner: matchWinner)
+        return cue(action: action, trickWinner: trickWinner, handEnded: handEnded, matchWinner: matchWinner, mode: mode)
     }
 
     /// `trickWinner` is the seat that just took a trick, if one completed; `matchWinner` the team that
     /// just won. Seats 0 and 2 are the human's team.
-    static func cue(action: HumanAction?, trickWinner: Int?, handEnded: Bool, matchWinner: Int?) -> Cue? {
-        if let matchWinner { return matchWinner == 0 ? .matchWon : .matchLost }
+    static func cue(action: HumanAction?, trickWinner: Int?, handEnded: Bool, matchWinner: Int?, mode: PlayMode = .solo) -> Cue? {
+        // Pass and play has no "you": whoever reaches 25 at the table has won, so never fire the loss cue.
+        if let matchWinner { return mode == .passAndPlay || matchWinner == 0 ? .matchWon : .matchLost }
         if handEnded { return .handEnded }
         if let trickWinner { return trickWinner % 2 == 0 ? .trickWon : .trickLost }
         switch action {

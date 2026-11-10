@@ -131,3 +131,8 @@ Swift Testing prints the file, line, and the expression with its actual values:
 ```
 
 The left side is what the code did, the right side what the test expected. Open the test by name in [types-and-functions.md](types-and-functions.md) to find which source function it guards.
+
+
+## Reliability checks
+
+`Tests/CatchFiveUITests/ReliabilityFixTests.swift` checks that an unmapped error shows a plain sentence instead of raw enum text, and that a finished pass-and-play match always plays the win cue while solo follows the human result. `UndoTests` also refuses a negative rewind count.

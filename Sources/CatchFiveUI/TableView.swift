@@ -359,7 +359,7 @@ public struct TableView: View {
     /// After each accepted action, work out what it did and pick the one cue and announcement for it.
     private func noteChanges(_ revision: Int) {
         let now = TableFeedback.Snapshot(model)
-        if let picked = TableFeedback.cue(from: seen, to: now) { cue = (revision, picked) }
+        if let picked = TableFeedback.cue(from: seen, to: now, mode: model.mode) { cue = (revision, picked) }
         // The celebration waits for the last trick to be taken (D97); `advance` starts it.
         if now.winner != nil, seen.winner == nil { celebrationDue = true }
         let handEnded = now.hands > seen.hands

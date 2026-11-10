@@ -24,6 +24,7 @@ private func playedMatch() throws -> Match {
     #expect(partial.actionCount == 5)
     #expect(partial.hand.phase == .playing && partial.hand.currentTrick.isEmpty)
     #expect(throws: (any Error).self) { try match.rewound(toActionCount: 99) }
+    #expect(throws: (any Error).self) { try match.rewound(toActionCount: -1) }
 }
 
 @Test func undoDropsHumanActionAndComputerReplies() throws {

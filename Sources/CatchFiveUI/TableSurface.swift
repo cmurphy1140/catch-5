@@ -414,6 +414,10 @@ struct TableSurface: View {
                     smallButton("lightbulb", label: "Hint") { model.showHint() }
                 } else if pile.plays.isEmpty, hand.completedTricks.last != nil, hand.phase == .playing {
                     smallButton("rectangle.stack", label: "Show the last hand", action: onReopenTrick)
+                } else if model.canUndo {
+                    // Undo was built, tested and documented (D28, M4) but the D97 redesign dropped both its homes
+                    // (gear menu and toast) without re-homing it; this gives the take-back a reachable control again.
+                    smallButton("arrow.uturn.backward", label: "Undo") { model.undo() }
                 } else if hand.phase == .bidding {
                     Spacer().frame(width: Theme.Table.bidBoxWidth, height: Theme.Table.bidBoxHeight)
                 } else {
