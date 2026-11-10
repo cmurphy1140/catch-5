@@ -134,9 +134,9 @@ struct RulesBook: View {
             Text(TableTopRow.rules.title)
                 .font(.system(.title, design: .serif).weight(.bold))
                 .foregroundStyle(Color(red: 0.95, green: 0.90, blue: 0.78))
-                .lineLimit(1).minimumScaleFactor(0.7)
+                .lineLimit(1).minimumScaleFactor(0.5)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.leading, 9)
+                .padding(.leading, 11).padding(.trailing, 3)
         }
         // The header reserves the portrait cover, page edges, ribbon and turned shadow.
         .frame(width: Theme.Table.rulesBookWidth, height: Theme.Table.rulesBookHeight)

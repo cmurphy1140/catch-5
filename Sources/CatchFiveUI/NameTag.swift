@@ -9,6 +9,8 @@ struct NameTag: View {
     @ScaledMetric(relativeTo: .title2) private var nameSize = Theme.Table.carvedNameSize
     /// Trump, carved beside the name of the seat that bid (D94); nil for everyone else.
     var trump: Suit? = nil
+    /// The name lies on the dark field, so it is inlaid in maple instead of cut dark into the oak (D113).
+    var inlaid = false
 
     /// The rename button's height: a full thumb (D93).
     nonisolated static let hitHeight = Theme.Table.statusButtonHitSize
@@ -22,10 +24,15 @@ struct NameTag: View {
     var body: some View {
         HStack(spacing: 6) {
             Text(name).font(.system(size: nameSize, weight: .heavy, design: .serif))
-                .carved()
+                .modifier(NameInk(inlaid: inlaid))
                 // One line, shrinking to fit: a name broken in two ("Dian", "e") makes its seat taller and reads as two words.
                 .lineLimit(1).minimumScaleFactor(0.55)
-            if let trump { CarvedSuit(suit: trump, size: Theme.Table.carvedNameSize + 4) }
+            if let trump {
+                if inlaid {
+                    Text(trump.glyph).font(.system(size: Theme.Table.carvedNameSize + 4)).foregroundStyle(TrumpInlay.wood(for: trump))
+                        .shadow(color: .black.opacity(0.6), radius: 1, y: 1).accessibilityHidden(true)
+                } else { CarvedSuit(suit: trump, size: Theme.Table.carvedNameSize + 4) }
+            }
         }
         .dynamicTypeSize(...Theme.Card.maximumTypeSize)
         .accessibilityElement(children: .ignore)
@@ -45,5 +52,18 @@ extension NameTag {
         .buttonStyle(.plain)
         .accessibilityLabel(spoken)
         .accessibilityHint(Self.renameHint)
+    }
+}
+
+/// A name's ink: cut dark into the oak, or inlaid light in the walnut field.
+private struct NameInk: ViewModifier {
+    let inlaid: Bool
+    func body(content: Content) -> some View {
+        if inlaid {
+            content.foregroundStyle(Theme.Field.maple).shadow(color: .black.opacity(0.7), radius: 1, y: 1)
+                .shadow(color: .black.opacity(0.55), radius: 3) // side names overhang onto the pale woods (D118)
+        } else {
+            content.carved()
+        }
     }
 }

@@ -17,6 +17,13 @@ struct HandFanView: View {
     var onDeck: (CGPoint) -> Void = { _ in }
     /// The phone holder's tag was tapped: rename that seat (D93).
     var onRename: (Int) -> Void = { _ in }
+    /// Your own face by your hand was tapped: open Support (D115).
+    var onSupport: () -> Void = {}
+    /// Goes up when your spot on the table is tapped: the picked card is played from where it stands (D116).
+    var layDown = 0
+    /// Your face by your hand: a thumb and a bit, large enough to read as a person and to hold its help bubble.
+    nonisolated static let faceSize = 54.0
+    private var plate: Bool { model.settings.tableArrangement != .classic }
     /// How the hand is laid out, so the table can deal into it and fly a played card out of it (D97).
     var onGeometry: (Geometry) -> Void = { _ in }
     /// Where your name sits under the hand: a trick you take is pulled toward it.
@@ -86,6 +93,12 @@ struct HandFanView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .bottom)
+            .onChange(of: layDown) {
+                guard let card = selected, let slot = cards.firstIndex(of: card), model.allows(.play(card)) else { return }
+                var fanned = false
+                if case .fan = arrangement { fanned = true }
+                play(card, slot: slot, count: cards.count, fanned: fanned, extra: .zero)
+            }
             .frame(height: HandLayout.height(of: arrangement, cardWidth: scaledWidth,
                                              flat: model.match.hand.phase == .bidding && measuredWidth > 0))
             .onGeometryChange(for: Double.self) { $0.size.width } action: { measuredWidth = $0 }
@@ -96,12 +109,40 @@ struct HandFanView: View {
             HStack(spacing: 10) {
                 if let seat = model.viewerSeat {
                     let hand = model.match.hand
-                    NameTag(name: model.seatNames[seat], trump: SeatView.carvedTrump(seat: seat, bidder: hand.auction.winner, trump: hand.trump))
+                    if plate { Spacer(minLength: 0) }
+                    HStack(spacing: 4) {
+                    // Your own face (D115), with a help bubble on its rim: a tap opens Support.
+                    Button(action: onSupport) {
+                        PortraitView(portrait: Cast.opponent(at: seat)?.portrait ?? model.settings.playerPortrait, size: Self.faceSize,
+                                     rim: SeatView.rim(seat: seat, ourTeam: model.ourTeam), rimWidth: Theme.Team.rimWidth)
+                            .overlay(alignment: .topTrailing) {
+                                Image(systemName: "questionmark.bubble.fill").font(.system(size: 20, weight: .bold))
+                                    .foregroundStyle(Theme.Paper.ink, .ivory)
+                                    .shadow(color: .black.opacity(0.45), radius: 1.5, y: 1)
+                                    .offset(x: 9, y: -7)
+                            }
+                            .padding(.trailing, 6)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Support")
+                    .accessibilityHint("Rules, scoring and advice; pauses play")
+                    NameTag(name: model.seatNames[seat], trump: SeatView.carvedTrump(seat: seat, bidder: hand.auction.winner, trump: hand.trump), inlaid: plate)
                         .renames { onRename(seat) }
                         .onGeometryChange(for: CGPoint.self) { proxy in
                             let frame = proxy.frame(in: .named(TableLayout.space))
                             return CGPoint(x: frame.midX, y: frame.midY)
                         } action: { onAnchor($0) }
+                    }
+                    // On the cloth tables the face and name share a dark nameplate, centred under the hand (D117).
+                    .padding(.trailing, plate ? 22 : 0)
+                    .background {
+                        if plate {
+                            Capsule().fill(Theme.Wood.header.opacity(0.8))
+                                .overlay(Capsule().stroke(Theme.Paper.rule.opacity(0.7), lineWidth: 1.5))
+                                .padding(.leading, Self.faceSize / 2).padding(.vertical, 5)
+                        }
+                    }
                 }
                 Spacer(minLength: 0)
                 if !cards.isEmpty, model.match.hand.auction.dealer == model.viewerSeat {
@@ -156,7 +197,7 @@ struct HandFanView: View {
                     .accessibilityValue(model.accessibilityValue(for: card))
                     .accessibilityAddTraits(.isButton)
                     .accessibilityAddTraits(isSelected ? .isSelected : [])
-                    .accessibilityHint(isSelected ? "Tap again to play" : playable ? "Picks this card; tap again to play it" : "")
+                    .accessibilityHint(isSelected ? "Tap again, or tap your spot on the table, to play" : playable ? "Picks this card; tap again to play it" : "")
                     .accessibilityAction { activate(card, slot: index, count: cards.count, fanned: fanned, playable: playable) }
                     .transition(handTransition(index: index, slot: indices.firstIndex(of: index) ?? 0, count: indices.count, strip: strip))
                     .zIndex(drag?.card == card ? 200 : Double(index))

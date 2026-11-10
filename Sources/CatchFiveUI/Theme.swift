@@ -178,8 +178,8 @@ public enum Theme {
         /// book is this wide (D94).
         public static let topRowHeight = 44.0
         /// A portrait book, with its pages, ribbon, rotation and shadow reserved inside the header.
-        public static let rulesBookWidth = 62.0
-        public static let rulesBookHeight = 90.0
+        public static let rulesBookWidth = 76.0
+        public static let rulesBookHeight = 108.0
         /// The header band's bottom edge is a frown: the corners hang this much lower than the middle.
         public static let headerDip = 18.0
         /// The table's top corners either side of the partner (D65): the contract plaque on the left, the
@@ -224,6 +224,22 @@ public enum Theme {
         public static let walnut = Color(red: 0.25, green: 0.155, blue: 0.09)
         public static let walnutLight = Color(red: 0.33, green: 0.21, blue: 0.12)
         public static let walnutDark = Color(red: 0.15, green: 0.09, blue: 0.05)
+        /// The trial layouts' field (D114): a charcoal grey cloth, neither brown on brown nor green (Murph: "charcoal
+        /// gray"). Lit toward the middle, dark at the edge, a touch cool so it sits apart from the oak.
+        public static let clothLight = Color(red: 0.43, green: 0.44, blue: 0.46)
+        public static let cloth = Color(red: 0.32, green: 0.33, blue: 0.35)
+        public static let clothDark = Color(red: 0.21, green: 0.215, blue: 0.235)
+        /// The cloth's three shades, lit middle to dark edge, for each colour set (D118).
+        public static func cloth(_ colours: Settings.TableColours) -> [Color] {
+            switch colours {
+            case .charcoal: [clothLight, cloth, clothDark]
+            case .royal: [Color(red: 0.22, green: 0.38, blue: 0.76), Color(red: 0.13, green: 0.26, blue: 0.60), Color(red: 0.07, green: 0.15, blue: 0.40)]
+            case .casino: [Color(red: 0.74, green: 0.15, blue: 0.17), Color(red: 0.58, green: 0.09, blue: 0.12), Color(red: 0.36, green: 0.05, blue: 0.08)]
+            }
+        }
+        /// The cloth table's oak rail, and how round its corners are as a share of its shorter side (D117).
+        public static let railWidth = 10.0
+        public static let clothRounding = 0.3
         /// The stringing: a strip of maple set into the walnut just inside its edge, with a dark seam either side.
         public static let maple = Color(red: 0.86, green: 0.74, blue: 0.53)
         public static let stringingInset = 7.0

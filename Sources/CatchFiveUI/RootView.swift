@@ -41,6 +41,13 @@ public struct RootView: View {
     public init(model: GameModel, stage: String? = nil) {
         ScreenshotStage.name = stage
         var model = model
+        // `-layout around` or `-layout rail` at launch picks a trial table layout for screenshots (D113).
+        if let layout = UserDefaults.standard.string(forKey: "layout").flatMap(Settings.TableArrangement.init(rawValue:)) {
+            model.settings.tableArrangement = layout
+        }
+        if let colours = UserDefaults.standard.string(forKey: "colours").flatMap(Settings.TableColours.init(rawValue:)) {
+            model.settings.tableColours = colours
+        }
         switch stage {
         case "curtain", "seat":
             model.newGame(mode: .passAndPlay)

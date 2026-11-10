@@ -11,15 +11,24 @@ struct TableField: View {
     let trump: Suit?
     /// The place (0 you, 1 left, 2 across, 3 right) of the seat to act, or nil when nobody is.
     let lamp: Int?
+    /// The trial layouts lay a blue cloth in the panel instead of walnut (D114).
+    var cloth = false
+    var colours = Settings.TableColours.charcoal
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: Theme.Field.cornerRadius, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         ZStack(alignment: .topLeading) {
             // The walnut is drawn once for the whole surface and only its window moves, so the grain never redraws
             // while the field changes shape between the auction and play.
+            if cloth {
+                shape.fill(RadialGradient(colors: Theme.Field.cloth(colours),
+                                          center: .init(x: 0.5, y: 0.48), startRadius: 10, endRadius: max(rect.width, rect.height) * 0.62))
+                    .frame(width: rect.width, height: rect.height).offset(x: rect.minX, y: rect.minY)
+            } else {
             WalnutGrain().equatable()
                 .mask(alignment: .topLeading) { shape.frame(width: rect.width, height: rect.height).offset(x: rect.minX, y: rect.minY) }
+            }
             ZStack {
                 lampPool
                 if let trump { TrumpInlay(suit: trump, size: min(rect.width * 0.55, Theme.Field.inlayMaximum)).transition(.opacity) }
@@ -29,8 +38,16 @@ struct TableField: View {
                 shape.inset(by: 0.75).stroke(LinearGradient(stops: [.init(color: .clear, location: 0.55),
                                                                      .init(color: Theme.Wood.streakLight.opacity(0.55), location: 1)],
                                                              startPoint: .top, endPoint: .bottom), lineWidth: 1.5)
+                if cloth {
+                    // The rail (D117): a band of oak round the cloth, lit from above, a gold line where it meets the cloth.
+                    shape.strokeBorder(LinearGradient(colors: [Theme.Wood.light, Theme.Wood.dark], startPoint: .top, endPoint: .bottom),
+                                       lineWidth: Theme.Field.railWidth)
+                    shape.inset(by: Theme.Field.railWidth).stroke(Theme.Paper.rule.opacity(0.9), lineWidth: 1.5)
+                    shape.stroke(Theme.Wood.streakDark.opacity(0.8), lineWidth: 1)
+                } else {
                 stringing
                 shape.stroke(Theme.Wood.header.opacity(0.7), lineWidth: 1)
+                }
             }
             .frame(width: rect.width, height: rect.height)
             .offset(x: rect.minX, y: rect.minY)
@@ -42,6 +59,9 @@ struct TableField: View {
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
+
+    /// The panel's corners: the walnut's own, or, for the cloth, round enough that the table reads as an oval (D117).
+    private var radius: Double { cloth ? min(rect.width, rect.height) * Theme.Field.clothRounding : Theme.Field.cornerRadius }
 
     /// A strip of maple set into the walnut just inside its edge, with a dark seam on either side.
     private var stringing: some View {
@@ -63,7 +83,7 @@ struct TableField: View {
             .offset(Self.lampOffset(place: lamp, size: rect.size))
             .opacity(lamp == nil ? 0 : 1)
             .frame(width: rect.width, height: rect.height)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.Field.cornerRadius, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
     }
 
     /// Where the lamp sits for a place, from the field's centre: most of the way toward that seat's edge.

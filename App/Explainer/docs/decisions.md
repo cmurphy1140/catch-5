@@ -912,3 +912,71 @@ These are floors, not ceilings: bidding higher to keep the auction away from the
 The trick itself is two cards tall, not three: the partner's card and yours sit about half a card out (`Theme.Table.trickRise`) and the side cards lie across the join. This amends T10, on Murph's word (2026-11-10): side cards still clear each other, the partner's card and yours still clear each other, and every card keeps a rank-and-suit corner in the open (`playedCardsAreLargerAndEachShowsAnIndex`).
 
 **Why:** Measured on the iPhone 17 simulator, the table in play needed 654 pt and had 363 pt, so both side seats lay off the bottom. The bottom row took about 130 pt of that and the larger trick most of the rest. With no overlap at all the trick's cards came out near 49 pt wide beside a 78 pt hand; overlapped as on a real table they keep about 70 pt.
+
+## D113. A trial switch between three play tables (2026-11-10)
+
+Settings carries a Table switch: Now (the table as D112 left it), Around and Rail. It is a trial on Murph's word ("build both"), so he can play each on his phone; the two that lose are deleted and this entry is amended.
+
+- **Around:** the walnut field runs from under the partner's row down to the status line instead of ending under the side seats. The side seats sit on it with their names inlaid in maple, since a name cut dark into the oak cannot be read on walnut.
+- **Rail:** the three other seats sit in a row on the oak, left, across, right. The field below holds only the trick, drawn up to 1.3 times larger where it fits. Each seat's bid box hangs under it in the auction, and the contract is one line on the field's corner (`ContractChip`), with the trump tally after it.
+- **Both:** the dealer button always rides the dealer's face and no deck is drawn by a seat (the deal starts from the face); the score is a plate on the top row that opens the score sheet, in place of the pad; Support is its glyph alone beside it.
+
+**Why:** On the phone the table at the start of a trick was a thin strip with dead oak under it, the side names could not be read on the walnut, and the pad and the dealer's deck kept needing rules to stay out of each other's way. The Rules book's word also truncated to "Ru…"; it now shrinks to fit in every layout.
+
+**Not yet decided:** felt in place of walnut, and whether your own name stays under your hand.
+
+## D114. The new-match question on paper; a blue cloth on the trial tables (2026-11-10)
+
+- **New match / Start over** is asked on an ivory card over the dimmed menu (`NewMatchCard`), in place of the system alert of D57: ink on tan tiles with a gold rule, each choice with a line saying what it is, the saved-game warning in oxblood, and Cancel always there (a tap outside cancels too). The system alert drew grey-brown glass on the wood with pink destructive labels.
+- **The field on Around and Rail** is a deep blue cloth instead of walnut. Murph, 2026-11-10: "the brown on brown isnt ideal, but i dont want green either". Blue is the oak's opposite, so the field separates from the table, and it carries no meaning already taken (gold for the turn, green for paper ink, oxblood for the other team). The Now layout keeps its walnut for comparison.
+
+## D115. Your own face by your hand opens Support (2026-11-10)
+
+The phone holder's portrait sits beside their carved name under the hand, with a help bubble on its rim; a tap opens Support. Murph, 2026-11-10: "give the player a visable cartoon icon too, if they tap their player, thats where the support help will live, and it will be obvious thats where it is." Every other seat had a face and the player had only a name. On Around and Rail the top row no longer carries Support, so the score plate has its room; the Now layout keeps its top-row Support as well. Tapping the name still renames the seat (D93). Around is the layout a player starts on (the setting was renamed `tableArrangement`, so a phone that saved the first trial build starts on it too).
+
+The Rules book is larger (76 by 108 pt, from 62 by 90) and stands 24 pt in from the trailing edge instead of 8, on Murph's word the same day: "make the rules book larger, and move it left".
+
+## D116. Lay a card down on your spot (2026-11-10)
+
+Tap a card and it stands up, as before; it also appears faintly on your side of the trick inside a gold dashed outline marked Play (`LayDownSpot`). Tapping that spot lays the card down. Murph, 2026-11-10: "i do not love the tap and drag for playing a card, ill let you pick another creative altrnative". Putting the card where it goes is how a card is played at a real table, the target is large and in the open, and a mis-tap in the hand only picks a different card. A second tap on the card still plays it and dragging up still works, but the table no longer advertises the drag. Gold, because it is your move.
+
+## D117. The Around table follows Murph's picture (2026-11-10)
+
+Murph sent a picture of a table he liked parts of and asked for it recreated "with a tiny touch of your critique". On Around: the field is a round-cornered cloth with an oak rail and a gold line inside it; the partner sits inside it at the top; the contract is one line on the oak above (`ContractStrip`: who bid, trump by name, the count of trump seen); the score is an ivory bar on the top row; "Your turn" is an ivory plaque that says what to do next; your spot on the table shows empty and dashed on your turn; and your face and name share a centred nameplate under the hand.
+
+**Kept from before, against the picture:** the cloth is blue, since Murph said the same morning he did not want green; the Rules book stays the book he had just asked to be larger, in place of a flat label; there is no Hint button, since coaching is set aside on the live table (H01, T03) and Support lives behind your face (D115); Undo stays the small arrow by the plaque; and a card is laid on your spot (D116) instead of played by one tap, so a slip of the thumb cannot play a card.
+
+The cloth is charcoal grey, not blue (Murph, 2026-11-10, asked blue or green: "charcoal gray"). This replaces the blue of D114 and D117.
+
+## D118. Three colour sets, changed mid-game (2026-11-10)
+
+Settings has a second switch under Table: Charcoal (charcoal cloth on oak, lightened so dark hats and hair show), Royal (royal blue cloth on light tan wood) and Casino (casino red cloth on birch). Murph: "allow the player to change the color mid game in settings (so royal blue and light tan), (casino red and birch wood), (and the one we have now". A gear by the status line opens Settings over the table during play, which had no way in before. The paler woods are the same oak grain toned down (`WoodTone`), and what was ivory on the oak (the contract line, the small glyphs) turns to dark ink on them. The colour sets apply to Around and Rail; the Now layout keeps its walnut.
+
+## D119. Bigger trick cards on the reworked tables; the menu sits higher (2026-11-10)
+
+Connor asked for the playing cards on the table to be 66% larger and the home screen moved up a smidge. The field's height, not a
+scale limit, caps the trick, so on Around and Rail the trick now stacks tighter (`TableLayout.tightRise`, 0.3 of a card's height
+against 0.52 on today's table) and may be drawn up to 1.66 times the reader's scale (`trickBoost`). On an iPhone 16 Pro that gives
+cards about a quarter larger on Around and about a quarter larger on Rail; the full 66% does not fit under the partner's seat.
+The flights land on the same tighter spots (`Geometry.pileRise`). The menu's title padding drops from 34 to 8 pt. Side names on
+the field gain a wider shadow so they read where they overhang the pale woods of D118.
+
+## D120. The helper sits on the opening page, as a chat box (2026-11-10)
+
+Connor wants Support up front, feeling like a chat app's text box, and later tailored to one player. The menu's paper card now
+carries an "Ask anything" pill under the player's name; it opens the Support sheet full height with the keyboard up, a greeting by
+name and three starter questions (`FrontDesk.starters`). The sheet's composer is the same pill, the wait is three dots, and the
+newest answer types itself out once (`TypedText`; Reduce Motion shows it whole). Requests from there carry `place: "menu"`; the
+game's context goes along only when a match is saved. The help site accepts that place with or without a context, adds a
+front-desk tone, and reads a private note about the player from `SUPPORT_PERSONA` on the server, never from this public
+repository. Offline, `FrontDesk.localAnswer` answers from the house rules. The table's own Support is unchanged. The menu's
+spacing tightens (12 pt, no top padding) so the card still fits. Not proved: the online path end to end, since the help site has
+not been redeployed.
+
+Amended the same day, on Connor's word that the menu's helper "thinks it's still living in the game": from the opening page no
+game context is ever sent, and the help site refuses one there. The server now builds one friendly voice for two places
+(`instructions(body, env)`): on the opening page it cannot see a hand and says so; at the table it answers the hand first and may
+chat as well. The private note reaches both. The starters out front are not about the game at first (a joke, a team name, a
+snack, then "OK, teach me Catch 5"), with offline answers in `FrontDesk.chat`; the table's sheet gains the joke starter and
+answers plain chat offline too. The sheet is titled "Chat" out front and "Ask anything" at the table.
+

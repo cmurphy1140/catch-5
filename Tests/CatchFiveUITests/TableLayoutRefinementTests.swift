@@ -28,7 +28,8 @@ import Testing
         let support = TableLayout.supportFrame(available: available)
         #expect(support.minX >= 44 + 4 && support.maxX + 4 <= book.minX)
         #expect(support.minY >= 0 && support.maxY <= Theme.Table.topRowHeight)
-        #expect(book.maxX >= available - 10 && book.maxX <= available - 6)
+        // The book stands in from the trailing edge (D115, Murph: "make the rules book larger, and move it left").
+        #expect(book.maxX >= available - 26 && book.maxX <= available - 22)
         #expect(CGRect(x: 0, y: 0, width: available, height: Theme.Table.topRowHeight + TableLayout.topCornerClearance).contains(book))
     }
 }

@@ -20,10 +20,21 @@ struct MainMenuView: View {
     @State private var showTutorial = false
     @State private var showStatistics = false
     @State private var showExplainer = false
+    @State private var support: SupportPresentation?
+
+    /// Opens the helper from the opening page (D120). No game goes along: out here it is company, not a coach.
+    private func openSupport() {
+        guard let context = SupportContext.visible(in: model) ?? (try? SupportContext(match: model.match, seat: 0)) else { return }
+        let presentation = SupportPresentation(context: context)
+        presentation.front = true
+        presentation.sendsContext = false
+        presentation.name = model.settings.playerName
+        support = presentation
+    }
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
+            VStack(spacing: 12) {
                 VStack(spacing: 6) {
                     Text("Catch 5")
                         .font(.system(size: 48, weight: .bold, design: .serif))
@@ -32,7 +43,7 @@ struct MainMenuView: View {
                         .tracking(2)
                         .opacity(0.82)
                 }
-                .padding(.top, 34)
+                .padding(.top, 0)
 
                 // The five is the visual signature of the game, not another control. Two hands reach for it (N47).
                 HomeFiveCard()
@@ -54,6 +65,23 @@ struct MainMenuView: View {
                         }
                         Spacer(minLength: 0)
                     }
+                    // The helper, up front (D120): a chat's "ask anything" box, on the game's own paper.
+                    Button(action: openSupport) {
+                        HStack(spacing: 10) {
+                            Image(systemName: "sparkles").foregroundStyle(Theme.Paper.green).accessibilityHidden(true)
+                            Text("Ask anything").opacity(0.6)
+                            Spacer(minLength: 0)
+                            Image(systemName: "arrow.up.circle.fill").font(.title).foregroundStyle(Theme.Paper.green).accessibilityHidden(true)
+                        }
+                        .font(.title3)
+                        .padding(.leading, 16).padding(.trailing, 6).frame(minHeight: 48)
+                        .background(.ivory, in: Capsule())
+                        .overlay(Capsule().stroke(Theme.Paper.rule, lineWidth: 1.5))
+                        .contentShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Ask anything about Catch 5")
+                    .accessibilityHint("Opens a chat with the game's helper")
                     if model.matchInProgress {
                         RuledLine {
                             Text("Hand \(model.match.handNumber)").font(.system(.subheadline, design: .serif).weight(.bold))
@@ -119,15 +147,20 @@ struct MainMenuView: View {
             })
         }
         .sheet(isPresented: $showTutorial, onDismiss: { model.markRulesSeen() }) { TutorialView(model: tutorial) { showTutorial = false } }
+        .sheet(item: $support) { SupportView(presentation: $0).id($0.id) }
         .sheet(isPresented: $showStatistics) { StatisticsView(stats: model.statistics, records: model.records) { showStatistics = false } }
         .fullScreenCoverOrSheet(isPresented: $showExplainer) { ExplainerView { showExplainer = false } }
-        // An alert, not a confirmation dialog: iOS 26 anchors the dialog to its button as a popover and drops
-        // the Cancel button, so only an alert keeps the explicit way out on every system (D57).
-        .alert(model.matchInProgress ? "Start over?" : "New match", isPresented: $confirmNewMatch) {
-            Button("Solo", role: model.matchInProgress ? .destructive : nil) { model.newGame(mode: .solo); onPlay() }
-            Button("Pass and play", role: model.matchInProgress ? .destructive : nil) { model.newGame(mode: .passAndPlay); onPlay() }
-            Button("Cancel", role: .cancel) {}
-        } message: { Text((model.matchInProgress ? "This replaces your saved game. " : "") + PlayMode.choiceMessage) }
+        // The question on the game's own paper (D114, over the system alert of D57): each choice says what it is, and
+        // Cancel is always there.
+        .overlay {
+            if confirmNewMatch {
+                NewMatchCard(replacesSavedGame: model.matchInProgress,
+                             onChoose: { mode in confirmNewMatch = false; model.newGame(mode: mode); onPlay() },
+                             onCancel: { confirmNewMatch = false })
+                    .transition(.opacity)
+            }
+        }
+        .animation(Theme.Motion.overlay, value: confirmNewMatch)
         .onAppear {
             if choosingMode { confirmNewMatch = true }
             switch ScreenshotStage.name {
@@ -293,5 +326,66 @@ private struct ReachingHand: View {
         .frame(width: width, height: width * 1.9, alignment: .bottom)
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+    }
+}
+
+/// Solo or Pass and play, asked on ivory paper over the dimmed menu (D114): ink on tan tiles with a gold rule, each
+/// choice with a line saying what it is, a warning in oxblood when a saved game would be replaced, and Cancel.
+struct NewMatchCard: View {
+    let replacesSavedGame: Bool
+    let onChoose: (PlayMode) -> Void
+    let onCancel: () -> Void
+
+    nonisolated static func title(replacesSavedGame: Bool) -> String { replacesSavedGame ? "Start over?" : "New match" }
+    nonisolated static let warning = "This replaces your saved game."
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.55).ignoresSafeArea().onTapGesture(perform: onCancel).accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 12) {
+                Text(Self.title(replacesSavedGame: replacesSavedGame))
+                    .font(.system(.largeTitle, design: .serif).weight(.bold)).accessibilityAddTraits(.isHeader)
+                if replacesSavedGame {
+                    Label(Self.warning, systemImage: "exclamationmark.triangle.fill")
+                        .font(.body.weight(.semibold)).foregroundStyle(Theme.Team.theirRim)
+                }
+                Rectangle().fill(Theme.Paper.rule).frame(height: 1.5).accessibilityHidden(true)
+                choice("Solo", "You and three computer players", symbol: "person.fill", mode: .solo)
+                choice("Pass and play", "Four players share this phone", symbol: "person.3.fill", mode: .passAndPlay)
+                Button(action: onCancel) {
+                    Text("Cancel").font(.system(.title3, design: .serif).weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: 48).contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(20)
+            .foregroundStyle(Theme.Paper.ink)
+            .paperCard()
+            .environment(\.colorScheme, .light)
+            .padding(.horizontal, 24)
+            .frame(maxWidth: 460)
+            .accessibilityElement(children: .contain)
+            .accessibilityAddTraits(.isModal)
+        }
+    }
+
+    private func choice(_ title: String, _ detail: String, symbol: String, mode: PlayMode) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        return Button { onChoose(mode) } label: {
+            HStack(spacing: 14) {
+                Image(systemName: symbol).font(.title2).frame(width: 40).accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).font(.system(.title2, design: .serif).weight(.bold))
+                    Text(detail).font(.subheadline).opacity(0.75).fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right").font(.body.weight(.bold)).opacity(0.5).accessibilityHidden(true)
+            }
+            .padding(.horizontal, 14).frame(minHeight: 72)
+            .background(shape.fill(Theme.Paper.tan))
+            .overlay(shape.stroke(Theme.Paper.rule, lineWidth: 1.5))
+            .contentShape(shape)
+        }
+        .buttonStyle(.plain)
     }
 }

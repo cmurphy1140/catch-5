@@ -29,6 +29,10 @@ struct TableSurface: View {
     let onNineAndOut: () -> Void
     /// The score pad on the table was tapped: open the score sheet (N66).
     var onScorecard: () -> Void = {}
+    /// Your spot on the field was tapped while a card is picked: lay that card down (D116).
+    var onLayDown: () -> Void = {}
+    /// The gear by the status line was tapped: open Settings over the table (D118).
+    var onSettings: () -> Void = {}
     /// The deck beside the dealer's tile says where it rests, so the deal can start there.
     var onDeck: (CGPoint) -> Void = { _ in }
     /// A seat's name tag was tapped: rename that seat (D93).
@@ -50,8 +54,22 @@ struct TableSurface: View {
     /// What the field is laid out between (D97), in the column's own space: the partner's row, the side seats and the
     /// status line.
     @State private var fieldEdges = FieldEdges()
+    /// Where the rows under the field begin, so the trial layouts can run the field down to them (D113).
+    @State private var lowerTop = 0.0
+    /// The foot of the partner's seat on the Around table, where it sits inside the field (D117).
+    @State private var partnerBottom = 0.0
 
     private var hand: Hand { model.match.hand }
+    private var arrangement: Settings.TableArrangement { model.settings.tableArrangement }
+    /// The trial layouts (D113): the field fills the table, the dealer button rides the dealer's face, and the score
+    /// is a plate on the top row instead of a pad on the table.
+    private var reworked: Bool { arrangement != .classic }
+    /// The field's edges as drawn: today's table ends it under the side seats, the trial layouts above the status line.
+    private var drawnEdges: FieldEdges {
+        var edges = fieldEdges
+        if reworked, lowerTop > 0 { edges.bottom = lowerTop + Theme.Field.verticalGap - 4 }
+        return edges
+    }
 
     /// Which plays the pile shows, the winner if they are a finished trick, and which trick of the hand they are.
     private var pile: (plays: [Play], winner: Int?, isLast: Bool, trick: Int) {
@@ -106,6 +124,37 @@ struct TableSurface: View {
                     // the suit (D65, N63), beside the partner and no taller than the partner's tile. It pops in the
                     // first time it fills (N53).
                     let cornerWidth = TableLayout.cornerWidth(available: geometry.size.width)
+                    if arrangement == .rail {
+                        railRow(available: geometry.size.width)
+                            .onGeometryChange(for: Double.self) { $0.frame(in: .named(Self.column)).maxY } action: { fieldEdges.top = $0 }
+                        // The contract lies on the field's corner, since the rail has no room beside the partner.
+                        Color.clear.frame(height: 0).overlay(alignment: .topLeading) {
+                            if let contract = ContractPlaque.contract(in: model) {
+                                ContractChip(contract: contract, tally: model.trumpTally, onAdd: model.tallyTrump, onTakeBack: model.untallyTrump)
+                                    .padding(.leading, 14).padding(.top, 12)
+                            }
+                        }
+                        .opacity(dim).zIndex(2)
+                    } else if arrangement == .around {
+                        // The contract as one line on the oak (D117); the field starts under it, the partner inside.
+                        ContractStrip(contract: ContractPlaque.contract(in: model), tally: model.trumpTally,
+                                      onAdd: model.tallyTrump, onTakeBack: model.untallyTrump)
+                            // The Rules book hangs over this corner; the line stops short of it.
+                            .padding(.trailing, Theme.Table.rulesBookWidth + 28)
+                            .opacity(dim).accessibilitySortPriority(25)
+                            .onGeometryChange(for: Double.self) { $0.frame(in: .named(Self.column)).maxY } action: { fieldEdges.top = $0 - 4 }
+                        SeatView(model: model, seat: model.seat(at: 2), isPartner: true, puckOnRim: true, onField: true, onDeck: onDeck, onRename: onRename,
+                                 onAnchor: { onAnchor(2, $0) }, bump: bumps[2, default: 0]).accessibilitySortPriority(20)
+                            .overlay(alignment: .topLeading) {
+                                if hand.phase == .bidding {
+                                    bidBox(at: 2, from: CGSize(width: Theme.Table.bidBoxWidth, height: 0))
+                                        .offset(x: -Theme.Table.bidBoxWidth - 4, y: Theme.Table.portraitSize * Theme.Table.portraitHeadroom)
+                                }
+                            }
+                            .padding(.top, 4)
+                            .onGeometryChange(for: Double.self) { $0.frame(in: .named(Self.column)).maxY } action: { partnerBottom = $0 }
+                            .opacity(dim)
+                    } else {
                     HStack(alignment: .top, spacing: 0) {
                         corner(width: cornerWidth) {
                             if let contract = ContractPlaque.contract(in: model) {
@@ -115,7 +164,7 @@ struct TableSurface: View {
                         .opacity(dim)
                         .accessibilitySortPriority(25)
                         Spacer(minLength: 0)
-                        SeatView(model: model, seat: model.seat(at: 2), isPartner: true, onDeck: onDeck, onRename: onRename,
+                        SeatView(model: model, seat: model.seat(at: 2), isPartner: true, puckOnRim: reworked, onDeck: onDeck, onRename: onRename,
                                  onAnchor: { onAnchor(2, $0) }, bump: bumps[2, default: 0]).accessibilitySortPriority(20)
                             // The partner's box sits beside them on the left, in the corner the bid box will take (N55),
                             // since the scorecard holds the right (N66). Level with the top of the face.
@@ -130,11 +179,12 @@ struct TableSurface: View {
                         // The right corner stays empty, matching the bid corner's width so the partner sits in the middle;
                         // the portrait book occupies the safe trailing corner above it.
                         corner(width: cornerWidth) {
-                            if hand.auction.dealer == model.seat(at: 2) { DealerMark(onPlaced: onDeck) }
+                            if hand.auction.dealer == model.seat(at: 2), !reworked { DealerMark(onPlaced: onDeck) }
                         }
                         .padding(.top, TableLayout.topCornerClearance)
                     }
                     .onGeometryChange(for: Double.self) { $0.frame(in: .named(Self.column)).maxY } action: { fieldEdges.top = $0 }
+                    }
                     // The side tiles give way before the pile can touch them (`TableLayout`); in the auction
                     // there is no pile, so they keep their full width. Faces sit level with the pile's centre,
                     // each beside the card its seat played.
@@ -146,7 +196,8 @@ struct TableSurface: View {
                     Spacer(minLength: 0)
                     HStack(alignment: .center) {
                         // Each side seat's box sits low beside it, toward the empty middle, clear of the partner's name (N55).
-                        SeatView(model: model, seat: model.seat(at: 1), width: sideWidth, onDeck: onDeck, onRename: onRename,
+                        if arrangement != .rail {
+                        SeatView(model: model, seat: model.seat(at: 1), width: sideWidth, puckOnRim: reworked, onField: reworked, onDeck: onDeck, onRename: onRename,
                                  onAnchor: { onAnchor(1, $0) }, bump: bumps[1, default: 0]).accessibilitySortPriority(30)
                             .onGeometryChange(for: Double.self) { $0.frame(in: .named(Self.column)).maxX } action: { fieldEdges.left = $0 }
                             .modifier(DemoTap(active: model.tallyDemo == .face(seat: model.seat(at: 1))))
@@ -156,12 +207,14 @@ struct TableSurface: View {
                                         .offset(x: Theme.Table.bidBoxWidth - Theme.Table.bidBoxTuck)
                                 }
                             }
+                        }
                         Spacer(minLength: TableLayout.seatGap)
                         // What the partner's row, the status line and the gaps between leave is the trick's to fill (D112).
-                        let room = geometry.size.height - Theme.Table.seatInset - fieldEdges.top - lowerHeight - 30
+                        let room = geometry.size.height - Theme.Table.seatInset - (arrangement == .around ? partnerBottom : fieldEdges.top) - lowerHeight - 30
                         if !inAuction { centre(available: geometry.size.width, room: room).zIndex(1) }
                         Spacer(minLength: TableLayout.seatGap)
-                        SeatView(model: model, seat: model.seat(at: 3), width: sideWidth, onDeck: onDeck, onRename: onRename,
+                        if arrangement != .rail {
+                        SeatView(model: model, seat: model.seat(at: 3), width: sideWidth, puckOnRim: reworked, onField: reworked, onDeck: onDeck, onRename: onRename,
                                  onAnchor: { onAnchor(3, $0) }, bump: bumps[3, default: 0]).accessibilitySortPriority(10)
                             .onGeometryChange(for: Double.self) { $0.frame(in: .named(Self.column)).minX } action: { fieldEdges.right = $0 }
                             .overlay(alignment: .bottomLeading) {
@@ -170,10 +223,11 @@ struct TableSurface: View {
                                         .offset(x: Theme.Table.bidBoxTuck - Theme.Table.bidBoxWidth)
                                 }
                             }
+                        }
                     }
                     // While bidding there is no pile between them, so the side seats rise toward the partner, and the
                     // bigger faces leave the bid pills their room (N48).
-                    .padding(.top, inAuction ? -Theme.Table.biddingSideRise : 0)
+                    .padding(.top, inAuction && !reworked ? -Theme.Table.biddingSideRise : 0)
                     // The field ends just under the side row, so it keeps its size whoever's turn it is (D97).
                     .onGeometryChange(for: Double.self) { $0.frame(in: .named(Self.column)).maxY } action: { fieldEdges.bottom = $0 }
                     .opacity(dim)
@@ -198,12 +252,13 @@ struct TableSurface: View {
                         }
                     } }
                     .onGeometryChange(for: Double.self) { $0.size.height } action: { lowerHeight = $0 }
+                    .onGeometryChange(for: Double.self) { $0.frame(in: .named(Self.column)).minY } action: { lowerTop = $0 }
                     .opacity(dim)
                 }
                 .coordinateSpace(.named(Self.column))
                 .background(alignment: .topLeading) {
-                    if let rect = fieldEdges.rect {
-                        TableField(rect: rect, trump: hand.trump, lamp: lampPlace).opacity(dim)
+                    if let rect = drawnEdges.rect {
+                        TableField(rect: rect, trump: arrangement == .around ? nil : hand.trump, lamp: lampPlace, cloth: reworked, colours: model.settings.tableColours).opacity(dim)
                     }
                 }
                 .padding(.top, Theme.Table.seatInset)
@@ -298,17 +353,56 @@ struct TableSurface: View {
 
     // MARK: Pile
 
-    private var padOnTable: Bool { Scorecard.liesOnTable(phase: hand.phase, reviewing: reopenedTrick != nil) }
+    private var padOnTable: Bool { !reworked && Scorecard.liesOnTable(phase: hand.phase, reviewing: reopenedTrick != nil) }
+
+    /// The rail (D113): the three other seats in a row on the oak, left, across, right, as they sit round the table.
+    /// In the auction each seat's box hangs under it, over the top of the field.
+    private func railRow(available: Double) -> some View {
+        HStack(alignment: .top, spacing: 0) {
+            ForEach([1, 2, 3], id: \.self) { place in
+                SeatView(model: model, seat: model.seat(at: place), width: available / 3, puckOnRim: true, onDeck: onDeck, onRename: onRename,
+                         onAnchor: { onAnchor(place, $0) }, bump: bumps[place, default: 0])
+                    .accessibilitySortPriority(place == 1 ? 30 : place == 2 ? 20 : 10)
+                    .overlay(alignment: .bottom) {
+                        if hand.phase == .bidding {
+                            bidBox(at: place, from: CGSize(width: 0, height: -Theme.Table.bidBoxHeight))
+                                .offset(y: Theme.Table.bidBoxHeight + 4)
+                        }
+                    }
+            }
+        }
+        // The right-hand seat sits under the Rules book, which hangs below the top row; the row starts clear of it.
+        .padding(.top, max(0, TableLayout.topCornerClearance - 60))
+        .opacity(dim)
+    }
+
+    private var rise: Double { reworked ? TableLayout.tightRise : Theme.Table.trickRise }
 
     @ViewBuilder private func centre(available: Double, room: Double) -> some View {
         let pile = pile
-        PileScale(available: available, room: room) { scale in
+        PileScale(available: reworked ? available + 2 * TableLayout.minimumSeatWidth : available, room: room,
+                  boost: reworked ? TableLayout.trickBoost : 1, rise: rise) { scale in
             ZStack {
                 // Reserve the pile's footprint so the layout does not jump between phases. Its height follows the cards'
                 // own scale, so the field between the seats always holds the whole trick (D97).
-                Color.clear.frame(width: TableLayout.pileReservation(scale: scale), height: TableLayout.pileHeight(scale: scale))
+                Color.clear.frame(width: TableLayout.pileReservation(scale: scale), height: TableLayout.pileHeight(scale: scale, rise: rise))
                 ForEach(Array(pile.plays.enumerated()), id: \.element.card) { position, play in
                     pileCard(play, position: position, winner: pile.winner, isLast: pile.isLast, trick: pile.trick, scale: scale)
+                }
+                // Your turn and nothing picked yet: your spot waits, empty (D117).
+                if reworked, selected == nil, model.isHumanTurn, hand.phase == .playing, model.match.winner == nil {
+                    RoundedRectangle(cornerRadius: Theme.Card.radius(width: Theme.Card.pileWidth * scale), style: .continuous)
+                        .strokeBorder(.ivory.opacity(0.45), style: StrokeStyle(lineWidth: 1.5, dash: [6, 5]))
+                        .frame(width: Theme.Card.pileWidth * scale, height: Theme.Card.pileWidth * scale * Theme.Card.ratio)
+                        .offset(Self.pileOffset(for: 0, scale: scale, rise: rise))
+                        .accessibilityHidden(true)
+                }
+                // The card you picked, shown faintly where it will land (D116): tap your spot to lay it down.
+                if let selected, model.isHumanTurn, hand.phase == .playing, model.allows(.play(selected)) {
+                    LayDownSpot(card: selected, width: Theme.Card.pileWidth * scale, action: onLayDown)
+                        .offset(Self.pileOffset(for: 0, scale: scale, rise: rise))
+                        .zIndex(10)
+                        .transition(.opacity)
                 }
             }
             .onGeometryChange(for: CGPoint.self) { proxy in
@@ -325,7 +419,7 @@ struct TableSurface: View {
     private func pileCard(_ play: Play, position: Int, winner: Int?, isLast: Bool, trick: Int, scale: Double) -> some View {
         let toss = toss(for: play, trick: trick)
         let landed = motion?.hasLanded(playIndex: trick * 4 + position) ?? true
-        let offset = Self.pileOffset(for: model.place(of: play.seat), scale: scale) + toss.offset
+        let offset = Self.pileOffset(for: model.place(of: play.seat), scale: scale, rise: rise) + toss.offset
         let radius = Theme.Card.radius(width: Theme.Card.pileWidth * scale)
         return Button { model.explain(play, inLastTrick: isLast) } label: {
             CardView(card: play.card, width: Theme.Card.pileWidth * scale, style: .pile)
@@ -353,12 +447,12 @@ struct TableSurface: View {
     /// Where each card rests on the pile: nudged toward the place (0 bottom, 1 left, 2 across, 3 right) of the
     /// seat that played it. `scale` is the cards' own growth with the reader's text size: the top and bottom nudges
     /// grow with it, so cards drawn larger still clear one another; the side ones keep the room the row gives them.
-    nonisolated static func pileOffset(for place: Int, scale: Double = 1) -> CGSize {
+    nonisolated static func pileOffset(for place: Int, scale: Double = 1, rise: Double = Theme.Table.trickRise) -> CGSize {
         switch place {
         case 1: CGSize(width: -Theme.Table.sideNudge * scale, height: 0)
-        case 2: CGSize(width: 0, height: -TableLayout.pileRise(scale: scale))
+        case 2: CGSize(width: 0, height: -TableLayout.pileRise(scale: scale, rise: rise))
         case 3: CGSize(width: Theme.Table.sideNudge * scale, height: 0)
-        default: CGSize(width: 0, height: TableLayout.pileRise(scale: scale))
+        default: CGSize(width: 0, height: TableLayout.pileRise(scale: scale, rise: rise))
         }
     }
 
@@ -419,13 +513,13 @@ struct TableSurface: View {
                 // the left (D100).
                 if hand.phase == .bidding {
                     bidBox(at: 0, from: CGSize(width: 0, height: Theme.Table.auctionButtonHeight + Theme.Table.bidBoxHeight))
+                } else if hand.phase == .playing {
+                    smallButton("gearshape", label: "Settings", action: onSettings)
                 } else {
                     Spacer().frame(width: Theme.Table.statusButtonHitSize, height: Theme.Table.statusButtonHitSize)
                 }
                 // Your turn is the loudest line on the table (T05); everything else stays at a calm weight.
-                statusText.font(model.isHumanTurn ? .title2.weight(.bold) : .title3.weight(.medium))
-                    .multilineTextAlignment(.center).frame(maxWidth: .infinity)
-                    .lineLimit(1).minimumScaleFactor(0.7)
+                turnWords.frame(maxWidth: .infinity)
                     // The table no longer prints who is deciding or what was thrown (D98); VoiceOver still hears it here.
                     .accessibilityLabel(Self.spokenStatus(prompt: promptWords, actor: actorWords, notice: model.notice ?? model.boldNote))
                     .accessibilityFocused(statusFocus)
@@ -457,6 +551,25 @@ struct TableSurface: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
+    }
+
+    /// Your prompt: gold words on the oak, or, in play on the cloth tables, an ivory plaque that also says how (D117).
+    @ViewBuilder private var turnWords: some View {
+        if reworked, hand.phase == .playing, let prompt = promptWords {
+            VStack(spacing: 0) {
+                Text(prompt).font(.system(.title2, design: .serif).weight(.bold))
+                Text(selected == nil ? "Tap a card" : "Now tap your spot").font(.footnote.weight(.medium)).opacity(0.75)
+            }
+            .lineLimit(1).minimumScaleFactor(0.7)
+            .foregroundStyle(Theme.Paper.ink)
+            .padding(.horizontal, 26).padding(.vertical, 4)
+            .background(.ivory, in: Capsule())
+            .overlay(Capsule().stroke(Theme.Paper.rule, lineWidth: 1.5))
+            .shadow(color: .black.opacity(0.35), radius: 3, y: 2)
+        } else {
+            statusText.font(model.isHumanTurn ? .title2.weight(.bold) : .title3.weight(.medium))
+                .multilineTextAlignment(.center).lineLimit(1).minimumScaleFactor(0.7)
+        }
     }
 
     /// The line by the hand speaks only to you (D98): your prompt in gold when it is your move, and nothing otherwise.
@@ -504,7 +617,7 @@ struct TableSurface: View {
                 Text(refusal).font(.body.weight(.medium)).multilineTextAlignment(.center).foregroundStyle(.ivory)
                     .lineLimit(3).fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 8)
-            } else if let selected, model.isHumanTurn, hand.phase == .playing {
+            } else if let selected, model.isHumanTurn, hand.phase == .playing, !model.allows(.play(selected)) {
                 // The first tap picked a card (D97): say how to play it, by name.
                 Text(Self.selectedCaption(selected)).font(.body.weight(.semibold)).multilineTextAlignment(.center)
                     .lineLimit(2).fixedSize(horizontal: false, vertical: true)
@@ -551,7 +664,7 @@ struct TableSurface: View {
 
     /// What the table says while a card waits for its second tap (D97).
     nonisolated static func selectedCaption(_ card: Card) -> String {
-        "Tap the \(card.label)\(card.suit.glyph) again to play it, or drag it up"
+        "Tap your spot on the table to play the \(card.label)\(card.suit.glyph)"
     }
 
     /// Advice reads "Play the six of clubs: partner's queen holds the trick, so…". The part before the
@@ -795,9 +908,12 @@ private struct PileScale<Content: View>: View {
     let available: Double
     /// The height the trick may take; the cards shrink to it before the table has to scroll (D112).
     let room: Double
+    /// How much larger than the reader's own scale the cards may be drawn, where the field has the room (D113).
+    var boost = 1.0
+    var rise = Theme.Table.trickRise
     @ViewBuilder let content: (Double) -> Content
     var body: some View {
-        content(TableLayout.pileScale(room: room, preferred: TableLayout.pileScale(available: available, preferred: scale)))
+        content(TableLayout.pileScale(room: room, preferred: TableLayout.pileScale(available: available, preferred: scale * boost), rise: rise))
     }
 }
 
@@ -811,6 +927,12 @@ struct SeatView: View {
     /// The partner across the top: no badge band, so the row stays short, and the dealer's mark set out beside the tile
     /// (`DealerMark.placement(forPlace:)`).
     var isPartner = false
+    /// The trial layouts (D113): the dealer button always rides the dealer's face, and there is no deck or badge band.
+    var puckOnRim = false
+    /// This seat sits on the walnut field, so its name is inlaid light.
+    var onField = false
+    /// Where the face last was, so the deal can start from the dealer's face when no deck is drawn.
+    @State private var faceAt: CGPoint?
     /// The dealer's deck says where it rests.
     var onDeck: (CGPoint) -> Void = { _ in }
     /// The name tag was tapped: rename this seat (D93).
@@ -850,7 +972,8 @@ struct SeatView: View {
                 .onGeometryChange(for: CGPoint.self) { proxy in
                     let frame = proxy.frame(in: .named(TableLayout.space))
                     return CGPoint(x: frame.midX, y: frame.midY)
-                } action: { onAnchor($0) }
+                } action: { onAnchor($0); faceAt = $0; if deals, puckOnRim { onDeck($0) } }
+                .onChange(of: deals) { _, now in if now, puckOnRim, let faceAt { onDeck(faceAt) } }
                 // Big public moments show larger on the face, until the next lead (N36).
                 .scaleEffect(bigMomentScale, anchor: .bottom)
                 .animation(reduceMotion ? Theme.Motion.reduced : Theme.Motion.overlay, value: SeatMood.isBigMoment(for: seat, in: model.match))
@@ -901,11 +1024,12 @@ struct SeatView: View {
                 .padding(.top, Self.portraitTopInset)
             // The name carved into the wood under the face, trump carved beside it for the bidder (D94); a tap renames
             // the seat (D93). Its thumb-tall hit area reaches a little into the face above.
-            NameTag(name: model.seatNames[seat], trump: Self.carvedTrump(seat: seat, bidder: hand.auction.winner, trump: hand.trump))
+            // A side seat on the field has no width for the suit beside its name; the field's own inlay shows trump there.
+            NameTag(name: model.seatNames[seat], trump: puckOnRim ? nil : Self.carvedTrump(seat: seat, bidder: hand.auction.winner, trump: hand.trump), inlaid: onField)
                 .renames { onRename(seat) }
                 .padding(.top, -8)
             // The partner's tile ends at the name, so the row stays short.
-            if placement == .underFace { badges }
+            if placement == .underFace, !puckOnRim { badges }
         }
         .padding(.horizontal, Self.tilePadding).padding(.vertical, 1)
         .frame(width: width)
@@ -961,7 +1085,7 @@ struct SeatView: View {
         .frame(height: deals && !puckOnFace ? nil : backWidth * Theme.Card.ratio + 2)
     }
 
-    private var puckOnFace: Bool { deals && Self.puckRidesTheFace(place: model.place(of: seat), phase: hand.phase) }
+    private var puckOnFace: Bool { deals && (puckOnRim || Self.puckRidesTheFace(place: model.place(of: seat), phase: hand.phase)) }
     /// The score pad lies in the bottom-left corner while cards are played, over where the left seat's deck would rest;
     /// for that seat, for that phase, the deck is put away and the dealer button sits on the face's rim (D112).
     nonisolated static func puckRidesTheFace(place: Int, phase: HandPhase) -> Bool {
@@ -1150,5 +1274,35 @@ struct HintDetailView: View {
         .background(WoodGrainView().ignoresSafeArea())
         .presentationDetents([.fraction(0.35), .medium])
         .presentationDragIndicator(.visible)
+    }
+}
+
+/// Where your picked card will land (D116): the card itself, faint, inside a gold dashed outline that breathes, on
+/// your side of the trick. A tap lays the card down. Gold because it is your move, as "Your turn" is.
+struct LayDownSpot: View {
+    let card: Card
+    let width: Double
+    let action: () -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var breathing = false
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: Theme.Card.radius(width: width), style: .continuous)
+        Button(action: action) {
+            CardView(card: card, width: width, style: .pile).dynamicTypeSize(.large)
+                .opacity(0.45)
+                .overlay(shape.strokeBorder(.gold, style: StrokeStyle(lineWidth: 3, dash: [7, 5])))
+                .overlay(alignment: .bottom) {
+                    Text("Play").font(.system(.headline, design: .serif).weight(.bold)).foregroundStyle(.black)
+                        .lineLimit(1).fixedSize()
+                        .padding(.horizontal, 12).padding(.vertical, 3)
+                        .background(.gold, in: Capsule()).offset(y: 12)
+                }
+                .scaleEffect(breathing ? 1.04 : 1)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onAppear { if !reduceMotion { withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) { breathing = true } } }
+        .accessibilityLabel("Play the \(card.spoken)")
     }
 }

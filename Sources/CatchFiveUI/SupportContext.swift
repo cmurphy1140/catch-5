@@ -163,3 +163,44 @@ enum SupportPrompt: String, CaseIterable, Identifiable {
         }
     }
 }
+
+/// The opening page's helper (D120): company before a game, not a coach. Its starters are not about the game at first,
+/// and offline it still has something to say.
+enum FrontDesk {
+    static let starters = ["Tell me a card-table joke", "Name our team for tonight", "What snack wins card night?", "OK, teach me Catch 5"]
+
+    /// Plain chat the helper can answer without a server; nil when the question is about the game.
+    static func chat(_ question: String) -> String? {
+        let lower = question.lowercased()
+        if lower.contains("joke") || lower.contains("funny") {
+            return ["Why did the Jack get invited to every game? He's worth a point just for showing up.",
+                    "My partner said they had my back. Then they trumped my Ace.",
+                    "I'd tell you a joke about the Five of trump, but somebody always catches it."].randomElement()
+        }
+        if lower.contains("team") && lower.contains("name") {
+            return ["The Trump Cards", "High, Low and Trouble", "Catch Us If You Can", "Nine and Out the Door"].randomElement().map { "How about: \($0)." }
+        }
+        if lower.contains("snack") || lower.contains("eat") || lower.contains("drink") {
+            return "Anything one-handed that will not grease the cards. Pretzels are safe. Wings are a declaration of war."
+        }
+        if lower.contains("hello") || lower.contains("hi ") || lower == "hi" || lower.contains("hey") {
+            return "Hello! Pull up a chair. Ask me for a joke, a team name, or how the game works."
+        }
+        return nil
+    }
+
+    static func localAnswer(_ question: String) -> String {
+        if let chat = chat(question) { return chat }
+        let lower = question.lowercased()
+        if lower.contains("scor") || lower.contains("point") || lower.contains("win") {
+            return "High, Low, Jack and Game each score 1; the trump Five scores 5, so nine points a hand. Make your bid and you add what you took; miss it and you lose the bid. First team to 25 wins."
+        }
+        if lower.contains("bid") {
+            return "Bid 2 to 9: the points your team expects to take. Count your likely trumps first. An Ace or the Five of one suit with a couple of friends beside it is worth a bid; the dealer may match the high bid and must bid 2 if everyone passes."
+        }
+        if lower.contains("play") || lower.contains("teach") || lower.contains("rule") || lower.contains("catch") {
+            return "Four players, two teams, six cards each. Bid for the points you think your team can take; the high bidder names trump, everyone trades in non-trumps, then six tricks are played. Follow suit if you can, highest trump wins. First to 25."
+        }
+        return "I'm offline right now, so I only know jokes, team names, snacks and the rules. Try one of those, or turn on online answers from the gear."
+    }
+}

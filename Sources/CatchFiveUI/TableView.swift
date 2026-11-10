@@ -48,6 +48,8 @@ public struct TableView: View {
     @State private var measured = TableMeasurements()
     /// The card picked in your hand by a first tap (D97).
     @State private var selected: Card?
+    /// Counts taps on your spot on the table, which lay the picked card down (D116).
+    @State private var layDown = 0
     /// Counts the tricks that have arrived at each place, so that face nods (D97).
     @State private var bumps: [Int: Int] = [:]
     /// When the deal now under way will have finished; the first bid waits for it.
@@ -216,18 +218,22 @@ public struct TableView: View {
         [model.settings.playerPortrait] + Cast.opponents.map(\.portrait)
     }
 
+    /// Support opens over the table with what the player can see, from the top row or from their own face (D115).
+    private func openSupport() {
+        if !covered, let context = SupportContext.visible(in: model) { support = SupportPresentation(context: context) }
+    }
+
     /// Score bar, table and hand in one non-scrolling column.
     private var layout: some View {
         VStack(spacing: 6) {
             // Home on the left, the rules on the right (D93).
-            TableTopRow(onHome: onHome, onRules: openRules, onSupport: {
-                if !covered, let context = SupportContext.visible(in: model) { support = SupportPresentation(context: context) }
-            })
+            TableTopRow(onHome: onHome, onRules: openRules, onSupport: openSupport, score: model.settings.tableArrangement == .classic ? nil : (model.match.scores[model.ourTeam], model.match.scores[1 - model.ourTeam]),
+               onScore: { withAnimation(motion(Theme.Motion.overlay)) { scorePanel = true } })
                 .padding(.horizontal, 4).padding(.top, 2).padding(.bottom, 4)
                 // A solid header band: runs up behind the status bar and ends in a frown, the corners
                 // hanging lower than the middle, so the bar sits on one colour and the wood starts beneath.
                 .background {
-                    WoodGrainView(vignette: .linear)
+                    WoodGrainView(vignette: .linear).modifier(WoodTone(colours: model.settings.tableColours))
                         .clipShape(HeaderBandShape(dip: Theme.Table.headerDip))
                         .shadow(color: .black.opacity(0.45), radius: 10, y: 4)
                         .ignoresSafeArea(edges: .top)
@@ -238,12 +244,15 @@ public struct TableView: View {
                          onPileCentre: { centre, scale in
                              measured.geometry.pileCentre = centre
                              measured.geometry.pileScale = scale
+                             measured.geometry.pileRise = model.settings.tableArrangement == .classic ? Theme.Table.trickRise : TableLayout.tightRise
                          },
                          reopenedTrick: reopenedTrick, toast: toast,
                          onReopenTrick: { withAnimation(motion(Theme.Motion.collapse)) { reopenedTrick = model.match.hand.completedTricks.count } },
                          onCloseTrick: { withAnimation(motion(Theme.Motion.collapse)) { reopenedTrick = nil } },
                          onNineAndOut: { withAnimation(motion(Theme.Motion.overlay)) { confirmNineAndOut = true } },
                          onScorecard: { withAnimation(motion(Theme.Motion.overlay)) { scorePanel = true } },
+                         onLayDown: { layDown += 1 },
+                         onSettings: { showSettings = true },
                          onDeck: { dealerDeck = $0 },
                          onRename: rename,
                          holdsResult: !celebrating.isEmpty || celebrationDue,
@@ -255,7 +264,7 @@ public struct TableView: View {
             // Cards stop growing at XXXL so the fan keeps six cards on screen; the cap must sit above the
             // fan's own scaled metrics, which read it from the environment.
             HandFanView(model: model, onIllegal: shake, shakes: $shakes, selected: $selected, dealing: dealing,
-                        deck: dealerDeck, onDeck: { dealerDeck = $0 }, onRename: rename,
+                        deck: dealerDeck, onDeck: { dealerDeck = $0 }, onRename: rename, onSupport: openSupport, layDown: layDown,
                         onGeometry: { measured.geometry.hand = $0 },
                         onAnchor: { measured.geometry.seats[0] = $0 },
                         onLaunch: { card, pose in measured.launch = (card, pose) })
@@ -276,8 +285,9 @@ public struct TableView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         // The row under the hand (your name tag, and the deal when it is yours) sits down beside the home indicator,
         // which only takes the middle of the bottom edge, so the table gets that height back (N64).
-        .foregroundStyle(.ivory)
-        .background(WoodGrainView().ignoresSafeArea())
+        // Ivory on the oak; dark ink on the two paler woods (D118).
+        .foregroundStyle(model.settings.tableColours.woodIsLight ? Theme.Wood.header : .ivory)
+        .background(WoodGrainView().modifier(WoodTone(colours: model.settings.tableColours)).ignoresSafeArea())
         .preferredColorScheme(.dark)
     }
 
@@ -632,5 +642,17 @@ struct HeaderBandShape: Shape {
                           control: CGPoint(x: rect.midX, y: rect.maxY - 2 * dip))
         path.closeSubpath()
         return path
+    }
+}
+
+/// The oak as it is, or toned to light tan or birch for the other colour sets (D118): the same grain, paler and less red.
+struct WoodTone: ViewModifier {
+    let colours: Settings.TableColours
+    func body(content: Content) -> some View {
+        switch colours {
+        case .charcoal: content.saturation(1).brightness(0)
+        case .royal: content.saturation(0.7).brightness(0.2)
+        case .casino: content.saturation(0.35).brightness(0.36)
+        }
     }
 }
