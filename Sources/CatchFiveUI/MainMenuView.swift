@@ -17,6 +17,9 @@ struct MainMenuView: View {
     var onNewPlayer: () -> Void = {}
     @State private var confirmNewMatch = false
     @State private var showSettings = false
+    @State private var menuOpen = false
+    @State private var showPlay = false
+    @State private var showNotebook = false
     @State private var showTutorial = false
     @State private var showStatistics = false
     @State private var showExplainer = false
@@ -33,10 +36,10 @@ struct MainMenuView: View {
 
     /// The one main action, as a compact green capsule (D121); on the wood beside the guest's scene it is bare words and
     /// an arrow, with no capsule round them (D127).
-    private func mainCapsule(_ button: HomeButton, bare: Bool = false) -> some View {
-        Button { perform(button.action) } label: {
+    private func mainCapsule(_ title: String, bare: Bool = false, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
             HStack(spacing: 8) {
-                Text(button.title).multilineTextAlignment(.leading)
+                Text(title).multilineTextAlignment(.leading)
                 Image(systemName: "arrow.right").accessibilityHidden(true)
             }
             .font(.system(.headline, design: .serif).weight(.bold)).foregroundStyle(.ivory)
@@ -53,13 +56,16 @@ struct MainMenuView: View {
         .buttonStyle(.plain)
     }
 
+    private func openPlay() { menuOpen = false; withAnimation(Theme.Motion.overlay) { showPlay = true } }
+
     /// Opens the helper from the opening page (D120). No game goes along: out here it is company, not a coach.
-    private func openSupport() {
+    private func openSupport(asking question: String? = nil) {
         guard let context = SupportContext.visible(in: model) ?? (try? SupportContext(match: model.match, seat: 0)) else { return }
         let presentation = SupportPresentation(context: context)
         presentation.front = true
         presentation.sendsContext = false
         presentation.name = model.settings.playerName
+        presentation.opening = question
         support = presentation
     }
 
@@ -87,11 +93,12 @@ struct MainMenuView: View {
                 // The five is the visual signature of the game, not another control. Two hands reach for it (N47).
                 HomeFiveCard()
                     .rotationEffect(.degrees(-5))
-                    .padding(.vertical, HomeFiveCard.handRoom)
+                    .onTapGesture { openPlay() } // the five is a second way to Play (D133)
+                    .padding(.top, HomeFiveCard.handRoom).padding(.bottom, HomeFiveCard.handRoom + 18) // the lower hand clears the bar
                     .accessibilityHidden(true)
 
                 // The helper, up front (D120), standing alone on the wood as frosted glass (D123).
-                Button(action: openSupport) {
+                Button { openSupport() } label: {
                     HStack(spacing: 10) {
                         Text("Ask anything").opacity(0.85)
                         Spacer(minLength: 0)
@@ -99,7 +106,7 @@ struct MainMenuView: View {
                         Image(systemName: "arrow.up").fontWeight(.semibold).accessibilityHidden(true)
                     }
                     .font(.title3)
-                    .padding(.horizontal, 20).frame(minHeight: 50)
+                    .padding(.horizontal, 18).frame(width: 250).frame(minHeight: 44)
                     .background(.ultraThinMaterial, in: Capsule())
                     .overlay(Capsule().strokeBorder(.white.opacity(0.28), lineWidth: 1))
                     .shadow(color: .black.opacity(0.25), radius: 8, y: 4)
@@ -108,30 +115,41 @@ struct MainMenuView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Ask anything")
                 .accessibilityHint("Opens a chat with the game's helper")
-
-                // Who is playing and where the saved match stands, on the ivory paper of the hand's result (D107), with the
-                // one main action inside it; the quieter ones sit under it, side by side.
-                let buttons = Self.homeButtons(matchInProgress: model.matchInProgress)
-                if let scene = guestScene {
-                    // A build that carries the guest's scene (D127): she comes out of the bottom-left corner, the scores are
-                    // a note pinned at the right, and there is no card round any of it.
-                    HStack(alignment: .bottom, spacing: 8) {
-                        scene.resizable().scaledToFit().frame(height: 200)
-                            .padding(.leading, -24).padding(.bottom, -20)
-                            .accessibilityHidden(true)
-                        Spacer(minLength: 0)
-                        VStack(alignment: .trailing, spacing: 16) {
-                            if model.matchInProgress {
-                                ScratchPad(hand: model.match.handNumber,
-                                           lines: [(model.mode == .solo ? "Us" : model.teamNames(0), model.match.scores[0]),
-                                                   (model.mode == .solo ? "Them" : model.teamNames(1), model.match.scores[1])],
-                                           note: true)
-                            }
-                            ForEach(buttons.filter(\.prominent), id: \.title) { mainCapsule($0, bare: true) }
-                        }
-                        .padding(.bottom, 8)
+                // Small things to ask, fainter than the bar; a tap opens the chat with that one already asked (D132).
+                HStack(spacing: 6) {
+                    ForEach(Array(zip(["A joke", "Team name", "Snacks", "Teach me"], FrontDesk.starters)), id: \.1) { label, question in
+                        Button(label) { openSupport(asking: question) }
+                            .font(.footnote.weight(.medium)).lineLimit(1).minimumScaleFactor(0.8)
+                            .padding(.horizontal, 11).frame(minHeight: 30)
+                            .background(.ultraThinMaterial.opacity(0.55), in: Capsule())
+                            .contentShape(Capsule().inset(by: -7))
+                            .accessibilityLabel(question)
                     }
-                    .zIndex(-1)
+                }
+                .buttonStyle(.plain).opacity(0.85)
+
+                // Who is playing and where the saved match stands; Play leads to the page that holds the ways in (D133).
+                if let scene = guestScene {
+                    // A build that carries the guest's scene (D127): she comes out of the bottom-left corner with the saved
+                    // game's scores written in her open book (D128), and there is no card round any of it.
+                    let scores = model.matchInProgress
+                        ? [(model.mode == .solo ? "Us" : model.teamNames(0), model.match.scores[0]),
+                           (model.mode == .solo ? "Them" : model.teamNames(1), model.match.scores[1])] : []
+                    scene.resizable().scaledToFit()
+                        .overlay { BookScore(hand: model.match.handNumber, lines: scores) }
+                        .frame(height: 250)
+                        .padding(.leading, -24).padding(.bottom, -20)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        // The main action is written on the wood in the open corner, its underline running on as an arrow
+                        // to the book that holds the score (D130).
+                        .overlay { if model.matchInProgress { BookArrow().stroke(.ivory.opacity(0.9), style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                            .shadow(color: .black.opacity(0.5), radius: 1.5, y: 1).allowsHitTesting(false).accessibilityHidden(true) } }
+                        .overlay(alignment: .topTrailing) {
+                            Button("Play") { openPlay() }
+                                .buttonStyle(WoodWritingButtonStyle(underlined: false, size: 34))
+                                .padding(.top, 40).padding(.trailing, 8)
+                        }
+                        .zIndex(-1)
                 } else {
                 VStack(spacing: 14) {
                     HStack(spacing: 14) {
@@ -144,7 +162,6 @@ struct MainMenuView: View {
                         }
                         Spacer(minLength: 0)
                     }
-                    let main = buttons.filter(\.prominent)
                     if model.matchInProgress {
                         // The saved game as a scratchpad on the left, and the way back to it, smaller, on the right (D121).
                         HStack(alignment: .center, spacing: 14) {
@@ -152,18 +169,16 @@ struct MainMenuView: View {
                                        lines: [(model.mode == .solo ? "Us" : model.teamNames(0), model.match.scores[0]),
                                                (model.mode == .solo ? "Them" : model.teamNames(1), model.match.scores[1])])
                             Spacer(minLength: 0)
-                            ForEach(main, id: \.title) { mainCapsule($0) }
+                            mainCapsule("Play") { openPlay() }
                         }
                     } else {
-                        ForEach(main, id: \.title) { button in
-                            Button { perform(button.action) } label: {
-                                HStack(spacing: 12) {
-                                    Text(button.title)
-                                    Image(systemName: "arrow.right").accessibilityHidden(true)
-                                }
+                        Button { openPlay() } label: {
+                            HStack(spacing: 12) {
+                                Text("Play")
+                                Image(systemName: "arrow.right").accessibilityHidden(true)
                             }
-                            .buttonStyle(PaperButtonStyle())
                         }
+                        .buttonStyle(PaperButtonStyle())
                     }
                 }
                 .padding(16)
@@ -173,32 +188,39 @@ struct MainMenuView: View {
                 .background { BookUnderPage() }
                 .padding(.bottom, BookUnderPage.ribbonDrop)
                 }
-
-                HStack(spacing: 10) {
-                    // New game always asks Solo or Pass and play; the same question warns when a match is in progress.
-                    ForEach(buttons.filter { !$0.prominent }, id: \.title) { button in
-                        Button { perform(button.action) } label: { Label(button.title, systemImage: "plus.square") }
-                    }
-                    Button { showTutorial = true } label: { Label("How to play", systemImage: "book") }
-                }
-                .buttonStyle(PaperSecondaryButtonStyle())
             }
             .padding(24).frame(maxWidth: 480).frame(maxWidth: .infinity)
         }
-        .overlay(alignment: .topTrailing) {
-            Menu {
-                Button("Settings", systemImage: "gearshape") { showSettings = true }
-                Button("Statistics", systemImage: "chart.bar") { showStatistics = true }
-                Button("How Catch 5 is built", systemImage: "doc.text.magnifyingglass") { showExplainer = true }
-            } label: {
-                Image(systemName: "line.3.horizontal").font(.system(size: 33, weight: .medium))
+        // Settings have their own gear at the top left, out of the menu (D129).
+        .overlay(alignment: .topLeading) {
+            Button { showSettings = true } label: {
+                Image(systemName: "gearshape").font(.system(size: 28, weight: .medium))
                     .shadow(color: .black.opacity(0.5), radius: 2, y: 1)
                     .frame(width: Theme.Table.statusButtonHitSize, height: Theme.Table.statusButtonHitSize)
                     .contentShape(Rectangle())
             }
-            .menuStyle(.borderlessButton)
-            .tint(.ivory)
-            .accessibilityLabel("Menu")
+            .buttonStyle(.plain).accessibilityLabel("Settings")
+            .padding(.leading, 12).padding(.top, 4)
+        }
+        // A tap anywhere else shuts the open menu.
+        .overlay { if menuOpen { Color.clear.contentShape(Rectangle()).onTapGesture { withAnimation(.easeOut(duration: 0.2)) { menuOpen = false } }.accessibilityHidden(true) } }
+        .overlay(alignment: .topTrailing) {
+            // What always stays with the table is set into its wood, not laid on it as paper (D129).
+            VStack(alignment: .trailing, spacing: 6) {
+                Button { withAnimation(.easeOut(duration: 0.2)) { menuOpen.toggle() } } label: {
+                    Image(systemName: "line.3.horizontal").font(.system(size: 33, weight: .medium))
+                        .shadow(color: .black.opacity(0.5), radius: 2, y: 1)
+                        .frame(width: Theme.Table.statusButtonHitSize, height: Theme.Table.statusButtonHitSize)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Menu").accessibilityValue(menuOpen ? "Open" : "Closed")
+                if menuOpen {
+                    InlaidMenu(rows: [("Notebook", "book.closed", { showNotebook = true }), ("Statistics", "chart.bar", { showStatistics = true }),
+                                      ("How Catch 5 is built", "map", { showExplainer = true })]) { menuOpen = false }
+                        .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .topTrailing)))
+                }
+            }
             .padding(.trailing, 12).padding(.top, 4)
         }
         .foregroundStyle(.ivory)
@@ -213,8 +235,17 @@ struct MainMenuView: View {
         }
         .sheet(isPresented: $showTutorial, onDismiss: { model.markRulesSeen() }) { TutorialView(model: tutorial) { showTutorial = false } }
         .sheet(item: $support) { SupportView(presentation: $0).id($0.id) }
+        .sheet(isPresented: $showNotebook) { NotebookView() }
         .sheet(isPresented: $showStatistics) { StatisticsView(stats: model.statistics, records: model.records) { showStatistics = false } }
         .fullScreenCoverOrSheet(isPresented: $showExplainer) { ExplainerView { showExplainer = false } }
+        // The play page slides over the opening page, under the new-game question so that still shows above it (D133).
+        .overlay {
+            if showPlay {
+                PlayPage(buttons: Self.homeButtons(matchInProgress: model.matchInProgress), tutorial: tutorial,
+                         perform: { perform($0) }, onClose: { model.markRulesSeen(); withAnimation(Theme.Motion.overlay) { showPlay = false } })
+                    .transition(.move(edge: .trailing))
+            }
+        }
         // The question on the game's own paper (D114, over the system alert of D57): each choice says what it is, and
         // Cancel is always there.
         .overlay {
@@ -283,10 +314,10 @@ private struct HomeFiveCard: View {
         .offset(y: swayed ? -4 : 0)
         // From above, reaching down for the top-right corner; from below, reaching up for the bottom-left.
         .overlay {
-            ReachingHand(skin: .tan, sleeve: Theme.Portrait.color(.olive))
+            ReachingHand(skin: .tan, sleeve: Theme.Wood.dark)
                 .rotationEffect(.degrees(225))
                 .offset(x: 66 - reach, y: -98 + reach)
-            ReachingHand(skin: .brown, sleeve: Theme.Wood.dark)
+            ReachingHand(skin: .brown, sleeve: Theme.Paper.green) // the bookmark's green (D130)
                 .rotationEffect(.degrees(45))
                 .offset(x: -66 + reach, y: 98 - reach)
         }
@@ -449,8 +480,6 @@ struct NewMatchCard: View {
 private struct ScratchPad: View {
     let hand: Int
     let lines: [(name: String, score: Int)]
-    /// On the wood, with no card under it, the scores are a small paper note pinned a little crooked (D127).
-    var note = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -466,9 +495,7 @@ private struct ScratchPad: View {
         .font(.custom("Noteworthy-Bold", size: 17, relativeTo: .body))
         .foregroundStyle(Theme.Paper.ink)
         .frame(width: 132)
-        .padding(note ? 8 : 0)
-        .background { if note { Rectangle().fill(Theme.Paper.tan).shadow(color: .black.opacity(0.35), radius: 3, x: 1, y: 3) } }
-        .rotationEffect(.degrees(note ? 3 : -3))
+        .rotationEffect(.degrees(-3))
         .dynamicTypeSize(...DynamicTypeSize.xxLarge)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Hand \(hand). " + lines.map { "\($0.name) \($0.score)" }.joined(separator: ", "))
@@ -479,6 +506,115 @@ private struct ScratchPad: View {
         HStack(alignment: .firstTextBaseline, spacing: 0) { content() }
             .padding(.horizontal, 6).frame(height: 30)
             .overlay(alignment: .bottom) { Rectangle().fill(Theme.Paper.rule.opacity(0.6)).frame(height: 1) }
+    }
+}
+
+/// The saved game's scores handwritten in the open book the guest holds (D128): a name and a score on each page, each on
+/// a rule half the page wide, tilted with the book. Placed in the picture's own pixels (660 wide), so it scales with it.
+private struct BookScore: View {
+    let hand: Int
+    let lines: [(name: String, score: Int)]
+    /// The middle of the left and the right page, in the picture's pixels.
+    private static let pages = [CGPoint(x: 324, y: 306), CGPoint(x: 404, y: 330)]
+
+    var body: some View {
+        GeometryReader { geo in
+            let unit = geo.size.width / 660
+            ForEach(Array(Self.pages.enumerated()), id: \.offset) { index, page in
+                VStack(spacing: 0) {
+                    Text(index < lines.count ? lines[index].name : " ")
+                        .font(.custom("Noteworthy-Bold", fixedSize: 21 * unit)).lineLimit(1).minimumScaleFactor(0.4)
+                    rule(unit)
+                    Text(index < lines.count ? "\(lines[index].score)" : " ")
+                        .font(.custom("Noteworthy-Bold", fixedSize: 42 * unit)).lineLimit(1).minimumScaleFactor(0.5)
+                    rule(unit)
+                }
+                .frame(width: 60 * unit)
+                .rotationEffect(.degrees(21))
+                .position(x: page.x * unit, y: page.y * unit)
+            }
+        }
+        .foregroundStyle(Theme.Paper.ink)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(lines.isEmpty ? "" : "Hand \(hand). " + lines.map { "\($0.name) \($0.score)" }.joined(separator: ", "))
+        .accessibilityHidden(lines.isEmpty)
+    }
+
+    /// A ruled line, half the page wide.
+    private func rule(_ unit: Double) -> some View {
+        Rectangle().fill(Theme.Paper.ink.opacity(0.35)).frame(width: 30 * unit, height: max(1, 1.5 * unit))
+    }
+}
+
+/// The opening page's menu (D129): a tray cut into the table with a sheet of the ivory paper lying in it, the rows in
+/// the paper's green serif with a hairline between them.
+private struct InlaidMenu: View {
+    let rows: [(title: String, symbol: String, action: () -> Void)]
+    let close: () -> Void
+
+    var body: some View {
+        let tray = RoundedRectangle(cornerRadius: 20, style: .continuous)
+        let sheet = RoundedRectangle(cornerRadius: 13, style: .continuous)
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
+                if index > 0 { Rectangle().fill(Theme.Paper.rule.opacity(0.6)).frame(height: 1).accessibilityHidden(true) }
+                Button { close(); row.action() } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: row.symbol).font(.title2.weight(.light)).frame(width: 34).accessibilityHidden(true)
+                        Text(row.title).font(.system(.title3, design: .serif).weight(.bold)).lineLimit(1).minimumScaleFactor(0.7)
+                        Spacer(minLength: 4)
+                        Image(systemName: "arrow.right").font(.body.weight(.light)).accessibilityHidden(true)
+                    }
+                    .frame(minHeight: 58).contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .foregroundStyle(Theme.Paper.green)
+        .padding(.horizontal, 16).padding(.vertical, 2)
+        .background(sheet.fill(.ivory))
+        .overlay(sheet.stroke(Theme.Paper.green.opacity(0.8), lineWidth: 1))
+        .padding(8)
+        .frame(width: 300)
+        .background(tray.fill(LinearGradient(colors: [Theme.Field.walnut, Theme.Field.walnutLight], startPoint: .top, endPoint: .bottom)
+            .shadow(.inner(color: .black.opacity(0.65), radius: 4, y: 3))))
+        .overlay(tray.stroke(LinearGradient(colors: [.clear, Carving.litEdge.opacity(0.6)], startPoint: .center, endPoint: .bottom), lineWidth: 1))
+        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+    }
+}
+
+/// An action written on the table by hand (D130): ivory handwriting with a stroke under it and no box round it.
+struct WoodWritingButtonStyle: ButtonStyle {
+    var underlined = true
+    var size = 23.0
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.custom("Noteworthy-Bold", size: size, relativeTo: .title3)).foregroundStyle(.ivory)
+            .lineLimit(2).minimumScaleFactor(0.7)
+            .padding(.bottom, 4)
+            .overlay(alignment: .bottom) { if underlined { Capsule().fill(.ivory.opacity(0.9)).frame(height: 2) } }
+            .shadow(color: .black.opacity(0.5), radius: 1.5, y: 1)
+            .frame(maxWidth: underlined ? .infinity : nil, minHeight: 52)
+            .contentShape(Rectangle())
+            .opacity(configuration.isPressed ? 0.6 : 1)
+            .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+    }
+}
+
+/// The stroke under "Back to the table", running left in a wave and ending as an arrow at the guest's book (D130).
+private struct BookArrow: Shape {
+    func path(in rect: CGRect) -> Path {
+        // The book's top right corner, where the picture puts it at this height.
+        let unit = (rect.height + 20) / 666 // the picture is 666 tall and hangs 20 below this frame, 24 to its left
+        let tip = CGPoint(x: rect.minX + 465 * unit - 8, y: rect.minY + 292 * unit)
+        var path = Path()
+        path.move(to: CGPoint(x: rect.maxX, y: tip.y + 12))
+        path.addCurve(to: CGPoint(x: (rect.maxX + tip.x) / 2, y: tip.y + 12),
+                      control1: CGPoint(x: rect.maxX - 40, y: tip.y + 22), control2: CGPoint(x: (rect.maxX + tip.x) / 2 + 36, y: tip.y + 24))
+        path.addCurve(to: tip, control1: CGPoint(x: (rect.maxX + tip.x) / 2 - 30, y: tip.y + 2), control2: CGPoint(x: tip.x + 34, y: tip.y - 12))
+        path.move(to: CGPoint(x: tip.x + 11, y: tip.y - 9)); path.addLine(to: tip); path.addLine(to: CGPoint(x: tip.x + 13, y: tip.y + 6))
+        return path
     }
 }
 

@@ -855,6 +855,14 @@ These are floors, not ceilings: bidding higher to keep the auction away from the
 
 **Why:** the rules must match the table the game is written for. `nineAndOutOvercallsNineAndDealerCannotMatch`, `aStandingNineAndOutIsOnlyEverPassed` and `aDealerFacingNineAndOutIsToldToPassAndCannotMatch` hold it.
 
+## D104. Tracing is test-only (2026-10-11)
+
+**Chosen:** the "system at work" trace of one tap lives entirely in the test target. `Tests/CatchFiveUITests/TraceHarness.swift` listens to `GameModel`'s `@Published` fields from outside (`TapTrace`), hosts the real `HandFanView` in an unshown Mac window to count body runs and render frames (`TraceStage`), and writes `work/trace/one-tap.md` with a Mermaid sequence diagram: the announcements of one `send` in one box, the values on notes. `SystemAtWorkTests.swift` is the one test that plays the card; the run config "Catch 5 Trace" runs it and copies the report to the vault when `CATCH5_VAULT` is set. No file in `Sources/` or `App/` changes.
+
+**Over:** a `#if DEBUG` probe at the tap site (`HandFanView.swift:208`), which never fires in a test and would ship a trace hook toward family phones; `ImageRenderer`, which draws but never re-runs a body; Instruments, which needs the simulator and shows calls, not values.
+
+**Why:** the spike showed everything the lesson needs is observable from outside: nine announcements per `send`, each before its value changes, and a body that runs again once the run loop turns. `traceReportHoldsTheBoxAndTheNotes` and `traceStageHostsTheHandAndRendersAFrame` hold the harness; the one-tap test holds the trail.
+
 
 ## D105. Support starts locally and sees only the requesting seat (2026-11-10)
 
@@ -867,7 +875,7 @@ These are floors, not ceilings: bidding higher to keep the auction away from the
 
 **Chosen:** Murph's phone feedback found the first support flow too wordy and crowded. Phase-aware starters now send actual online questions when enabled; offline help stays concise and labelled. Ordinary replies target 20–60 words with essential conditions, requested using a 240-token output budget and no reasoning. Long replies expand with More/less in place, without another request. Only submitted questions trigger scroll positioning. The display keeps failed questions with explicit retry/offline help and retains an ephemeral full conversation while sending only four completed online pairs plus the next question. Connection settings move behind a gear into a secondary sheet.
 
-**Why:** The research in the vault's 2026-11-10 support-agent note favors direct answers, optional detail, relevant suggestions and stable reading. The numerical targets and layout are product choices, not experimentally proven thresholds. Actual phone acceptance, including keyboard and large text, remains required. No streaming protocol, fake typing or extra paid summary calls are added. The sheet is ivory paper with green ink (`Theme.Paper`, `Paper.swift`): starters are pale green rows with a gold edge, your question a green bubble, the answer plain ink, so it reads like the other reading cards rather than a dark chat.
+**Why:** The research in the vault's 2026-11-10 support-agent note favors direct answers, optional detail, relevant suggestions and stable reading. The numerical targets and layout are product choices, not experimentally proven thresholds. Actual phone acceptance, including keyboard and large text, remains required. No streaming protocol, fake typing or extra paid summary calls are added.
 
 
 ## D107. Reading cards are ivory paper with green ink (2026-11-10)
@@ -1030,3 +1038,51 @@ image set `GuestScene` (git-ignored, like `Guest`) lays the menu out that way: t
 behind the two buttons below, `ScratchPad(note: true)` is a small tan note, and Back to the table is the green capsule under
 it. Every other build keeps the book of D125.
 
+
+## D128. The score is written in the guest's book (2026-11-10)
+
+Connor's third cartoon shows the guest from behind with an open book and her dog. In a build that carries `GuestScene`, the
+saved game's two scores are written on the book's pages by `BookScore`, a name and a number on each page, each on a rule half
+the page wide, placed in the picture's own pixels so they scale with it. With no game saved the pages are only ruled. The
+pinned note of D127 is gone; the hand's number is spoken to VoiceOver but not drawn.
+
+## D129. The menu is paper in a tray, and settings have their own gear (2026-11-10)
+
+Connor: settings and rules "always stay in the table". The three-bar menu no longer opens a system menu. `InlaidMenu` is a
+tray cut into the wood with a sheet of the ivory paper lying in it, rows in the paper's green serif. Settings left the menu
+for a gear at the top left of the opening page.
+
+## D130. Actions are handwritten on the wood (2026-11-10)
+
+From Connor's mock: New game and How to play lose their paper buttons and are written on the table in the scores' handwriting
+with a stroke under each (`WoodWritingButtonStyle`). Back to the table is written the same way, and `BookArrow` runs its
+underline on as a wave ending in an arrow at the guest's book. The two reaching hands swapped sleeves, brown above and the
+bookmark's green below, and the lower hand clears the Ask anything bar.
+
+## D131. A notebook of kept answers (2026-11-10)
+
+Connor wanted the helper's chats saved somewhere editable, so a guest can make a cheat sheet. Saving every chat would be
+clutter, so each answer carries a bookmark, and a kept answer becomes a line in `Notebook`, stored in `UserDefaults` on the
+device and never sent anywhere. `NotebookView` is a ruled ivory page where every line can be edited, deleted, reordered and
+added to. It opens from the menu's first row and from the chat sheet, which is how it is reached at the table.
+The guest's picture of D122 moved from the chat's opening to the head of this page the same day (Connor: "her notebook
+should have the cartoon of her in the deep blue shirt").
+
+## D132. A shorter Ask anything bar with faint suggestions (2026-11-10)
+
+Connor asked for the opening page's bar to be shortened, with small translucent suggestions under it. The bar is 250 points
+wide, and four faint capsules (A joke, Team name, Snacks, Teach me) open the chat with the matching `FrontDesk` starter
+already asked, through `SupportPresentation.opening`.
+
+## D133. A play page holds the ways into a game and the lessons (2026-11-10)
+
+Connor moved New game, How to play and Back to the table off the opening page into a view of their own. The opening page
+keeps one handwritten Play (and a tap on the five). `PlayPage` slides over it: New game on the left and Back to the table on
+the right fill the top half, written on the wood; the bottom half is one fixed sheet of paper showing the How to play
+lessons, with arrows to step between them. The sheet never grows; a long lesson scrolls inside it. `TutorialLesson` is the
+lesson switch the tutorial sheet and this page share. This amends D67's note that the five is not a control.
+
+## D134. Statistics on paper (2026-11-10)
+
+The statistics page left the grey system list for the ivory paper of the other reading pages: three large figures (matches,
+share won, bids made) over the plain counts. What is counted did not change (S05).

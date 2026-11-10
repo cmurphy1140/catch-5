@@ -312,3 +312,17 @@ private func supportFinishedFixture() throws -> SupportContext {
     }
     #expect(fixture.localAnswer(.rules).contains("missed bidders subtract their bid"))
 }
+
+@MainActor @Test func notebookKeepsEditsAndForgetsBlankLines() throws {
+    let name = "notebook-test-\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: name))
+    defer { defaults.removePersistentDomain(forName: name) }
+    let notebook = Notebook(defaults: defaults)
+    notebook.toggle("Lead trump early")
+    notebook.toggle("The five is worth five")
+    #expect(notebook.holds("Lead trump early"))
+    notebook.toggle("Lead trump early") // a second tap lets it go
+    notebook.notes[0].text = "The five is worth five points"
+    notebook.notes.append(.init(text: "  "))
+    #expect(Notebook(defaults: defaults).notes.map(\.text) == ["The five is worth five points"])
+}
