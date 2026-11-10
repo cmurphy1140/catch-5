@@ -272,7 +272,8 @@ private func playNext(_ match: inout Match) throws {
     for scale in [1.0, 1.18, 1.27] {
         let height = Theme.Card.pileWidth * Theme.Card.ratio * scale
         #expect(abs(TableSurface.pileOffset(for: 2, scale: scale).height) >= height * Theme.Table.trickRise - 1e-9)
-        #expect(abs(TableSurface.pileOffset(for: 1, scale: scale).width) * 2 >= Theme.Card.pileWidth * scale + 2 * Theme.Table.tossDrift)
+        let side = Double(abs(TableSurface.pileOffset(for: 1, scale: scale).width))
+        #expect(side * 2 >= Theme.Card.pileWidth * scale + 2 * Theme.Table.tossDrift)
     }
 }
 
