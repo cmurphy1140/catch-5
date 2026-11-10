@@ -854,3 +854,17 @@ These are floors, not ceilings: bidding higher to keep the auction away from the
 **Over:** keeping the dealer's right to take over a 9 and out (D10), which is not how the family plays.
 
 **Why:** the rules must match the table the game is written for. `nineAndOutOvercallsNineAndDealerCannotMatch`, `aStandingNineAndOutIsOnlyEverPassed` and `aDealerFacingNineAndOutIsToldToPassAndCannotMatch` hold it.
+
+
+## D105. Support starts locally and sees only the requesting seat (2026-11-10)
+
+**Chosen:** Support beside the rules book opens an ephemeral sheet and pauses computers through `TablePause`. Three local prompts explain rules, state/scoring and canonical engine advice before any server is configured. Optional online questions pass only `SupportContext`: own cards, public facts, legal options/recommendation and public settlement, using seat numbers instead of settings names. Context changes and dismissal end the chat. The client stores endpoint/access code and the explicit online-mode preference only; the server holds the OpenAI key, fails closed without required environment, validates bounded input, uses the Responses API with `store:false` and no tools or automatic retries. All redirects are refused. Live API use, deployment and device installation need separate authorization.
+
+**Why:** Useful help should not depend on network setup or expose hidden hands. Controlled tests verify the transport without spending. The warm-instance repeat throttle is not a durable spending cap; project credits and recharge controls must be reviewed before enabling live questions.
+
+
+## D106. Support answers first and reveals detail in place (2026-11-10)
+
+**Chosen:** Murph's phone feedback found the first support flow too wordy and crowded. Phase-aware starters now send actual online questions when enabled; offline help stays concise and labelled. Ordinary replies target 20–60 words with essential conditions, requested using a 240-token output budget and no reasoning. Long replies expand with More/less in place, without another request. Only submitted questions trigger scroll positioning. The display keeps failed questions with explicit retry/offline help and retains an ephemeral full conversation while sending only four completed online pairs plus the next question. Connection settings move behind a gear into a secondary sheet.
+
+**Why:** The research in the vault's 2026-11-10 support-agent note favors direct answers, optional detail, relevant suggestions and stable reading. The numerical targets and layout are product choices, not experimentally proven thresholds. Actual phone acceptance, including keyboard and large text, remains required. No streaming protocol, fake typing or extra paid summary calls are added.

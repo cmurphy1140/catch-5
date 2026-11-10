@@ -19,6 +19,7 @@ public struct TableView: View {
     /// The full score sheet is open over the table (N66).
     @State private var scorePanel = false
     @State private var showStatistics = false
+    @State private var support: SupportPresentation?
     /// Completed tricks whose cards have already collapsed toward the winner.
     @State private var collapsedTricks = 0
     @State private var reopenedTrick: Int?
@@ -82,7 +83,7 @@ public struct TableView: View {
     private var pause: TablePause {
         TablePause(sceneActive: scenePhase == .active,
                    welcomeShown: covered,
-                   sheetShown: showSettings || showTutorial || showRules || scorePanel || showStatistics,
+                   sheetShown: showSettings || showTutorial || showRules || scorePanel || showStatistics || support != nil,
                    dialogShown: renaming != nil || confirmNineAndOut || model.tallyDemo != nil || model.errorMessage != nil || model.saveError != nil,
                    inspectingTrick: reopenedTrick != nil,
                    drawShown: drawShown)
@@ -196,6 +197,11 @@ public struct TableView: View {
         withAnimation(reduceMotion ? Theme.Motion.reduced : .easeInOut(duration: BookFold.seconds)) { showRules = true }
     }
 
+    private func closeSupport() {
+        support?.invalidate()
+        support = nil
+    }
+
     private func closeRules() {
         withAnimation(reduceMotion ? Theme.Motion.reduced : .easeInOut(duration: BookFold.seconds)) { showRules = false }
         model.markRulesSeen()
@@ -214,7 +220,9 @@ public struct TableView: View {
     private var layout: some View {
         VStack(spacing: 6) {
             // Home on the left, the rules on the right (D93).
-            TableTopRow(onHome: onHome, onRules: openRules)
+            TableTopRow(onHome: onHome, onRules: openRules, onSupport: {
+                if !covered, let context = SupportContext.visible(in: model) { support = SupportPresentation(context: context) }
+            })
                 .padding(.horizontal, 16).padding(.top, 2).padding(.bottom, 4)
                 // A solid header band: runs up behind the status bar and ends in a frown, the corners
                 // hanging lower than the middle, so the bar sits on one colour and the wood starts beneath.
@@ -373,6 +381,13 @@ public struct TableView: View {
 
     private var withSheets: some View {
         withHaptics
+            .sheet(item: $support) { presentation in
+                SupportView(presentation: presentation).id(presentation.id)
+            }
+            .onChange(of: model.revision) { _, _ in closeSupport() }
+            .onChange(of: model.curtainSeat) { _, _ in closeSupport() }
+            .onChange(of: model.viewerSeat) { _, _ in closeSupport() }
+            .onChange(of: covered) { _, covered in if covered { closeSupport() } }
             .sheet(isPresented: $showSettings) { SettingsView(settings: $model.settings) }
             .sheet(isPresented: $showTutorial, onDismiss: { model.markRulesSeen() }) { TutorialView(model: tutorial) { showTutorial = false } }
             .sheet(isPresented: $showStatistics) { StatisticsView(stats: model.statistics, records: model.records) { showStatistics = false } }

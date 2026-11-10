@@ -189,3 +189,10 @@ See [decisions.md](decisions.md) for the trade-off discussion.
 - Engine types are `Sendable` structs and enums. They can cross threads freely.
 - `GameModel` is `@MainActor` because it drives UI. Its tests are marked `@MainActor` for the same reason.
 - `TableView`'s `.task` is `async`; `Task.sleep` yields without blocking the main thread, so the UI stays responsive while computers "think".
+
+
+## Optional in-game support
+
+`TableView` presents `SupportView` beside the rules book and includes its presentation in `TablePause`. The sheet owns a fresh `SupportChatModel`; dismissal, table revision, seat or curtain changes end it. `SupportContext` encodes only one `PlayerView`, engine-validated options, its recommendation and the public hand settlement. The rules engine and save format are unchanged. Local rules/state/advice work offline. `SupportClient` sends bounded questions to a configured HTTPS support route, refuses redirects and never holds the OpenAI key. `help/api/support.ts` delegates validation and one server-authenticated Responses request to `help/support-core.mjs`; configuration and data limits are in `help/README.md`.
+
+Support's phase-aware starters share the typed-question path. `SupportChatModel` keeps a full ephemeral display transcript separately from at most four completed remote pairs, retains failed questions for explicit retry/offline help, and ignores late/cancelled responses. `SupportTurn` carries local-source presentation metadata; answer preview and More/less do not change the model conversation or make requests. The scroll position follows only a newly submitted question. Connection settings use a secondary native sheet; the composer sits in the keyboard-safe bottom inset. The server requests short player-relative replies with a 240-token output budget.
