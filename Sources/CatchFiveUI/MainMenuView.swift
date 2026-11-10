@@ -104,7 +104,7 @@ struct MainMenuView: View {
             case "stats": showStatistics = true
             case "settings": showSettings = true
             case "howto", "rules", "signoff": showTutorial = true
-            default: break
+            default: if RulesView.Chapter.staged != nil { showTutorial = true }
             }
         }
     }

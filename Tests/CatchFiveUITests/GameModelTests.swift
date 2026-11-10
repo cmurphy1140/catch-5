@@ -197,15 +197,19 @@ import Testing
 }
 
 @Test func rulesSheetContainsEveryHouseRuleParagraph() throws {
-    // The rules document is the source of truth; the sheet must quote every rule paragraph verbatim.
+    // The rules document is the source of truth; the sheet must quote every rule verbatim, in order,
+    // one step per list item, under the document's own chapter headings and group labels.
     let docs = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
         .appendingPathComponent("docs/catch-five-rules.md")
     let text = try String(contentsOf: docs, encoding: .utf8)
-    let rules = text.components(separatedBy: "## Pending")[0]
-    let paragraphs = rules.split(separator: "\n").map(String.init).filter { !$0.isEmpty && !$0.hasPrefix("#") }
-    #expect(paragraphs.count >= 8)
-    for paragraph in paragraphs { #expect(RulesText.allText.contains(paragraph), "missing: \(paragraph.prefix(40))") }
-    #expect(RulesText.sections.flatMap(\.paragraphs).count == paragraphs.count)
+    let lines = text.components(separatedBy: "## Pending")[0].split(separator: "\n").map(String.init)
+    let steps = lines.filter { $0.hasPrefix("- ") }.map { String($0.dropFirst(2)) }
+    #expect(steps.count >= 8)
+    #expect(RulesText.sections.flatMap(\.paragraphs) == steps)
+    #expect(RulesText.sections.map(\.title) == lines.filter { $0.hasPrefix("## ") }.map { String($0.dropFirst(3)) })
+    #expect(RulesText.sections.flatMap(\.groups).map(\.label) == lines.filter { $0.hasPrefix("#### ") }.map { String($0.dropFirst(5)) })
+    // A rule written as loose text instead of a step would never reach the sheet.
+    #expect(lines.filter { !$0.hasPrefix("#") && !$0.hasPrefix("- ") && !$0.trimmingCharacters(in: .whitespaces).isEmpty }.isEmpty)
 }
 
 @MainActor @Test func firstLaunchShowsRulesOnce() throws {
@@ -1097,8 +1101,8 @@ import Testing
 }
 
 @Test func theRulesSayHowTheFirstDealerIsChosen() {
-    #expect(RulesText.sections[0].paragraphs.count == 2)
-    #expect(RulesText.sections[0].paragraphs[1].contains("highest deals"))
+    #expect(RulesText.sections[0].groups.map(\.label) == ["Seats and target", "First dealer"])
+    #expect(RulesText.sections[0].groups[1].steps[0].contains("highest deals"))
 }
 
 @Test func rulesFiguresMatchTheEngine() throws {
@@ -1130,6 +1134,16 @@ import Testing
     }
     #expect(chapters.last?.paragraphs == RulesText.readingTheTable)
     #expect(Set(chapters.map(\.numeral)).count == chapters.count)
+}
+
+@Test func everyRulesFigurePlaysInWithinTwoSeconds() {
+    // Play on arrival (D107): every figure has parts to play, and none keeps the reader waiting.
+    for chapter in RulesView.Chapter.allCases {
+        #expect(chapter.beats > 0)
+        #expect(chapter.beatInterval * chapter.beats <= .seconds(2), "\(chapter.title) plays too long")
+    }
+    // The trick plays each card, then rings the winner.
+    #expect(RulesView.Chapter.play.beats == RulesFigures.followedTrick.count + 1)
 }
 
 @Test func houseRuleNumbersAreTheOnesTheEngineEnforces() throws {

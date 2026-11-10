@@ -245,6 +245,8 @@ public enum Theme {
         public static let flight = Animation.spring(duration: 0.45, bounce: 0)
         public static let collapse = Animation.spring(duration: 0.5, bounce: 0)
         public static let overlay = Animation.spring(duration: 0.35, bounce: 0)
+        /// One beat of a rules figure playing in as its chapter arrives: quick, with a little bounce (D107).
+        public static let arrival = Animation.spring(duration: 0.4, bounce: 0.3)
         /// Reduce Motion replaces every flight with this crossfade.
         public static let reduced = Animation.easeInOut(duration: 0.2)
         /// The halo on the seat to act breathes in and out for as long as that seat is deciding.

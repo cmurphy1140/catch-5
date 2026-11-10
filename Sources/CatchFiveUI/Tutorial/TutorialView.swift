@@ -28,8 +28,8 @@ struct TutorialView: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Full rules") { showRules = true } }
                 ToolbarItem(placement: .confirmationAction) { Button(isIntro ? "Skip" : "Done", action: onDismiss) }
             }
-            .sheet(isPresented: $showRules) { RulesView { showRules = false } }
-            .onAppear { if ["rules", "signoff"].contains(ScreenshotStage.name ?? "") { showRules = true } }
+            .sheet(isPresented: $showRules) { RulesView(initial: RulesView.Chapter.staged) { showRules = false } }
+            .onAppear { if ["rules", "signoff"].contains(ScreenshotStage.name ?? "") || RulesView.Chapter.staged != nil { showRules = true } }
         }
         .preferredColorScheme(.dark)
     }

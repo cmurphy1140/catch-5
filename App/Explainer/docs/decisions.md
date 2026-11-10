@@ -854,3 +854,19 @@ These are floors, not ceilings: bidding higher to keep the auction away from the
 **Over:** keeping the dealer's right to take over a 9 and out (D10), which is not how the family plays.
 
 **Why:** the rules must match the table the game is written for. `nineAndOutOvercallsNineAndDealerCannotMatch`, `aStandingNineAndOutIsOnlyEverPassed` and `aDealerFacingNineAndOutIsToldToPassAndCannotMatch` hold it.
+
+## D106. The rules read as short labeled steps (2026-11-10)
+
+**Chosen:** Connor found the rules sheet dense and wordy. Every rule paragraph in `docs/catch-five-rules.md` becomes one rule per list item, under a `##` chapter heading and a `####` group label (Deal and bidding: The deal, The auction, Trump). The family's words do not change; only the line breaks do. `RulesText.Section` holds `groups` of `steps`, and the sheet draws each group's label in gold serif above its steps. Numbered D106 because D104 and D105 are taken on other branches.
+
+**Over:** rewording the rules shorter, which the family's "the rules stay as they are" rules out; folding the text behind a tap, which hides the letter of the rule the figures illustrate.
+
+**Why:** short steps are easier to scan and point at. `rulesSheetContainsEveryHouseRuleParagraph` now checks the steps in order, the chapter headings and the group labels against the document, and fails on any loose paragraph that is not a step.
+
+## D107. Rules figures play in as their chapter arrives (2026-11-10)
+
+**Chosen:** Connor found the rules animations lacking and picked "play on arrival". Each chapter's figure plays in, one part per beat, when the chapter is a third on screen (`onScrollVisibilityChange` on iOS 18 and later, on appear before), and plays again on a tap or the "Play again" accessibility action. Seats drop in and the partner line draws before "25" rolls up; cards deal into the fan and the bid ladder climbs; the trick plays card by card from each seat before the winner is ringed; the point tiles turn over to a running total of 9, the Five landing big; the 9 and out meter fills and "all nine" swells once; the screen notes slide in. Figures are larger (56 pt cards in the trick, 38 pt portraits). Beats use `Theme.Motion.arrival`; Reduce Motion fades straight to the whole figure.
+
+**Over:** a step-through sheet with a Next button per rule, which rebuilds the screen for the same lesson; scaling the old figures up, which stays static.
+
+**Why:** the motion shows the rule happening in the order it happens at the table. `everyRulesFigurePlaysInWithinTwoSeconds` keeps every figure under two seconds so nobody waits to read.
