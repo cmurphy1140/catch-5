@@ -233,6 +233,21 @@ public enum Theme {
         public static let lampOpacity = 0.26
     }
 
+    /// The ivory reading cards (the hand's result, its review, the rules): near-black ink, dark green for actions and
+    /// for the side that came out ahead, and a gold hairline. The gold is darker than the table's so it holds on ivory.
+    public enum Paper {
+        public static let ink = Color(red: 0.10, green: 0.09, blue: 0.07)
+        public static let green = Color(red: 0.07, green: 0.27, blue: 0.18)
+        public static let greenDeep = Color(red: 0.04, green: 0.19, blue: 0.12)
+        /// The pale green behind what is picked out: the team ahead, the open trick.
+        public static let wash = Color(red: 0.89, green: 0.92, blue: 0.82)
+        public static let rule = Color(red: 0.72, green: 0.58, blue: 0.26)
+        /// Quiet pills and the unselected half of a switch.
+        public static let tan = Color(red: 0.91, green: 0.87, blue: 0.77)
+        public static let cardRadius = 26.0
+        public static let buttonHeight = 64.0
+    }
+
     /// Which side a seat is on, worn as the rim of its portrait (D97): your team's light, the opponents' oxblood.
     public enum Team {
         public static let ourRim = Color(red: 0.95, green: 0.90, blue: 0.78)

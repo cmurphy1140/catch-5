@@ -25,8 +25,10 @@ struct SupportView: View {
                     SupportConversation(model: session).id(ObjectIdentifier(session))
                 } else { ProgressView() }
             }
-            .foregroundStyle(.ivory)
-            .background(LinearGradient(colors: [.felt, .black], startPoint: .topLeading, endPoint: .bottomTrailing).ignoresSafeArea())
+            // Ivory paper with green ink, as the other reading cards (D107).
+            .foregroundStyle(Theme.Paper.ink)
+            .background(Color.ivory.ignoresSafeArea())
+            .tint(Theme.Paper.green)
             .navigationTitle("Support")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
@@ -39,11 +41,11 @@ struct SupportView: View {
                 }
             }
             #if os(iOS)
-            .toolbarBackground(Theme.Wood.header, for: .navigationBar)
+            .toolbarBackground(Color.ivory, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             #endif
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
         .sheet(isPresented: $showSetup) {
             SupportConnectionSettings(endpoint: endpoint, code: code, useOnline: useOnline) { newEndpoint, newCode, newMode in
                 endpoint = newEndpoint
@@ -122,13 +124,13 @@ private struct SupportConversation: View {
                 VStack(alignment: .leading, spacing: 20) {
                     Text(model.online ? "OpenAI · Your cards and public play only."
                          : "Offline · Nothing leaves this device.")
-                        .font(.caption).foregroundStyle(.ivory.opacity(0.7))
+                        .font(.caption).opacity(0.7)
                     if model.messages.isEmpty { welcome }
                     ForEach(model.messages) { message in
                         turn(message).id(message.id)
                     }
                     if model.isSending {
-                        ProgressView("Getting an answer…").font(.callout).tint(.ivory)
+                        ProgressView("Getting an answer…").font(.callout)
                     }
                     if let question = model.failedQuestion {
                         VStack(alignment: .leading, spacing: 8) {
@@ -162,8 +164,10 @@ private struct SupportConversation: View {
                         Spacer(minLength: 8)
                         Image(systemName: "arrow.up.left").font(.caption)
                     }
-                    .padding(.horizontal, 14).frame(minHeight: 44)
-                    .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+                    .font(.body.weight(.medium)).foregroundStyle(Theme.Paper.green)
+                    .padding(.horizontal, 14).frame(minHeight: 48)
+                    .background(Theme.Paper.wash, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Theme.Paper.rule))
                 }
                 .buttonStyle(.plain)
             }
@@ -176,7 +180,7 @@ private struct SupportConversation: View {
         return HStack(alignment: .top, spacing: 0) {
             if user { Spacer(minLength: 30) }
             VStack(alignment: .leading, spacing: 6) {
-                if message.isLocal { Text("Offline help").font(.caption).foregroundStyle(.ivory.opacity(0.65)) }
+                if message.isLocal { Text("Offline help").font(.caption).opacity(0.65) }
                 Text(visible)
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
@@ -191,7 +195,8 @@ private struct SupportConversation: View {
                 }
             }
             .padding(user ? 12 : 0)
-            .background(user ? Theme.Wood.inlay.opacity(0.8) : .clear, in: RoundedRectangle(cornerRadius: 14))
+            .foregroundStyle(user ? .ivory : Theme.Paper.ink)
+            .background(user ? Theme.Paper.green : .clear, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             if !user { Spacer(minLength: 12) }
         }
     }
@@ -201,18 +206,20 @@ private struct SupportConversation: View {
             TextField("Ask about this game", text: $draft, axis: .vertical)
                 .lineLimit(1...4).submitLabel(.send).onSubmit(send)
                 .padding(10)
-                .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+                .background(.ivory, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Theme.Paper.green, lineWidth: 1.5))
                 .disabled(model.isSending)
             if model.isSending {
                 Button("Cancel") { model.cancel() }.frame(minWidth: 44, minHeight: 44)
             } else {
                 Button("Send", systemImage: "arrow.up.circle.fill", action: send)
-                    .labelStyle(.iconOnly).font(.title2).frame(minWidth: 44, minHeight: 44)
+                    .labelStyle(.iconOnly).font(.title).foregroundStyle(Theme.Paper.green).frame(minWidth: 44, minHeight: 44)
                     .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !SupportMessage.fits(draft))
             }
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
-        .background(Theme.Wood.header)
+        .background(Theme.Paper.tan)
+        .overlay(alignment: .top) { Rectangle().fill(Theme.Paper.rule).frame(height: 1) }
     }
 
     private func send() {
