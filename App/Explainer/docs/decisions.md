@@ -1086,3 +1086,31 @@ lesson switch the tutorial sheet and this page share. This amends D67's note tha
 
 The statistics page left the grey system list for the ivory paper of the other reading pages: three large figures (matches,
 share won, bids made) over the plain counts. What is counted did not change (S05).
+
+## D135. A dealt opening (2026-11-10)
+
+Connor asked for a creative, dynamic loading screen. The app has nothing to wait for, so this is a short opening rather than
+a spinner: `LoadingView` deals twelve card backs round the table from the middle, three to a seat as the game does, then the
+last card turns over as the five of hearts and the title comes up under it. It lasts about two and a half seconds, a tap
+skips it, Reduce Motion shows the five and the title without the deal, and staged screenshots do not show it.
+
+## D136. A guest build can carry its own suggestions (2026-11-10)
+
+Connor gave three questions of the guest's own for under the Ask anything bar. They name private things, so like the guest's
+pictures they stay out of the repository: a git-ignored data asset, `GuestPrompts`, holds a list of `GuestPrompt` (a text and
+an optional link). When it is present the opening page shows those, whole and one to a line; a prompt with a link opens the
+page, since the helper cannot browse, and one without is asked in the chat. Every other build keeps the four of D132.
+
+## D137. A note written back (2026-11-10)
+
+The guest of honour wrote every wedding guest a place card by hand. Connor's answer is a card back to her, in the same
+manner: `GuestNoteCard` is a scalloped pale-blue card (`Scalloped`) with a small-flowered border, two swans whose necks
+make a heart with her name on their wings, and the words in a hand. The words are Connor's and live in the git-ignored data
+asset `GuestNote`, so no other build has a note. It is put in front of her once, on the opening page, and stays in her
+notebook as "A note for you".
+
+## D138. The note is found, not announced (2026-11-10)
+
+Amends D137. A pop-up interrupts and is closed by reflex; her own guests found their cards at their seats. So the note
+waits on the opening page as `GuestPlaceCard`, a small scalloped card with her name in the open corner by her book. She
+taps it, the note opens, and from then on the place card is gone and the note is in her notebook.

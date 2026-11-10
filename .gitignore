@@ -19,3 +19,4 @@ docs/**/*.visual-check.*
 
 # Pictures of family members for the chat and the menu (D122, D127): on their phones, never in this public repository.
 App/Assets.xcassets/Guest*.imageset/
+App/Assets.xcassets/Guest*.dataset/

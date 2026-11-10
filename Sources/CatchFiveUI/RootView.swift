@@ -17,6 +17,8 @@ public struct RootView: View {
     @State private var showWelcome = false
     /// The tip card over the table, on the way in from the main menu (D67).
     @State private var showTips = false
+    /// The dealt opening (D135) covers the first screen until it finishes or is tapped; staged screenshots skip it.
+    @State private var loading = true
     /// The `home-tips` stage keeps the tip card up for its screenshot.
     private let holdTips: Bool
     /// The menu opens with the Solo or Pass and play question up (the `picker` launch stage).
@@ -59,14 +61,14 @@ public struct RootView: View {
             Self.passAndPlay(model) { hand in hand.phase == .playing && !hand.currentTrick.isEmpty && hand.nextSeat != 0 }
         case "draw":
             model.newGame(mode: .solo)
-        case "bidding", "table", "table-rules", "table-rules-fold", "demo", "pause", "result", "review", "review-tricks", "home", "home-tips", "home-whywe", "confirm9":
+        case "bidding", "table", "table-rules", "table-rules-fold", "demo", "pause", "result", "review", "review-tricks", "home", "note", "home-tips", "home-whywe", "confirm9":
             // The `bidding` stage deals until a bid and a pass are both in the seats' boxes before your turn (N55).
             for _ in 0..<200 {
                 model.newGame(mode: .solo)
                 model.dismissDealerDraw()
                 Self.play(model) { hand, humanTurn in
                     switch stage {
-                    case "bidding", "home", "home-tips", "home-whywe", "confirm9": humanTurn && hand.phase == .bidding
+                    case "bidding", "home", "note", "home-tips", "home-whywe", "confirm9": humanTurn && hand.phase == .bidding
                     case "table", "table-rules", "table-rules-fold", "demo", "pause": humanTurn && hand.phase == .playing && !hand.currentTrick.isEmpty
                     default: hand.phase == .finished
                     }
@@ -162,7 +164,7 @@ public struct RootView: View {
         _model = StateObject(wrappedValue: model)
         _tutorial = StateObject(wrappedValue: model.makeTutorial())
         let screen: Screen = switch stage {
-        case "picker", "stats", "settings", "howto", "rules", "signoff", "home": .menu
+        case "picker", "stats", "settings", "howto", "rules", "signoff", "home", "note": .menu
         case "curtain", "seat", "pass-table", "draw", "bidding", "dealer-forced", "trump", "table", "table-rules", "table-rules-fold", "dealer-bidder", "pause", "result", "review", "review-tricks", "over",
              "home-tips", "home-whywe", "ninewin", "ninelose", "won", "confirm9", "bold", "five", "handline", "panel", "demo": .table
         default: Self.initialScreen(for: model.settings, matchInProgress: model.matchInProgress)
@@ -266,6 +268,11 @@ public struct RootView: View {
                             .accessibilityAddTraits(.isModal)
                         }
                     }
+            }
+        }
+        .overlay {
+            if loading, ScreenshotStage.name == nil || ScreenshotStage.name == "loading" {
+                LoadingView { withAnimation(.easeOut(duration: 0.35)) { loading = false } }.transition(.opacity)
             }
         }
         .preferredColorScheme(.dark)

@@ -326,3 +326,20 @@ private func supportFinishedFixture() throws -> SupportContext {
     notebook.notes.append(.init(text: "  "))
     #expect(Notebook(defaults: defaults).notes.map(\.text) == ["The five is worth five points"])
 }
+
+@Test func guestPromptsDecodeWithAndWithoutALink() throws {
+    let json = #"[{"text":"Open the album","url":"https://example.com/a?s=%7B1%7D"},{"text":"Tell me a joke"}]"#
+    let prompts = try JSONDecoder().decode([MainMenuView.GuestPrompt].self, from: Data(json.utf8))
+    #expect(prompts.map(\.text) == ["Open the album", "Tell me a joke"])
+    #expect(prompts[0].url?.host == "example.com")
+    #expect(prompts[1].url == nil)
+}
+
+@Test func guestNoteDecodesAndTheScallopedCardHasAnEdge() throws {
+    let json = #"{"name":"Ada","greeting":"Ada,","body":"Thank you.","signoff":"C"}"#
+    #expect(try JSONDecoder().decode(GuestNote.self, from: Data(json.utf8)).signoff == "C")
+    let rect = CGRect(x: 0, y: 0, width: 200, height: 300)
+    // The bumps reach the frame; an inset card stays inside it.
+    #expect(abs(Scalloped(bump: 16).path(in: rect).boundingRect.width - 200) < 1)
+    #expect(Scalloped(bump: 16).inset(by: 10).path(in: rect).boundingRect.width < 185)
+}
