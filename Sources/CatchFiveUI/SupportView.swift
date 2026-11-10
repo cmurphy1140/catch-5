@@ -171,7 +171,10 @@ private struct SupportConversation: View {
 
     private var welcome: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(model.front ? "Hi\(name.map { " " + $0 } ?? ""). What's on your mind?" : "Ask about this hand, or just chat")
+            if let guest {
+                guest.resizable().scaledToFit().frame(height: 210).frame(maxWidth: .infinity).accessibilityHidden(true)
+            }
+            Text(model.front ? "Hi Emma, or friends!" : "Ask about this hand, or just chat")
                 .font(.system(.title2, design: .serif).weight(.semibold))
             ForEach(starters, id: \.question) { starter in
                 Button(action: starter.ask) {
@@ -188,6 +191,17 @@ private struct SupportConversation: View {
                 .buttonStyle(.plain)
             }
         }
+    }
+
+    /// The guest of honour's picture for the opening page's chat, when the build carries one (D122, D124). It is kept
+    /// out of the repository, so most builds have none.
+    private var guest: Image? {
+        #if canImport(UIKit)
+        guard model.front, UIImage(named: "Guest") != nil else { return nil }
+        return Image("Guest")
+        #else
+        return nil
+        #endif
     }
 
     private var starters: [(question: String, ask: () -> Void)] {
@@ -233,7 +247,8 @@ private struct SupportConversation: View {
                 .background(.ivory, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(Theme.Paper.rule, lineWidth: 1.5))
                 .disabled(model.isSending)
-                .onAppear { if model.front, model.messages.isEmpty { writing = true } }
+                // With a guest's picture on the page the keyboard waits, so the picture is seen first (D122).
+                .onAppear { if model.front, model.messages.isEmpty, guest == nil { writing = true } }
             if model.isSending {
                 Button("Cancel") { model.cancel() }.frame(minWidth: 44, minHeight: 44)
             } else {

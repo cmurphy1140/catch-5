@@ -16,6 +16,8 @@ struct PortraitView: View {
     /// The disc's rim. On the table it says which side the seat is on (D97); elsewhere it is the usual light ring.
     var rim: Color = .ivory.opacity(0.7)
     var rimWidth: Double? = nil
+    /// Cut out of its disc (D124): no green fill and no rim, only the figure, for the menu's paper card.
+    var cutOut = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -23,7 +25,7 @@ struct PortraitView: View {
             poppedHead
         } else {
             ZStack {
-                Circle().fill(Theme.Portrait.disc)
+                Circle().fill(cutOut ? Color.clear : Theme.Portrait.disc)
                 ZStack {
                     shoulders
                     headParts
@@ -34,7 +36,7 @@ struct PortraitView: View {
             .animation(reduceMotion ? nil : Theme.Motion.overlay, value: expression)
             .frame(width: size, height: size)
             .clipShape(Circle())
-            .overlay(Circle().stroke(rim, lineWidth: rimWidth ?? max(1, size * 0.03)))
+            .overlay(Circle().stroke(cutOut ? Color.clear : rim, lineWidth: rimWidth ?? max(1, size * 0.03)))
             .overlay { if popsOut { poppedHead } }
             .accessibilityHidden(true)
         }

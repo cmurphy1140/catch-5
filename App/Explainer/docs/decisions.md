@@ -980,3 +980,53 @@ chat as well. The private note reaches both. The starters out front are not abou
 snack, then "OK, teach me Catch 5"), with offline answers in `FrontDesk.chat`; the table's sheet gains the joke starter and
 answers plain chat offline too. The sheet is titled "Chat" out front and "Ask anything" at the table.
 
+## D121. The saved game is a scratchpad on the menu (2026-11-10)
+
+Connor asked for the menu's scores without their gold outlines, smaller and on the left with the hand's number above, "like a
+small cartoon scratchpad", and for Back to the table smaller and on the right. The two outlined score tiles and the ruled Hand
+pill give way to `ScratchPad`: a small yellow pad, three degrees crooked, with a spiral strip, a red margin, blue rules and
+handwriting (Noteworthy). Back to the table is a compact green capsule beside it. With no game saved, New game stays the full
+width button it was.
+
+## D122. A guest's own picture in the opening page's chat (2026-11-10)
+
+Connor has a cartoon of the family member the helper is tailored to. The chat's empty opening screen, above the greeting, is
+where it has room; the table and the menu's five card do not. The chat looks for an image named `Guest-<player name>` in the
+app's asset catalog and shows it when that player opens the chat from the menu; with a picture on the page the keyboard waits
+for a tap. Those image sets are git-ignored (`App/Assets.xcassets/Guest-*.imageset/`), so a likeness is only ever in builds made
+on Connor's Mac, never in this public repository, and every other build shows the chat as before.
+
+## D123. Ask anything stands alone, in frosted glass (2026-11-10)
+
+Connor liked a mock with the box as a free-standing frosted-glass bar on the wood, in Apple's style. The pill leaves the paper
+card and sits between the five card and the card below it: a capsule of `.ultraThinMaterial` with a hairline light edge, the
+sparkle and the send arrow on its right. The paper card is shorter for it.
+
+## D124. Menu polish: one greeting, no sparkle, a cut-out face, scores written on the card (2026-11-10)
+
+On Connor's word. The opening page's chat always greets "Hi Emma, or friends!", whatever the player's name, and its picture
+(now one image set, `Guest`) shows in every build that carries it. The glass bar loses its sparkle. The player's face on the
+menu card is cut out of its green disc and rim (`PortraitView.cutOut`). The scratchpad loses its yellow paper, spiral and
+shadow: the hand and scores are handwritten straight onto the card, on faint rules, still a little crooked.
+
+## D125. The menu's card is a book (2026-11-10)
+
+Connor asked whether the menu's box should be something, and proposed a book with thickness and a green bookmark. Under the
+paper card `BookUnderPage` draws a burgundy cover (the spine at the left, a lip along the bottom and right), two page edges
+stepping out from under the page, and a green swallowtail ribbon hanging below. The card itself, `paperCard()`, is unchanged, so
+the other reading cards stay plain sheets. Burgundy with a gold line is the Aesthetic North Star's box.
+
+## D126. A wavy bookmark under the title (2026-11-10)
+
+Connor's idea: a thin, slightly wavy green bookmark under "A family card game", running off the left edge, for a second
+cartoon of the guest to sit on. `WavyRibbon` is a stroked sine wave, six points thick, from beyond the left edge to the end of
+the subtitle. The five card and its hands keep their place.
+
+## D127. The guest and her dog come out of the corner (2026-11-10)
+
+Connor's mock put a second cartoon, the guest reading with her dog beside her, in the opening page's bottom-left corner, the
+scores as a note pinned at the right, and no card round them; he then dropped the dock under them. A build that carries the
+image set `GuestScene` (git-ignored, like `Guest`) lays the menu out that way: the scene runs off the left edge and tucks
+behind the two buttons below, `ScratchPad(note: true)` is a small tan note, and Back to the table is the green capsule under
+it. Every other build keeps the book of D125.
+

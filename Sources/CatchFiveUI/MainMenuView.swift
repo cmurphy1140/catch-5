@@ -22,6 +22,37 @@ struct MainMenuView: View {
     @State private var showExplainer = false
     @State private var support: SupportPresentation?
 
+    /// The guest's scene for the opening page, when the build carries one (D127); kept out of the repository.
+    private var guestScene: Image? {
+        #if canImport(UIKit)
+        UIImage(named: "GuestScene") != nil ? Image("GuestScene") : nil
+        #else
+        nil
+        #endif
+    }
+
+    /// The one main action, as a compact green capsule (D121); on the wood beside the guest's scene it is bare words and
+    /// an arrow, with no capsule round them (D127).
+    private func mainCapsule(_ button: HomeButton, bare: Bool = false) -> some View {
+        Button { perform(button.action) } label: {
+            HStack(spacing: 8) {
+                Text(button.title).multilineTextAlignment(.leading)
+                Image(systemName: "arrow.right").accessibilityHidden(true)
+            }
+            .font(.system(.headline, design: .serif).weight(.bold)).foregroundStyle(.ivory)
+            .padding(.horizontal, 14).frame(minHeight: 52)
+            .background {
+                if !bare {
+                    Capsule().fill(LinearGradient(colors: [Theme.Paper.green, Theme.Paper.greenDeep], startPoint: .top, endPoint: .bottom))
+                        .shadow(color: .black.opacity(0.3), radius: 3, y: 2)
+                }
+            }
+            .shadow(color: .black.opacity(bare ? 0.5 : 0), radius: 1.5, y: 1)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
     /// Opens the helper from the opening page (D120). No game goes along: out here it is company, not a coach.
     private func openSupport() {
         guard let context = SupportContext.visible(in: model) ?? (try? SupportContext(match: model.match, seat: 0)) else { return }
@@ -42,6 +73,14 @@ struct MainMenuView: View {
                         .font(.system(.caption, design: .monospaced).weight(.semibold))
                         .tracking(2)
                         .opacity(0.82)
+                    // A thin, slightly wavy bookmark under the title, running off the left edge (D126); a guest may sit on it.
+                    WavyRibbon()
+                        .stroke(LinearGradient(colors: [Theme.Paper.greenDeep, Theme.Paper.green], startPoint: .leading, endPoint: .trailing),
+                                style: StrokeStyle(lineWidth: 6, lineCap: .butt))
+                        .frame(height: 10)
+                        .shadow(color: .black.opacity(0.35), radius: 1.5, y: 1.5)
+                        .padding(.leading, -40).padding(.trailing, 64).padding(.top, 6)
+                        .accessibilityHidden(true)
                 }
                 .padding(.top, 0)
 
@@ -51,12 +90,52 @@ struct MainMenuView: View {
                     .padding(.vertical, HomeFiveCard.handRoom)
                     .accessibilityHidden(true)
 
+                // The helper, up front (D120), standing alone on the wood as frosted glass (D123).
+                Button(action: openSupport) {
+                    HStack(spacing: 10) {
+                        Text("Ask anything").opacity(0.85)
+                        Spacer(minLength: 0)
+                        // A bare arrow: no circle round it (Connor: "the less ui containers the better").
+                        Image(systemName: "arrow.up").fontWeight(.semibold).accessibilityHidden(true)
+                    }
+                    .font(.title3)
+                    .padding(.horizontal, 20).frame(minHeight: 50)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .overlay(Capsule().strokeBorder(.white.opacity(0.28), lineWidth: 1))
+                    .shadow(color: .black.opacity(0.25), radius: 8, y: 4)
+                    .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Ask anything")
+                .accessibilityHint("Opens a chat with the game's helper")
+
                 // Who is playing and where the saved match stands, on the ivory paper of the hand's result (D107), with the
                 // one main action inside it; the quieter ones sit under it, side by side.
                 let buttons = Self.homeButtons(matchInProgress: model.matchInProgress)
+                if let scene = guestScene {
+                    // A build that carries the guest's scene (D127): she comes out of the bottom-left corner, the scores are
+                    // a note pinned at the right, and there is no card round any of it.
+                    HStack(alignment: .bottom, spacing: 8) {
+                        scene.resizable().scaledToFit().frame(height: 200)
+                            .padding(.leading, -24).padding(.bottom, -20)
+                            .accessibilityHidden(true)
+                        Spacer(minLength: 0)
+                        VStack(alignment: .trailing, spacing: 16) {
+                            if model.matchInProgress {
+                                ScratchPad(hand: model.match.handNumber,
+                                           lines: [(model.mode == .solo ? "Us" : model.teamNames(0), model.match.scores[0]),
+                                                   (model.mode == .solo ? "Them" : model.teamNames(1), model.match.scores[1])],
+                                           note: true)
+                            }
+                            ForEach(buttons.filter(\.prominent), id: \.title) { mainCapsule($0, bare: true) }
+                        }
+                        .padding(.bottom, 8)
+                    }
+                    .zIndex(-1)
+                } else {
                 VStack(spacing: 14) {
                     HStack(spacing: 14) {
-                        PortraitView(portrait: model.settings.playerPortrait, size: 64)
+                        PortraitView(portrait: model.settings.playerPortrait, size: 64, cutOut: true)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(model.settings.playerName ?? "friend")
                                 .font(.system(.title, design: .serif).weight(.bold)).lineLimit(1).minimumScaleFactor(0.6)
@@ -65,49 +144,35 @@ struct MainMenuView: View {
                         }
                         Spacer(minLength: 0)
                     }
-                    // The helper, up front (D120): a chat's "ask anything" box, on the game's own paper.
-                    Button(action: openSupport) {
-                        HStack(spacing: 10) {
-                            Image(systemName: "sparkles").foregroundStyle(Theme.Paper.green).accessibilityHidden(true)
-                            Text("Ask anything").opacity(0.6)
-                            Spacer(minLength: 0)
-                            Image(systemName: "arrow.up.circle.fill").font(.title).foregroundStyle(Theme.Paper.green).accessibilityHidden(true)
-                        }
-                        .font(.title3)
-                        .padding(.leading, 16).padding(.trailing, 6).frame(minHeight: 48)
-                        .background(.ivory, in: Capsule())
-                        .overlay(Capsule().stroke(Theme.Paper.rule, lineWidth: 1.5))
-                        .contentShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Ask anything about Catch 5")
-                    .accessibilityHint("Opens a chat with the game's helper")
+                    let main = buttons.filter(\.prominent)
                     if model.matchInProgress {
-                        RuledLine {
-                            Text("Hand \(model.match.handNumber)").font(.system(.subheadline, design: .serif).weight(.bold))
-                                .foregroundStyle(Theme.Paper.green)
-                                .padding(.horizontal, 14).frame(minHeight: 28)
-                                .background(Theme.Paper.tan, in: Capsule())
-                                .overlay(Capsule().stroke(Theme.Paper.rule))
+                        // The saved game as a scratchpad on the left, and the way back to it, smaller, on the right (D121).
+                        HStack(alignment: .center, spacing: 14) {
+                            ScratchPad(hand: model.match.handNumber,
+                                       lines: [(model.mode == .solo ? "Us" : model.teamNames(0), model.match.scores[0]),
+                                               (model.mode == .solo ? "Them" : model.teamNames(1), model.match.scores[1])])
+                            Spacer(minLength: 0)
+                            ForEach(main, id: \.title) { mainCapsule($0) }
                         }
-                        HStack(spacing: 10) {
-                            score(model.mode == .solo ? "Your team" : model.teamNames(0), model.match.scores[0])
-                            score(model.mode == .solo ? "Their team" : model.teamNames(1), model.match.scores[1])
-                        }
-                    }
-                    ForEach(buttons.filter(\.prominent), id: \.title) { button in
-                        Button { perform(button.action) } label: {
-                            HStack(spacing: 12) {
-                                Text(button.title)
-                                Image(systemName: "arrow.right").accessibilityHidden(true)
+                    } else {
+                        ForEach(main, id: \.title) { button in
+                            Button { perform(button.action) } label: {
+                                HStack(spacing: 12) {
+                                    Text(button.title)
+                                    Image(systemName: "arrow.right").accessibilityHidden(true)
+                                }
                             }
+                            .buttonStyle(PaperButtonStyle())
                         }
-                        .buttonStyle(PaperButtonStyle())
                     }
                 }
                 .padding(16)
                 .foregroundStyle(Theme.Paper.ink)
                 .paperCard()
+                // The card is the open page of a book (D125): cover and page edges under it, a green ribbon out the bottom.
+                .background { BookUnderPage() }
+                .padding(.bottom, BookUnderPage.ribbonDrop)
+                }
 
                 HStack(spacing: 10) {
                     // New game always asks Solo or Pass and play; the same question warns when a match is in progress.
@@ -180,17 +245,6 @@ extension MainMenuView {
     }
 
     /// One team's score on the player card.
-    private func score(_ label: String, _ total: Int) -> some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(label).font(.system(.headline, design: .serif)).lineLimit(1).minimumScaleFactor(0.5)
-            Spacer(minLength: 4)
-            Text(total, format: .number).font(.system(.largeTitle, design: .serif).weight(.bold)).monospacedDigit()
-        }
-        .padding(.horizontal, 14).frame(maxWidth: .infinity, minHeight: 56)
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Theme.Paper.rule))
-        .accessibilityElement(children: .combine)
-    }
-
     struct HomeButton: Equatable {
         enum Action { case backToTable, newGame }
         let title: String
@@ -387,5 +441,101 @@ struct NewMatchCard: View {
             .contentShape(shape)
         }
         .buttonStyle(.plain)
+    }
+}
+
+/// The saved game on the menu (D121, D124): the hand's number and the two scores, handwritten straight onto the paper
+/// card on faint rules, a little crooked, with no pad of its own.
+private struct ScratchPad: View {
+    let hand: Int
+    let lines: [(name: String, score: Int)]
+    /// On the wood, with no card under it, the scores are a small paper note pinned a little crooked (D127).
+    var note = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            row { Text("Hand \(hand)").underline() }
+            ForEach(lines, id: \.name) { entry in
+                row {
+                    Text(entry.name).lineLimit(1).minimumScaleFactor(0.5)
+                    Spacer(minLength: 6)
+                    Text(entry.score, format: .number).font(.custom("Noteworthy-Bold", size: 24, relativeTo: .title3)).monospacedDigit()
+                }
+            }
+        }
+        .font(.custom("Noteworthy-Bold", size: 17, relativeTo: .body))
+        .foregroundStyle(Theme.Paper.ink)
+        .frame(width: 132)
+        .padding(note ? 8 : 0)
+        .background { if note { Rectangle().fill(Theme.Paper.tan).shadow(color: .black.opacity(0.35), radius: 3, x: 1, y: 3) } }
+        .rotationEffect(.degrees(note ? 3 : -3))
+        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Hand \(hand). " + lines.map { "\($0.name) \($0.score)" }.joined(separator: ", "))
+    }
+
+    /// One ruled line.
+    private func row(@ViewBuilder _ content: () -> some View) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 0) { content() }
+            .padding(.horizontal, 6).frame(height: 30)
+            .overlay(alignment: .bottom) { Rectangle().fill(Theme.Paper.rule.opacity(0.6)).frame(height: 1) }
+    }
+}
+
+/// What lies under the menu's paper card to make it a book (D125): a burgundy cover showing at the left as the spine and
+/// along the bottom and right, the edges of the pages between, and a green ribbon bookmark hanging out below.
+private struct BookUnderPage: View {
+    /// How far the ribbon hangs below the page; the menu leaves this much room under the card.
+    static let ribbonDrop = 30.0
+    private static let cover = Color(red: 0.36, green: 0.11, blue: 0.13)
+
+    var body: some View {
+        let radius = Theme.Paper.cardRadius
+        ZStack {
+            Ribbon().fill(LinearGradient(colors: [Theme.Paper.green, Theme.Paper.greenDeep], startPoint: .top, endPoint: .bottom))
+                .frame(width: 20, height: 60)
+                .shadow(color: .black.opacity(0.3), radius: 2, y: 2)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                .padding(.trailing, 44).offset(y: 8 + Self.ribbonDrop)
+            RoundedRectangle(cornerRadius: radius + 3, style: .continuous).fill(Self.cover)
+                .overlay(RoundedRectangle(cornerRadius: radius + 3, style: .continuous).strokeBorder(Theme.Paper.rule.opacity(0.7), lineWidth: 1))
+                .padding(.leading, -7).padding(.top, -2).padding(.trailing, -6).padding(.bottom, -10)
+                .shadow(color: .black.opacity(0.45), radius: 8, y: 5)
+            // Page edges: two more sheets a step down and to the right.
+            ForEach([2.0, 1.0], id: \.self) { step in
+                RoundedRectangle(cornerRadius: radius, style: .continuous).fill(Theme.Paper.tan)
+                    .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).stroke(Theme.Paper.rule.opacity(0.8), lineWidth: 0.75))
+                    .offset(x: step * 1.5, y: step * 3)
+            }
+        }
+        .accessibilityHidden(true)
+    }
+
+    /// A ribbon with a swallowtail end.
+    private struct Ribbon: Shape {
+        func path(in rect: CGRect) -> Path {
+            var path = Path()
+            path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+            path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+            path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+            path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY - rect.width * 0.45))
+            path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+            path.closeSubpath()
+            return path
+        }
+    }
+}
+
+/// A gentle wave across its frame: stroked, it is a thin ribbon lying a little loose on the wood (D126).
+private struct WavyRibbon: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let waves = 2.5
+        for step in 0...60 {
+            let t = Double(step) / 60
+            let point = CGPoint(x: rect.minX + rect.width * t, y: rect.midY + sin(t * waves * 2 * .pi) * rect.height * 0.3)
+            if step == 0 { path.move(to: point) } else { path.addLine(to: point) }
+        }
+        return path
     }
 }
