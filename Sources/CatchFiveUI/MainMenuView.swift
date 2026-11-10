@@ -13,6 +13,8 @@ struct MainMenuView: View {
     let onPlay: () -> Void
     /// Opens with the Solo or Pass and play question already up (the screenshot launch stage).
     var choosingMode = false
+    /// The player has been reset (D108): on to setting up a new one.
+    var onNewPlayer: () -> Void = {}
     @State private var confirmNewMatch = false
     @State private var showSettings = false
     @State private var showTutorial = false
@@ -38,33 +40,55 @@ struct MainMenuView: View {
                     .padding(.vertical, HomeFiveCard.handRoom)
                     .accessibilityHidden(true)
 
-                HStack(spacing: 14) {
-                    PortraitView(portrait: model.settings.playerPortrait, size: 56)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(model.settings.playerName ?? "friend")
-                            .font(.system(.title3, design: .serif).weight(.semibold)).lineLimit(1)
-                        Text(model.settings.difficulty == .easy ? "Easy opponents" : "Standard opponents")
-                            .font(.footnote).opacity(0.75)
-                        if let context = model.resumeContext {
-                            Text(context).font(.footnote).opacity(0.75)
+                // Who is playing and where the saved match stands, on the ivory paper of the hand's result (D107), with the
+                // one main action inside it; the quieter ones sit under it, side by side.
+                let buttons = Self.homeButtons(matchInProgress: model.matchInProgress)
+                VStack(spacing: 14) {
+                    HStack(spacing: 14) {
+                        PortraitView(portrait: model.settings.playerPortrait, size: 64)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(model.settings.playerName ?? "friend")
+                                .font(.system(.title, design: .serif).weight(.bold)).lineLimit(1).minimumScaleFactor(0.6)
+                            Text(model.settings.difficulty == .easy ? "Easy opponents" : "Standard opponents")
+                                .font(.subheadline).opacity(0.7)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    if model.matchInProgress {
+                        RuledLine {
+                            Text("Hand \(model.match.handNumber)").font(.system(.subheadline, design: .serif).weight(.bold))
+                                .foregroundStyle(Theme.Paper.green)
+                                .padding(.horizontal, 14).frame(minHeight: 28)
+                                .background(Theme.Paper.tan, in: Capsule())
+                                .overlay(Capsule().stroke(Theme.Paper.rule))
+                        }
+                        HStack(spacing: 10) {
+                            score(model.mode == .solo ? "Your team" : model.teamNames(0), model.match.scores[0])
+                            score(model.mode == .solo ? "Their team" : model.teamNames(1), model.match.scores[1])
                         }
                     }
-                    Spacer(minLength: 0)
+                    ForEach(buttons.filter(\.prominent), id: \.title) { button in
+                        Button { perform(button.action) } label: {
+                            HStack(spacing: 12) {
+                                Text(button.title)
+                                Image(systemName: "arrow.right").accessibilityHidden(true)
+                            }
+                        }
+                        .buttonStyle(PaperButtonStyle())
+                    }
                 }
                 .padding(16)
-                .background(Theme.Wood.inlay.opacity(0.82), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(.ivory.opacity(0.14)))
-                .accessibilityElement(children: .combine)
+                .foregroundStyle(Theme.Paper.ink)
+                .paperCard()
 
-                VStack(spacing: 10) {
+                HStack(spacing: 10) {
                     // New game always asks Solo or Pass and play; the same question warns when a match is in progress.
-                    ForEach(Self.homeButtons(matchInProgress: model.matchInProgress), id: \.title) { button in
-                        let action = button.action == .backToTable ? onPlay : { confirmNewMatch = true }
-                        if button.prominent { MenuButtons.prominent(button.title, action: action) }
-                        else { MenuButtons.plain(button.title, action: action) }
+                    ForEach(buttons.filter { !$0.prominent }, id: \.title) { button in
+                        Button { perform(button.action) } label: { Label(button.title, systemImage: "plus.square") }
                     }
-                    MenuButtons.plain("How to play") { showTutorial = true }
+                    Button { showTutorial = true } label: { Label("How to play", systemImage: "book") }
                 }
+                .buttonStyle(PaperSecondaryButtonStyle())
             }
             .padding(24).frame(maxWidth: 480).frame(maxWidth: .infinity)
         }
@@ -87,7 +111,13 @@ struct MainMenuView: View {
         .foregroundStyle(.ivory)
         .background(WoodGrainView().ignoresSafeArea())
         .preferredColorScheme(.dark)
-        .sheet(isPresented: $showSettings) { SettingsView(settings: $model.settings) }
+        .sheet(isPresented: $showSettings) {
+            SettingsView(settings: $model.settings, onNewPlayer: {
+                showSettings = false
+                model.resetPlayer()
+                onNewPlayer()
+            })
+        }
         .sheet(isPresented: $showTutorial, onDismiss: { model.markRulesSeen() }) { TutorialView(model: tutorial) { showTutorial = false } }
         .sheet(isPresented: $showStatistics) { StatisticsView(stats: model.statistics, records: model.records) { showStatistics = false } }
         .fullScreenCoverOrSheet(isPresented: $showExplainer) { ExplainerView { showExplainer = false } }
@@ -112,6 +142,22 @@ struct MainMenuView: View {
 
 
 extension MainMenuView {
+    private func perform(_ action: HomeButton.Action) {
+        if action == .backToTable { onPlay() } else { confirmNewMatch = true }
+    }
+
+    /// One team's score on the player card.
+    private func score(_ label: String, _ total: Int) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(label).font(.system(.headline, design: .serif)).lineLimit(1).minimumScaleFactor(0.5)
+            Spacer(minLength: 4)
+            Text(total, format: .number).font(.system(.largeTitle, design: .serif).weight(.bold)).monospacedDigit()
+        }
+        .padding(.horizontal, 14).frame(maxWidth: .infinity, minHeight: 56)
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Theme.Paper.rule))
+        .accessibilityElement(children: .combine)
+    }
+
     struct HomeButton: Equatable {
         enum Action { case backToTable, newGame }
         let title: String

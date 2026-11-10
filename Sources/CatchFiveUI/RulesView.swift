@@ -1,10 +1,9 @@
 import CatchFive
 import SwiftUI
 
-/// The rulebook as a guided walk: six chapters on the felt, each opening with a figure built from the
-/// table's own pieces and closing with the rule as written, always visible. A chapter rail under the
-/// title scrolls to a chapter and lights up as the reader passes it. The tutorial is wood, pills and
-/// exercises; this is felt, panels and figures, so the two read as different rooms.
+/// The rulebook as a guided walk: six chapters, each an ivory card on dark wood that opens with a figure built
+/// from the table's own pieces, gives the rule as written, and ends with a button to the next chapter. A chapter
+/// rail under the title scrolls to a chapter and lights up as the reader passes it.
 struct RulesView: View {
     let onDismiss: () -> Void
     /// Opens the sheet at this chapter; nil leaves the reader at the top.
@@ -46,6 +45,18 @@ struct RulesView: View {
             case .reading: "Reading the table"
             }
         }
+        /// The name on the rail and the Next button, where the ampersand saves a line.
+        var short: String { self == .deal ? "Deal & bidding" : title }
+        /// The chapter's paragraphs under their headings. The first chapter's are split into the three things it
+        /// says; the words stay the rules document's own.
+        var sections: [(heading: String?, text: String)] {
+            guard self == .table, paragraphs.count == 2, let stop = paragraphs[0].range(of: ". ") else {
+                return paragraphs.map { (nil, $0) }
+            }
+            return [("Players & teams", String(paragraphs[0][..<stop.lowerBound]) + "."),
+                    ("Winning the game", String(paragraphs[0][stop.upperBound...])),
+                    ("The first dealer", paragraphs[1])]
+        }
         /// The rule you can try under this chapter, judged live by the engine.
         var trial: RuleTrial.Kind? {
             switch self {
@@ -82,7 +93,7 @@ struct RulesView: View {
                             .fixedSize(horizontal: false, vertical: true)
                             .padding(.horizontal, 8)
                         ForEach(Chapter.allCases) { chapter in
-                            panel(chapter).id(chapter)
+                            panel(chapter, proxy).id(chapter)
                         }
                         signOff
                     }
@@ -113,8 +124,8 @@ struct RulesView: View {
                 .simultaneousGesture(DragGesture(minimumDistance: 8).onChanged { _ in chosen = nil })
             }
             .foregroundStyle(.ivory)
-            .background(LinearGradient(colors: [.felt, .black], startPoint: .topLeading, endPoint: .bottomTrailing).ignoresSafeArea())
-            .navigationTitle("How to play Catch 5")
+            .background(WoodGrainView().overlay(.black.opacity(0.5)).ignoresSafeArea())
+            .navigationTitle("How to play")
             .toolbar { Button("Done", action: onDismiss) }
             .compactOpaqueBar()
         }
@@ -161,15 +172,15 @@ struct RulesView: View {
                     Button { chosen = chapter; withAnimation(motion) { proxy.scrollTo(chapter, anchor: .top) } } label: {
                         HStack(spacing: 6) {
                             Text(chapter.numeral).font(.system(.caption, design: .serif).weight(.bold))
-                            Text(chapter.title).font(.footnote.weight(.semibold))
+                            Text(chapter.short).font(.system(.footnote, design: .serif).weight(.semibold))
                         }
                         .lineLimit(1).minimumScaleFactor(0.7)
-                        .padding(.horizontal, 12).frame(minHeight: 44)
-                        .background(active ? Theme.Wood.dark : Theme.Wood.inlay, in: Capsule())
-                        .overlay(Capsule().stroke(active ? .gold : .ivory.opacity(0.12)))
+                        .padding(.horizontal, 14).frame(minHeight: 44)
+                        .background(active ? .ivory : .clear, in: Capsule())
+                        .overlay(Capsule().stroke(.gold.opacity(active ? 1 : 0.55), lineWidth: active ? 2 : 1))
                     }
                     .buttonStyle(.plain)
-                    .foregroundStyle(active ? .gold : .ivory)
+                    .foregroundStyle(active ? Theme.Paper.green : .ivory)
                     .accessibilityLabel("Chapter \(chapter.rawValue + 1), \(chapter.title)")
                     .accessibilityAddTraits(active ? .isSelected : [])
                     // Chips carry their own ids so the page's reader never mistakes a chip for a panel.
@@ -178,41 +189,57 @@ struct RulesView: View {
             }
             .padding(.horizontal, 16).padding(.vertical, 8)
         }
-        .background(Theme.Wood.inlay)
+        .background(Theme.Wood.header)
     }
 
     // MARK: Panels
 
-    private func panel(_ chapter: Chapter) -> some View {
+    private func panel(_ chapter: Chapter, _ proxy: ScrollViewProxy) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                Text(chapter.numeral).font(.system(.title, design: .serif).weight(.bold)).foregroundStyle(.gold)
-                Text(chapter.title).font(.system(.title2, design: .serif).weight(.semibold))
+            HStack(spacing: 12) {
+                Text(chapter.numeral).font(.system(.headline, design: .serif).weight(.bold)).foregroundStyle(.ivory)
+                    .lineLimit(1).minimumScaleFactor(0.6)
+                    .frame(width: 38, height: 38)
+                    .background(Theme.Paper.green, in: Circle())
+                    .overlay(Circle().stroke(Theme.Paper.rule, lineWidth: 1.5))
+                Text(chapter.title).font(.system(.title, design: .serif).weight(.bold))
             }
             figure(chapter)
             // The last chapter is the screen notes themselves, drawn once with icons.
             if chapter != .reading { rule(chapter) }
             if let trial = chapter.trial { RuleTrialView(kind: trial) }
+            if let next = Chapter(rawValue: chapter.rawValue + 1) {
+                Button { chosen = next; withAnimation(motion) { proxy.scrollTo(next, anchor: .top) } } label: {
+                    HStack(spacing: 12) {
+                        Text("Next: \(next.short)")
+                        Image(systemName: "arrow.right").accessibilityHidden(true)
+                    }
+                }
+                .buttonStyle(PaperButtonStyle())
+            }
         }
         .padding(18)
-        .background(Theme.Wood.inlay.opacity(0.85), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(.ivory.opacity(0.12)))
+        .foregroundStyle(Theme.Paper.ink)
+        .paperCard()
+        // The card is paper whatever the sheet around it is, so its system controls draw for light.
+        .environment(\.colorScheme, .light)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Chapter \(chapter.rawValue + 1), \(chapter.title)")
     }
 
     /// The rule as written, always visible: the letter of the rule under the picture of it.
     private func rule(_ chapter: Chapter) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("THE RULE AS WRITTEN")
-                .font(.system(.caption2, design: .monospaced).weight(.medium)).tracking(1).opacity(0.6)
-            ForEach(chapter.paragraphs, id: \.self) { paragraph in
-                Text(paragraph).font(.footnote).lineSpacing(2).opacity(0.92)
+        VStack(alignment: .leading, spacing: 10) {
+            ForEach(chapter.sections, id: \.text) { section in
+                Rectangle().fill(Theme.Paper.rule).frame(height: 1).accessibilityHidden(true)
+                if let heading = section.heading {
+                    Text(heading).font(.system(.title3, design: .serif).weight(.bold)).foregroundStyle(Theme.Paper.green)
+                        .accessibilityAddTraits(.isHeader)
+                }
+                Text(section.text).font(.body).lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(.leading, 12)
-        .overlay(alignment: .leading) { Rectangle().fill(.gold.opacity(0.6)).frame(width: 2) }
     }
 
     @ViewBuilder private func figure(_ chapter: Chapter) -> some View {
@@ -232,8 +259,8 @@ struct RulesView: View {
         HStack(alignment: .center, spacing: 16) {
             // Four seats around a small oval; partners face each other.
             ZStack {
-                Ellipse().stroke(.ivory.opacity(0.25), lineWidth: 1.5).frame(width: 120, height: 72)
-                Rectangle().fill(.gold.opacity(0.35)).frame(width: 1, height: 96)
+                Ellipse().fill(Theme.Paper.green).overlay(Ellipse().stroke(Theme.Paper.rule, lineWidth: 2)).frame(width: 120, height: 72)
+                Rectangle().fill(Theme.Paper.rule).frame(width: 1, height: 72)
                 seat(Cast.opponents[1].portrait, Cast.opponents[1].name).offset(y: -58)
                 seat(Cast.opponents[0].portrait, Cast.opponents[0].name).offset(x: -78)
                 seat(Cast.opponents[2].portrait, Cast.opponents[2].name).offset(x: 78)
@@ -244,11 +271,15 @@ struct RulesView: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Self.seatingLabel)
             VStack(spacing: 0) {
-                Text("FIRST TO").font(.system(.caption2, design: .monospaced)).tracking(1).opacity(0.6)
+                Text("FIRST TO").font(.caption.weight(.medium)).tracking(2)
                 Text(RulesFigures.matchTarget, format: .number)
-                    .font(.system(.largeTitle, design: .serif).weight(.bold)).foregroundStyle(.gold)
-                Text("wins").font(.footnote).opacity(0.7)
+                    .font(.system(.largeTitle, design: .serif).weight(.bold))
+                Text("wins").font(.subheadline)
             }
+            .foregroundStyle(.ivory)
+            .padding(.horizontal, 14).padding(.vertical, 10)
+            .background(Theme.Paper.green, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Theme.Paper.rule, lineWidth: 1.5))
             .accessibilityElement(children: .combine)
         }
         .frame(maxWidth: .infinity)
@@ -288,20 +319,20 @@ struct RulesView: View {
             VStack(spacing: 4) {
                 Text("9 and out · from a score of 0 or above").font(.caption.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.7)
                     .padding(.horizontal, 10).frame(minHeight: 28)
-                    .overlay(Capsule().stroke(.gold, lineWidth: 1.5))
-                    .foregroundStyle(.gold)
+                    .overlay(Capsule().stroke(Theme.Paper.rule, lineWidth: 1.5))
+                    .foregroundStyle(Theme.Paper.green)
                 HStack(spacing: 4) {
                     ForEach(RulesFigures.bidLadder, id: \.self) { bid in
                         Text(bid, format: .number).font(.subheadline.weight(.semibold)).monospacedDigit()
                             .lineLimit(1).minimumScaleFactor(0.7)
                             .frame(maxWidth: .infinity).frame(minHeight: 32)
-                            .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .background(Theme.Paper.tan, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                     }
                 }
                 HStack {
                     Text("must beat the last bid").font(.caption2).opacity(0.6)
                     Spacer()
-                    Text("dealer may match").font(.caption2).foregroundStyle(.gold)
+                    Text("dealer may match").font(.caption2.weight(.semibold)).foregroundStyle(Theme.Paper.green)
                 }
             }
             .accessibilityElement(children: .ignore)
@@ -326,7 +357,7 @@ struct RulesView: View {
                 // Keyed by seat, so the one card that changes between the two tricks animates in place.
                 ForEach(plays, id: \.seat) { play in
                     VStack(spacing: 4) {
-                        CardView(card: play.card, width: 44, style: .rest, ring: play.seat == winner ? .gold : nil)
+                        CardView(card: play.card, width: 44, style: .rest, ring: play.seat == winner ? Theme.Paper.green : nil)
                         Text(Cast.opponent(at: play.seat)?.name ?? "You").font(.caption2).opacity(0.75)
                             .lineLimit(1).minimumScaleFactor(0.7)
                     }
@@ -352,13 +383,13 @@ struct RulesView: View {
                         VStack(spacing: 2) {
                             Text(tile.points, format: .number)
                                 .font(.system(tile.points == 5 ? .largeTitle : .title2, design: .serif).weight(.bold))
-                                .foregroundStyle(tile.points == 5 ? .gold : .ivory)
+                                .foregroundStyle(tile.points == 5 ? Theme.Paper.green : Theme.Paper.ink)
                             Text(tile.name).font(.caption2.weight(.semibold))
                         }
                         .lineLimit(1).minimumScaleFactor(0.7)
                         .frame(maxWidth: .infinity).frame(minHeight: 64)
-                        .background(open ? .white.opacity(0.12) : .white.opacity(0.06), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(open ? .ivory.opacity(0.5) : .clear))
+                        .background(open ? Theme.Paper.wash : Theme.Paper.tan, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(open ? Theme.Paper.green : .clear, lineWidth: 1.5))
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("\(tile.name), \(tile.points) \(tile.points == 1 ? "point" : "points")")
@@ -395,12 +426,12 @@ struct RulesView: View {
         VStack(spacing: 8) {
             HStack(spacing: 4) {
                 ForEach(0..<RulesFigures.nineAndOutPoints, id: \.self) { _ in
-                    RoundedRectangle(cornerRadius: 3, style: .continuous).fill(.gold).frame(height: 14)
+                    RoundedRectangle(cornerRadius: 3, style: .continuous).fill(Theme.Paper.green).frame(height: 14)
                 }
             }
             .accessibilityHidden(true)
             HStack(alignment: .top) {
-                Text("all nine").font(.footnote.weight(.semibold)).foregroundStyle(.gold)
+                Text("all nine").font(.footnote.weight(.semibold)).foregroundStyle(Theme.Paper.green)
                 Text("or nothing: fewer than nine loses the match, whatever the score. Only a team at 0 or above may bid it.")
                     .font(.footnote).opacity(0.85)
             }
@@ -416,7 +447,7 @@ struct RulesView: View {
         return VStack(alignment: .leading, spacing: 8) {
             ForEach(Array(RulesText.readingTheTable.enumerated()), id: \.offset) { index, note in
                 HStack(alignment: .top, spacing: 10) {
-                    Image(systemName: symbols[min(index, symbols.count - 1)]).font(.footnote).foregroundStyle(.gold).frame(width: 18)
+                    Image(systemName: symbols[min(index, symbols.count - 1)]).font(.footnote).foregroundStyle(Theme.Paper.green).frame(width: 18)
                     Text(note).font(.footnote).opacity(0.9).fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -430,7 +461,7 @@ private extension View {
         #if os(iOS)
         return navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarBackground(Color.felt, for: .navigationBar)
+            .toolbarBackground(Theme.Wood.header, for: .navigationBar)
         #else
         return self
         #endif

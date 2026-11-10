@@ -46,6 +46,9 @@ import Testing
     #expect(DealerMark.placement(forPlace: 1) == .underFace)
     #expect(DealerMark.placement(forPlace: 2) == .besideTile)
     #expect(DealerMark.placement(forPlace: 3) == .underFace)
+    // Only the left seat, and only while the pad lies under it, wears the button on its face (D112).
+    #expect(SeatView.puckRidesTheFace(place: 1, phase: .playing))
+    #expect(!SeatView.puckRidesTheFace(place: 3, phase: .playing) && !SeatView.puckRidesTheFace(place: 1, phase: .bidding))
     #expect(Theme.Table.dealerButtonSize >= 44)
 }
 

@@ -19,7 +19,7 @@ struct ScoringLesson: View {
                     }
                     if let correct = model.scoringIsCorrect(category) {
                         Text(correct ? TutorialFixtures.scoringExplanations[category] ?? "" : "Not quite. Look at the cards each side captured.")
-                            .font(.caption2).foregroundStyle(.ivory.opacity(0.85)).frame(maxWidth: .infinity, alignment: .leading)
+                            .font(.caption).foregroundStyle(Theme.Paper.green).frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
             }
@@ -34,7 +34,7 @@ struct ScoringLesson: View {
                     "Game: 1 point for the higher count, where tens are 10, aces 4, kings 3, queens 2, jacks 1. A tie goes to the bidders.",
                     "Bidders keep their points if they made the bid and lose the bid if not. The other team always keeps its points. First to 25 wins.",
                 ], tactic: "The five outweighs everything else together. Feed it to your partner's winning card, and watch for an opponent forced to play it.")
-            }.tint(.gold)
+            }
         }
     }
 
@@ -51,7 +51,7 @@ struct ScoringLesson: View {
     private func teamButton(_ category: ScoreCategory, _ team: Int, _ label: String) -> some View {
         let picked = model.scoringPicks[category] == team
         return Button(label) { model.assign(category, to: team) }
-            .buttonStyle(.bordered).tint(.ivory.opacity(0.8)).frame(minWidth: 64, minHeight: 44)
+            .buttonStyle(PaperTileStyle()).frame(width: 96)
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(picked ? (TutorialFixtures.scoringAnswers[category] == team ? Color.correctRing : .incorrectRing) : .clear, lineWidth: 3))
             .accessibilityLabel("\(category.rawValue) to \(label)")
     }

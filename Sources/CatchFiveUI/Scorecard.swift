@@ -1,7 +1,7 @@
 import CatchFive
 import SwiftUI
 
-/// The scorecard (N66), at its first size again and lying in the table's bottom-left corner by your hand (D100): a score
+/// The scorecard (N66), at its first size again and lying in the table's bottom-right corner above your hand: a score
 /// pad on the table (D94), light tan paper turned a little with its shadow on the wood and no frame, ruled faintly like a
 /// notebook page, with a US and a THEM column. When a hand ends each team's new total is handwritten on the next
 /// line and the one before it gets a scratch through it, as on paper; nothing moves during a hand. Only the last

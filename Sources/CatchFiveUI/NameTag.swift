@@ -6,6 +6,7 @@ import SwiftUI
 /// has one; the phone holder's sits under the hand.
 struct NameTag: View {
     let name: String
+    @ScaledMetric(relativeTo: .title2) private var nameSize = Theme.Table.carvedNameSize
     /// Trump, carved beside the name of the seat that bid (D94); nil for everyone else.
     var trump: Suit? = nil
 
@@ -20,9 +21,10 @@ struct NameTag: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            Text(name).font(.system(size: Theme.Table.carvedNameSize, weight: .heavy, design: .serif))
+            Text(name).font(.system(size: nameSize, weight: .heavy, design: .serif))
                 .carved()
-                .lineLimit(1).minimumScaleFactor(0.7)
+                // One line, shrinking to fit: a name broken in two ("Dian", "e") makes its seat taller and reads as two words.
+                .lineLimit(1).minimumScaleFactor(0.55)
             if let trump { CarvedSuit(suit: trump, size: Theme.Table.carvedNameSize + 4) }
         }
         .dynamicTypeSize(...Theme.Card.maximumTypeSize)

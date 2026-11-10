@@ -143,3 +143,8 @@ Refinement regressions additionally verify online starters reach real client tra
 ## Reliability checks
 
 `Tests/CatchFiveUITests/ReliabilityFixTests.swift` checks that an unmapped error shows a plain sentence instead of raw enum text, and that a finished pass-and-play match always plays the win cue while solo follows the human result. `UndoTests` also refuses a negative rewind count.
+
+
+## Table layout checks
+
+`Tests/CatchFiveUITests/TableLayoutRefinementTests.swift` holds the larger table to its room: the portrait rules book and Support fit the top row without touching, the seat tiles and the trick fit every verified width, the trick shrinks to the height it is given (`theTrickShrinksToTheHeightItIsGiven`), tossed cards stay inside the pile's reserved footprint, and a face has its full headroom at a big moment. `playedCardsAreLargerAndEachShowsAnIndex` in `GameModelTests.swift` replaces the old no-overlap check (D112).

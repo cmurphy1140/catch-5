@@ -56,12 +56,37 @@ enum TableLayout {
     /// The table's coordinate space, shared by the dealer's deck and the hand so a deal can fly between them.
     static let space = "table"
     /// A pile card nudged toward either side seat, plus 4 pt of air on each side.
-    static let pileReservation = Theme.Card.pileWidth + 2 * Theme.Table.sideNudge + 8
-    /// The pile's height before the cards' own scale: a card nudged up for the partner and one nudged down for you.
-    static let pileHeight = Theme.Card.pileWidth * Theme.Card.ratio + Theme.Table.partnerNudge + Theme.Table.ownNudge + 8
+    static var pileReservation: Double { pileReservation(scale: 1) }
+    static func pileReservation(scale: Double) -> Double {
+        let radians = Theme.Table.tossRotationDegrees * .pi / 180
+        let card = Theme.Card.pileWidth * (cos(radians) + Theme.Card.ratio * sin(radians))
+        return (card + 2 * Theme.Table.sideNudge) * scale + 2 * Theme.Table.tossDrift
+    }
+    /// How far the partner's card sits above the pile's centre, and yours below it (D112).
+    static func pileRise(scale: Double) -> Double { Theme.Table.partnerNudge * scale + Theme.Table.tossDrift }
+    /// The pile's height: a card nudged up for the partner and one nudged down for you, with room for their toss.
+    static var pileHeight: Double { pileHeight(scale: 1) }
+    static func pileHeight(scale: Double) -> Double {
+        let radians = Theme.Table.tossRotationDegrees * .pi / 180
+        let card = Theme.Card.pileWidth * (Theme.Card.ratio * cos(radians) + sin(radians)) * scale
+        return card + 2 * pileRise(scale: scale) + 2 * Theme.Table.tossDrift
+    }
+    /// The largest scale whose pile is no taller than `room`, held between `minimumPileScale` and `preferred` (D112).
+    static func pileScale(room: Double, preferred: Double) -> Double {
+        let fixed = 4 * Theme.Table.tossDrift
+        return min(preferred, max(Theme.Table.minimumPileScale, (room - fixed) / (pileHeight(scale: 1) - fixed)))
+    }
+    /// The score pad on the table: four fifths of a corner, so it lies under the side seat's name, not over it (D112).
+    static let padScale = 0.8
+    static func padWidth(available: Double) -> Double { cornerWidth(available: available) * padScale }
+    /// Support on the top row: beside the rules book, clear of it and of the home arrow.
+    static func supportFrame(available: Double) -> CGRect {
+        let width = 112.0
+        return CGRect(x: bookFrame(available: available).minX - 6 - width, y: (Theme.Table.topRowHeight - 44) / 2, width: width, height: 44)
+    }
     /// The spacer between a tile and the pile.
-    static let seatGap = 4.0
-    static let minimumSeatWidth = 84.0
+    static let seatGap = 2.0
+    static let minimumSeatWidth = 78.0
 
     /// Each top corner's width: up to `Theme.Table.cornerWidth`, and never so wide that the two corners and the
     /// partner's tile overrun the row (N51).
@@ -70,7 +95,24 @@ enum TableLayout {
     }
 
     static func sideSeatWidth(available: Double) -> Double {
-        let room = (available - pileReservation - 2 * seatGap) / 2
+        let room = (available - pileReservation(scale: pileScale(available: available, preferred: 1.35)) - 2 * seatGap) / 2
         return max(minimumSeatWidth, min(Theme.Table.seatTileWidth, room))
     }
+}
+
+extension HandLayout {
+    static func fittedCardWidth(preferred: Double, available: Double) -> Double {
+        min(preferred, max(Theme.Card.minimumTouchStrip, available - 5 * Theme.Card.minimumTouchStrip))
+    }
+}
+
+extension TableLayout {
+    static func pileScale(available: Double, preferred: Double = 1) -> Double {
+        let room = available - 2 * minimumSeatWidth - 2 * seatGap - 2 * Theme.Table.tossDrift
+        return min(preferred, max(0.1, room / (pileReservation - 2 * Theme.Table.tossDrift)))
+    }
+    static func bookFrame(available: Double) -> CGRect {
+        CGRect(x: available - Theme.Table.rulesBookWidth - 8, y: 6, width: Theme.Table.rulesBookWidth, height: Theme.Table.rulesBookHeight)
+    }
+    static var topCornerClearance: Double { max(0, Theme.Table.rulesBookHeight + 24 - Theme.Table.topRowHeight) }
 }

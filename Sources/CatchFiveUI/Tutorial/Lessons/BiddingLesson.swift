@@ -25,7 +25,7 @@ struct BiddingLesson: View {
                     "Each bid must beat the last; the dealer may match the high bid instead. If everyone passes, the dealer must bid 2.",
                     "The high bidder names trump and leads. Make the bid and you keep every point you took. Fall short and you lose the whole bid.",
                 ], tactic: "Count what you can see: an ace in a long suit is High, a protected five is five. Bid what you can take.")
-            }.tint(.gold)
+            }
         }
     }
 
@@ -33,7 +33,7 @@ struct BiddingLesson: View {
         let legal = TutorialFixtures.legalBids.contains(bid)
         let picked = model.bidPick == bid
         return Button(label) { model.chooseBid(bid) }
-            .buttonStyle(.bordered).tint(.ivory.opacity(0.8)).frame(minHeight: 44)
+            .buttonStyle(PaperTileStyle()).frame(minHeight: 44)
             .opacity(legal ? 1 : 0.35)
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(picked ? (bid == TutorialFixtures.preferredBid ? Color.correctRing : .incorrectRing) : .clear, lineWidth: 3))
             .accessibilityValue(legal ? "legal" : "not legal: must raise above 3")

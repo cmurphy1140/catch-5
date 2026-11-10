@@ -45,6 +45,10 @@ struct LoginView: View {
                             .accessibilityAddTraits(portrait == choice ? .isSelected : [])
                         }
                     }.frame(maxWidth: .infinity)
+                    DisclosureGroup("Make your own face") {
+                        FaceBuilder(portrait: $portrait, ring: .suitRed).padding(.top, 8)
+                    }
+                    .font(.headline).tint(.ivory)
                 }
 
                 VStack(alignment: .leading, spacing: 8) {

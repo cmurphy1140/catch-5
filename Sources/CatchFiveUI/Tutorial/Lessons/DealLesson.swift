@@ -21,7 +21,7 @@ struct DealLesson: View {
                     "The dealer gives everyone six cards, three at a time, starting on their left and going clockwise, themselves last.",
                     "The rest of the deck stays face down and out of play, scoring cards included.",
                 ], tactic: "Partners sit across from each other. Cards left in the deck never score.")
-            }.tint(.gold)
+            }
         }
     }
 

@@ -223,7 +223,7 @@ public struct TableView: View {
             TableTopRow(onHome: onHome, onRules: openRules, onSupport: {
                 if !covered, let context = SupportContext.visible(in: model) { support = SupportPresentation(context: context) }
             })
-                .padding(.horizontal, 16).padding(.top, 2).padding(.bottom, 4)
+                .padding(.horizontal, 4).padding(.top, 2).padding(.bottom, 4)
                 // A solid header band: runs up behind the status bar and ends in a frown, the corners
                 // hanging lower than the middle, so the bar sits on one colour and the wood starts beneath.
                 .background {
@@ -243,13 +243,15 @@ public struct TableView: View {
                          onReopenTrick: { withAnimation(motion(Theme.Motion.collapse)) { reopenedTrick = model.match.hand.completedTricks.count } },
                          onCloseTrick: { withAnimation(motion(Theme.Motion.collapse)) { reopenedTrick = nil } },
                          onNineAndOut: { withAnimation(motion(Theme.Motion.overlay)) { confirmNineAndOut = true } },
+                         onScorecard: { withAnimation(motion(Theme.Motion.overlay)) { scorePanel = true } },
                          onDeck: { dealerDeck = $0 },
                          onRename: rename,
-                         onScorecard: { withAnimation(motion(Theme.Motion.overlay)) { scorePanel = true } },
                          holdsResult: !celebrating.isEmpty || celebrationDue,
                          statusFocus: $statusFocused)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.horizontal, 16)
+                .padding(.horizontal, Theme.Table.horizontalInset)
+                // The hand-end card runs down over the rows below it, so the table comes forward for it.
+                .zIndex(model.match.hand.phase == .finished ? 1 : 0)
             // Cards stop growing at XXXL so the fan keeps six cards on screen; the cap must sit above the
             // fan's own scaled metrics, which read it from the environment.
             HandFanView(model: model, onIllegal: shake, shakes: $shakes, selected: $selected, dealing: dealing,
@@ -258,7 +260,7 @@ public struct TableView: View {
                         onAnchor: { measured.geometry.seats[0] = $0 },
                         onLaunch: { card, pose in measured.launch = (card, pose) })
                 .dynamicTypeSize(...Theme.Card.maximumTypeSize)
-                .padding(.horizontal, 16)
+                .padding(.horizontal, Theme.Table.horizontalInset)
         }
         // The shuffle sits over the dealer's deck, in the same space the deck reports its place in.
         .overlay(alignment: .topLeading) {
@@ -271,11 +273,9 @@ public struct TableView: View {
         .coordinateSpace(.named(TableLayout.space))
         .dynamicTypeSize(...Theme.maximumTableTypeSize)
         .padding(.bottom, Theme.Table.footInset)
-        .frame(maxWidth: 640)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         // The row under the hand (your name tag, and the deal when it is yours) sits down beside the home indicator,
         // which only takes the middle of the bottom edge, so the table gets that height back (N64).
-        .ignoresSafeArea(.container, edges: .bottom)
         .foregroundStyle(.ivory)
         .background(WoodGrainView().ignoresSafeArea())
         .preferredColorScheme(.dark)

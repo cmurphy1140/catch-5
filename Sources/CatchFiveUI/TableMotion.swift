@@ -243,7 +243,7 @@ enum FlightPlan {
         let nudge = TableSurface.pileOffset(for: place, scale: scale)
         return CardPose(centre: CGPoint(x: pileCentre.x + nudge.width + toss.offset.width,
                                         y: pileCentre.y + nudge.height + toss.offset.height),
-                        rotation: toss.rotation)
+                        rotation: toss.rotation, scale: scale)
     }
 
     /// A computer's card leaves its player's face, small as if from their hand, and lands on its spot.
@@ -351,7 +351,7 @@ struct FlightLayer: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .dynamicTypeSize(...Theme.Card.maximumTypeSize)
+        .dynamicTypeSize(.large)
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
