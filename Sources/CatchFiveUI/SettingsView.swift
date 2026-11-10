@@ -32,6 +32,14 @@ struct SettingsView: View {
                 Text("Easy players use the original strategy and lose about two matches in three to Standard. Hints always use Standard.")
                     .font(.subheadline).fixedSize(horizontal: false, vertical: true)
                 rule
+                heading("♥", "Table")
+                PaperSwitch(options: [("Now", Settings.TableArrangement.classic), ("Around", .around), ("Rail", .rail)], selection: $settings.tableArrangement)
+                Text("A trial: today's table, the seats around a full field, or the seats on a rail above it.")
+                    .font(.subheadline).fixedSize(horizontal: false, vertical: true)
+                PaperSwitch(options: [("Charcoal", Settings.TableColours.charcoal), ("Royal", .royal), ("Casino", .casino)], selection: $settings.tableColours)
+                Text("Charcoal cloth on oak, royal blue on light tan, or casino red on birch.")
+                    .font(.subheadline).fixedSize(horizontal: false, vertical: true)
+                rule
                 heading("♦", "You")
                 // A draft, so spaces and clearing work while typing; each non-blank edit is committed.
                 field(TextField("Your name", text: $nameDraft)

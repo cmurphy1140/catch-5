@@ -91,3 +91,16 @@ test('accepts existing OpenAi alias and prefers nonblank canonical server key',a
  }
  assert.equal(calls,0);
 });
+test('opening page: no game needed, front-desk tone and private persona reach the instructions (D120)',async()=>{
+ let seen; const fetcher=async(_,init)=>{seen=JSON.parse(init.body);return new Response(JSON.stringify(reply));};
+ const menu={messages:[{role:'user',text:'How do I play?'}],place:'menu'};
+ assert.equal((await run(req(menu),{...env,SUPPORT_PERSONA:'Loves puns.'},fetcher)).status,200);
+ assert.match(seen.instructions,/opening page/); assert.match(seen.instructions,/Loves puns\./);
+ assert.equal(seen.input[0].content,'No game is in progress.');
+ assert.equal((await run(req({...menu,place:'lobby'}))).status,400);
+ assert.equal((await run(req({...menu,context:structuredClone(context)}))).status,400);
+ assert.equal((await run(req({messages:menu.messages}))).status,400);
+ assert.doesNotMatch(seen.instructions,/at the table in a hand/);
+ await run(req(),{...env,SUPPORT_PERSONA:'Loves puns.'},fetcher);
+ assert.match(seen.instructions,/Loves puns/); assert.match(seen.instructions,/at the table in a hand/); assert.doesNotMatch(seen.instructions,/opening page/);
+});

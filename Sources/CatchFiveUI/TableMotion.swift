@@ -226,6 +226,7 @@ struct TableGeometry: Equatable {
     /// The middle of the field, where the pile's offsets start, and how much the pile's cards are scaled.
     var pileCentre: CGPoint?
     var pileScale = 1.0
+    var pileRise = Theme.Table.trickRise
     /// Each place round the table (0 you, 1 left, 2 across, 3 right): the centre of that seat's face, and for you the
     /// name under your hand.
     var seats: [Int: CGPoint] = [:]
@@ -238,9 +239,9 @@ struct TableGeometry: Equatable {
 /// Builds flights from the table's measurements (D97). Pure: the same match and geometry give the same flights.
 enum FlightPlan {
     /// Where a play rests on the field: its seat's nudge from the pile's centre plus its own toss.
-    static func rest(place: Int, card: Card, handNumber: Int, trickIndex: Int, pileCentre: CGPoint, scale: Double = 1) -> CardPose {
+    static func rest(place: Int, card: Card, handNumber: Int, trickIndex: Int, pileCentre: CGPoint, scale: Double = 1, rise: Double = Theme.Table.trickRise) -> CardPose {
         let toss = CardToss.pose(for: card, hand: handNumber, trick: trickIndex)
-        let nudge = TableSurface.pileOffset(for: place, scale: scale)
+        let nudge = TableSurface.pileOffset(for: place, scale: scale, rise: rise)
         return CardPose(centre: CGPoint(x: pileCentre.x + nudge.width + toss.offset.width,
                                         y: pileCentre.y + nudge.height + toss.offset.height),
                         rotation: toss.rotation, scale: scale)
@@ -250,7 +251,7 @@ enum FlightPlan {
     static func play(_ play: Play, index: Int, place: Int, handNumber: Int, geometry: TableGeometry,
                      launch: CardPose? = nil) -> Flight? {
         guard let centre = geometry.pileCentre else { return nil }
-        let rest = rest(place: place, card: play.card, handNumber: handNumber, trickIndex: index / 4, pileCentre: centre, scale: geometry.pileScale)
+        let rest = rest(place: place, card: play.card, handNumber: handNumber, trickIndex: index / 4, pileCentre: centre, scale: geometry.pileScale, rise: geometry.pileRise)
         let from: CardPose
         if let launch {
             from = launch
@@ -275,9 +276,9 @@ enum FlightPlan {
         let winnerPlace = places(trick.winner)
         let target = geometry.seats[winnerPlace] ?? CGPoint(x: centre.x, y: centre.y + 400)
         guard let winning = trick.plays.first(where: { $0.seat == trick.winner }) else { return [] }
-        let stack = rest(place: winnerPlace, card: winning.card, handNumber: handNumber, trickIndex: trickIndex, pileCentre: centre, scale: geometry.pileScale)
+        let stack = rest(place: winnerPlace, card: winning.card, handNumber: handNumber, trickIndex: trickIndex, pileCentre: centre, scale: geometry.pileScale, rise: geometry.pileRise)
         return trick.plays.enumerated().map { order, play in
-            let from = rest(place: places(play.seat), card: play.card, handNumber: handNumber, trickIndex: trickIndex, pileCentre: centre, scale: geometry.pileScale)
+            let from = rest(place: places(play.seat), card: play.card, handNumber: handNumber, trickIndex: trickIndex, pileCentre: centre, scale: geometry.pileScale, rise: geometry.pileRise)
             let isWinner = play.seat == trick.winner
             let spread = Double(order) - 1.5
             let gathered = CardPose(centre: CGPoint(x: stack.centre.x + spread * 1.2, y: stack.centre.y - spread * 1.2),

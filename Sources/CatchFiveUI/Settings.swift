@@ -27,6 +27,24 @@ public struct Settings: Codable, Equatable, Sendable {
     public var nextTip: Int
     /// The table has shown, once, how the trump tally and the out-of-trump marks are tapped (N61).
     public var hasSeenTallyDemo: Bool
+    /// How the play table is arranged (D113): a trial switch between today's table and two reworks, until one is chosen.
+    public var tableArrangement: TableArrangement = .around
+
+    /// The table's colours (D118): the cloth and the wood round it, changed from Settings at any time.
+    public var tableColours: TableColours = .charcoal
+
+    public enum TableColours: String, Codable, CaseIterable, Sendable {
+        /// Charcoal cloth on oak; royal blue cloth on light tan wood; casino red cloth on birch.
+        case charcoal, royal, casino
+        /// The two paler woods take dark ink where the oak takes ivory.
+        public var woodIsLight: Bool { self != .charcoal }
+    }
+
+    public enum TableArrangement: String, Codable, CaseIterable, Sendable {
+        /// Today's table. `around`: the field fills the table, the side seats on it. `rail`: the three other seats in a
+        /// row above the field, which holds only the trick.
+        case classic, around, rail
+    }
 
     public static let defaultSeatNames = ["Cheryl", "JC", "Connor", "Diane"]
     /// The defaults before the cast existed; files still carrying them migrate on load.
@@ -93,6 +111,8 @@ public struct Settings: Codable, Equatable, Sendable {
         beginnerMode = (try? container.decodeIfPresent(Bool.self, forKey: .beginnerMode)) ?? nil ?? true
         nextTip = (try? container.decodeIfPresent(Int.self, forKey: .nextTip)) ?? nil ?? 0
         hasSeenTallyDemo = (try? container.decodeIfPresent(Bool.self, forKey: .hasSeenTallyDemo)) ?? nil ?? false
+        tableColours = (try? container.decodeIfPresent(TableColours.self, forKey: .tableColours)) ?? nil ?? .charcoal
+        tableArrangement = (try? container.decodeIfPresent(TableArrangement.self, forKey: .tableArrangement)) ?? nil ?? .around
         let decoded = (try? container.decodeIfPresent([String].self, forKey: .seatNames)) ?? nil ?? Settings.defaultSeatNames
         // A short or long list is damaged: it takes the defaults before anything indexes into it.
         let names = decoded.count == 4 ? decoded : Settings.defaultSeatNames

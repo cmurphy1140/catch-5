@@ -63,18 +63,22 @@ enum TableLayout {
         return (card + 2 * Theme.Table.sideNudge) * scale + 2 * Theme.Table.tossDrift
     }
     /// How far the partner's card sits above the pile's centre, and yours below it (D112).
-    static func pileRise(scale: Double) -> Double { Theme.Table.partnerNudge * scale + Theme.Table.tossDrift }
+    static func pileRise(scale: Double, rise: Double = Theme.Table.trickRise) -> Double {
+        Theme.Card.pileWidth * Theme.Card.ratio * rise * scale + Theme.Table.tossDrift
+    }
+    /// The reworked tables stack the trick tighter, top and bottom cards overlapping more, so its cards can be larger (D119).
+    static let tightRise = 0.3
     /// The pile's height: a card nudged up for the partner and one nudged down for you, with room for their toss.
     static var pileHeight: Double { pileHeight(scale: 1) }
-    static func pileHeight(scale: Double) -> Double {
+    static func pileHeight(scale: Double, rise: Double = Theme.Table.trickRise) -> Double {
         let radians = Theme.Table.tossRotationDegrees * .pi / 180
         let card = Theme.Card.pileWidth * (Theme.Card.ratio * cos(radians) + sin(radians)) * scale
-        return card + 2 * pileRise(scale: scale) + 2 * Theme.Table.tossDrift
+        return card + 2 * pileRise(scale: scale, rise: rise) + 2 * Theme.Table.tossDrift
     }
     /// The largest scale whose pile is no taller than `room`, held between `minimumPileScale` and `preferred` (D112).
-    static func pileScale(room: Double, preferred: Double) -> Double {
+    static func pileScale(room: Double, preferred: Double, rise: Double = Theme.Table.trickRise) -> Double {
         let fixed = 4 * Theme.Table.tossDrift
-        return min(preferred, max(Theme.Table.minimumPileScale, (room - fixed) / (pileHeight(scale: 1) - fixed)))
+        return min(preferred, max(Theme.Table.minimumPileScale, (room - fixed) / (pileHeight(scale: 1, rise: rise) - fixed)))
     }
     /// The score pad on the table: four fifths of a corner, so it lies under the side seat's name, not over it (D112).
     static let padScale = 0.8
@@ -84,6 +88,8 @@ enum TableLayout {
         let width = 112.0
         return CGRect(x: bookFrame(available: available).minX - 6 - width, y: (Theme.Table.topRowHeight - 44) / 2, width: width, height: 44)
     }
+    /// On the reworked tables the trick's cards are drawn this much larger where the field has the room (D113, D119).
+    static let trickBoost = 1.66
     /// The spacer between a tile and the pile.
     static let seatGap = 2.0
     static let minimumSeatWidth = 78.0
@@ -112,7 +118,7 @@ extension TableLayout {
         return min(preferred, max(0.1, room / (pileReservation - 2 * Theme.Table.tossDrift)))
     }
     static func bookFrame(available: Double) -> CGRect {
-        CGRect(x: available - Theme.Table.rulesBookWidth - 8, y: 6, width: Theme.Table.rulesBookWidth, height: Theme.Table.rulesBookHeight)
+        CGRect(x: available - Theme.Table.rulesBookWidth - 24, y: 6, width: Theme.Table.rulesBookWidth, height: Theme.Table.rulesBookHeight)
     }
     static var topCornerClearance: Double { max(0, Theme.Table.rulesBookHeight + 24 - Theme.Table.topRowHeight) }
 }

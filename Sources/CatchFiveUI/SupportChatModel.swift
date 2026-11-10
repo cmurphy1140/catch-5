@@ -17,6 +17,9 @@ struct SupportTurn: Identifiable {
     @Published private(set) var failedQuestion: String?
     let context: SupportContext
     let online: Bool
+    /// Opened from the opening page (D120): general questions, and the game's context goes along only if one is saved.
+    let front: Bool
+    private let sendsContext: Bool
     private let client: SupportClient?
     private var task: Task<Void, Never>?
     private var generation = 0
@@ -26,8 +29,10 @@ struct SupportTurn: Identifiable {
     private var pendingPrompt: SupportPrompt?
     private var failedPrompt: SupportPrompt?
 
-    init(context: SupportContext, client: SupportClient?) {
+    init(context: SupportContext, client: SupportClient?, front: Bool = false, sendsContext: Bool = true) {
         self.context = context
+        self.front = front
+        self.sendsContext = sendsContext
         self.client = client
         online = client != nil
     }
@@ -46,7 +51,7 @@ struct SupportTurn: Identifiable {
 
     func useLocalFallback() {
         guard valid, !isSending, let question = failedQuestion else { return }
-        messages.append(.init(role: "assistant", text: context.localAnswer(failedPrompt ?? Self.prompt(for: question)), isLocal: true))
+        messages.append(.init(role: "assistant", text: localAnswer(question, failedPrompt), isLocal: true))
         error = nil
         failedQuestion = nil
         failedPrompt = nil
@@ -66,7 +71,7 @@ struct SupportTurn: Identifiable {
         failedPrompt = nil
         error = nil
         guard let client else {
-            messages.append(.init(role: "assistant", text: context.localAnswer(intent ?? Self.prompt(for: question)), isLocal: true))
+            messages.append(.init(role: "assistant", text: localAnswer(question, intent), isLocal: true))
             return
         }
         let remoteHistory = Array(remoteMessages.suffix(8))
@@ -75,9 +80,9 @@ struct SupportTurn: Identifiable {
         pendingPrompt = intent
         generation += 1
         let current = generation
-        task = Task { [weak self, context] in
+        task = Task { [weak self, context, front, sendsContext] in
             do {
-                let reply = try await client.reply(messages: remoteHistory + [.init(role: "user", text: question)], context: context)
+                let reply = try await client.reply(messages: remoteHistory + [.init(role: "user", text: question)], context: sendsContext ? context : nil, place: front ? "menu" : nil)
                 guard let self, self.valid, self.generation == current, !Task.isCancelled else { return }
                 self.messages.append(.init(role: "assistant", text: reply))
                 self.remoteMessages = remoteHistory + [.init(role: "user", text: question), .init(role: "assistant", text: SupportMessage.historyText(reply))]
@@ -116,6 +121,12 @@ struct SupportTurn: Identifiable {
         remoteMessages = []
         failedQuestion = nil
         failedPrompt = nil
+    }
+
+    private func localAnswer(_ question: String, _ intent: SupportPrompt?) -> String {
+        if front { return FrontDesk.localAnswer(question) }
+        // At the table a starter's intent wins; free text may be plain chat (D120).
+        return intent.map(context.localAnswer) ?? FrontDesk.chat(question) ?? context.localAnswer(Self.prompt(for: question))
     }
 
     private static func prompt(for question: String) -> SupportPrompt {

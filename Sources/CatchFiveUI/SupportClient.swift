@@ -59,18 +59,19 @@ struct SupportClient: Sendable {
         }
     }
 
-    func reply(messages: [SupportMessage], context: SupportContext) async throws -> String {
+    /// `place` is "menu" from the opening page (D120), where a game's context is optional.
+    func reply(messages: [SupportMessage], context: SupportContext?, place: String? = nil) async throws -> String {
         guard !messages.isEmpty, messages.count <= 9, messages.count % 2 == 1,
               messages.enumerated().allSatisfy({ i, message in
                   message.role == (i % 2 == 0 ? "user" : "assistant") && !message.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && SupportMessage.fits(message.text)
               }) else { throw SupportError.invalidRequest }
-        struct Request: Encodable { let messages: [SupportMessage]; let context: SupportContext }
+        struct Request: Encodable { let messages: [SupportMessage]; let context: SupportContext?; let place: String? }
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.timeoutInterval = 20
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(code, forHTTPHeaderField: "x-support-code")
-        request.httpBody = try JSONEncoder().encode(Request(messages: messages, context: context))
+        request.httpBody = try JSONEncoder().encode(Request(messages: messages, context: context, place: place))
         guard request.httpBody!.count <= 48 * 1024 else { throw SupportError.invalidRequest }
         let (data, response) = try await transport(request)
         try Task.checkCancellation()

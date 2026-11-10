@@ -246,7 +246,7 @@ private func playNext(_ match: inout Match) throws {
 }
 
 @Test func aPickedCardSaysHowToPlayIt() {
-    #expect(TableSurface.selectedCaption(Card(.hearts, .queen)) == "Tap the Q♥ again to play it, or drag it up")
+    #expect(TableSurface.selectedCaption(Card(.hearts, .queen)) == "Tap your spot on the table to play the Q♥")
     // Dragging a card most of a card's height up plays it; a legal card stands up, an illegal one sinks.
     #expect(Theme.Card.dragToPlay >= 44 && Theme.Card.liftSelected > Theme.Card.liftPlayable && Theme.Card.sinkDimmed > 0)
 }

@@ -205,3 +205,74 @@ struct OutOfTrumpBadge: View {
             .accessibilityHidden(true)
     }
 }
+
+/// The contract as one line on the field's corner (D113), for the rail layout, which has no corner beside the partner:
+/// who bid, how many, and trump once named, with the player's tally after it. A tap adds to the tally, a long press
+/// takes one back, as on the plaque.
+struct ContractChip: View {
+    let contract: ContractPlaque.Contract
+    var tally = 0
+    var onAdd: () -> Void = {}
+    var onTakeBack: () -> Void = {}
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text("\(contract.bidder) bid \(contract.number)\(contract.qualifier.map { " " + $0 } ?? "")")
+            if let trump = contract.trump {
+                Text(trump.glyph).foregroundStyle(TrumpInlay.wood(for: trump))
+                if tally > 0 { Text("\(tally) seen").opacity(0.8) }
+            }
+        }
+        .font(.system(.subheadline, design: .serif).weight(.bold)).lineLimit(1)
+        .foregroundStyle(Theme.Field.maple)
+        .padding(.horizontal, 10).frame(minHeight: 30)
+        .background(.black.opacity(0.35), in: Capsule())
+        .frame(minHeight: 44).contentShape(Rectangle())
+        .onTapGesture { if contract.trump != nil { onAdd() } }
+        .onLongPressGesture { onTakeBack() }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(ContractPlaque.spoken(contract, tally: tally))
+        .accessibilityHint(contract.trump == nil ? "" : "Tap to count a trump played")
+    }
+}
+
+/// The contract as one line across the oak above the cloth table (D117): who bid and how many, trump by name once
+/// it is chosen, and the player's own count of trump seen. A tap adds to the count, a long press takes one back.
+/// Empty during the auction, keeping its height so the table does not jump.
+struct ContractStrip: View {
+    let contract: ContractPlaque.Contract?
+    var tally = 0
+    var onAdd: () -> Void = {}
+    var onTakeBack: () -> Void = {}
+
+    var body: some View {
+        // One Text, so the whole line shrinks together and no part of it is cut short.
+        line
+        .font(.system(.subheadline, design: .serif).weight(.bold)).lineLimit(1).minimumScaleFactor(0.5)
+        .frame(maxWidth: .infinity, minHeight: 34)
+        .overlay(alignment: .top) { rule }
+        .overlay(alignment: .bottom) { rule }
+        .padding(.horizontal, 10)
+        .contentShape(Rectangle())
+        .onTapGesture { if contract?.trump != nil { onAdd() } }
+        .onLongPressGesture { onTakeBack() }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(contract.map { ContractPlaque.spoken($0, tally: tally) } ?? "")
+        .accessibilityHint(contract?.trump == nil ? "" : "Tap to count a trump played")
+        .accessibilityHidden(contract == nil)
+    }
+
+    private var line: Text {
+        guard let contract else { return Text(" ") }
+        let bar = Text("  |  ").foregroundColor(Theme.Paper.rule)
+        var text = Text("\(contract.bidder) bid \(contract.number)\(contract.qualifier.map { " " + $0 } ?? "")")
+        if let trump = contract.trump {
+            text = text + bar + Text(trump.glyph).foregroundColor(trump.isRed ? .suitRed : nil) + Text(" \(trump.rawValue.capitalized) trump")
+                + bar + Text("\(tally) seen").italic()
+        }
+        return text
+    }
+
+    private var divider: some View { Rectangle().fill(Theme.Paper.rule.opacity(0.8)).frame(width: 1, height: 16).accessibilityHidden(true) }
+    private var rule: some View { Rectangle().fill(Theme.Paper.rule.opacity(contract == nil ? 0 : 0.55)).frame(height: 1).accessibilityHidden(true) }
+}
