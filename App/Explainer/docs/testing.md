@@ -51,7 +51,7 @@ flowchart BT
     L1 --> L2 --> L3 --> L4 --> L5 --> L5b --> L5c --> L6 --> L7
 ```
 
-Total on 2026-10-07: 263 automated tests (93 engine, 170 view model), under 10 s. The per-layer counts above are older and not recounted.
+Total on 2026-10-31: 270 automated tests (93 engine, 177 view model), under 10 s. The per-layer counts above are older and not recounted.
 
 `NineAndOutAnswerTests` (3 tests, D102) holds the closeout audit's blocker shut: a computer dealer, Easy or Standard, answers a standing 9 and out with a pass, never a plain 9 the engine refuses and never a match, which the house rule forbids (D103). `nineAndOutOvercallsNineAndDealerCannotMatch` in `BiddingTests` proves the engine refuses a second 9 and out from a non-dealer and from the dealer, and `aDealerFacingNineAndOutIsToldToPassAndCannotMatch` in `GameModelTests` that the human dealer is told to pass and cannot send one.
 
@@ -131,3 +131,15 @@ Swift Testing prints the file, line, and the expression with its actual values:
 ```
 
 The left side is what the code did, the right side what the test expected. Open the test by name in [types-and-functions.md](types-and-functions.md) to find which source function it guards.
+
+
+## In-game support checks
+
+`Tests/CatchFiveUITests/SupportTests.swift` checks projected payload privacy by changing opponent cards, canonical legal/advice output, finished scoring, pass-and-play curtains, local fallback, HTTPS validation, authenticated request/response errors, redirect refusal and cancellation/duplicate sends. `node --test help/support.test.mjs` checks the real backend core with controlled fetch: missing config/access code, allowlist and size validation, malicious fields, Responses contract and explicit refusal/incomplete/empty/network fallback. These tests make no paid API requests. Run backend tests, the full `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test`, and simulator SDK build sequentially; instructions and live-service limits are in `help/README.md`.
+
+Refinement regressions additionally verify online starters reach real client transport, local answers stay concise and consistent, bounded previews preserve short text/whole words, failed questions remain visible with one explicit retry, and sixth-and-later turns use alternating histories of at most nine messages. The backend contract test observes the 240-token limit without paid requests. Native keyboard, Dynamic Type, More/less positioning and actual phone acceptance remain visual checks rather than source-text tests.
+
+
+## Reliability checks
+
+`Tests/CatchFiveUITests/ReliabilityFixTests.swift` checks that an unmapped error shows a plain sentence instead of raw enum text, and that a finished pass-and-play match always plays the win cue while solo follows the human result. `UndoTests` also refuses a negative rewind count.

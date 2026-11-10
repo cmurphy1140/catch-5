@@ -94,7 +94,7 @@ extension Match {
 
     /// Rebuilds a match from the same first deal by replaying only the first `count` accepted actions.
     public func rewound(toActionCount count: Int) throws -> Match {
-        guard count <= actions.count else { throw MatchError.handInProgress }
+        guard count >= 0, count <= actions.count else { throw MatchError.handInProgress }
         return try Match.replaying(deck: initialDeck, dealer: initialDealer, actions: Array(actions.prefix(count)))
     }
 

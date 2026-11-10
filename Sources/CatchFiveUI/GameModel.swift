@@ -566,7 +566,7 @@ public final class GameModel: ObservableObject {
         case RuleError.forbiddenNineAndOut: "9 and out is not allowed while your score is below zero."
         case MatchError.matchFinished: "The match is over. Start a new game to keep playing."
         case MatchError.handInProgress: "Finish this hand before dealing the next one."
-        default: "That action could not be completed: \(error)"
+        default: "That move could not be completed."
         }
     }
 
