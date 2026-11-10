@@ -22,6 +22,7 @@ struct SupportView: View {
     @AppStorage("support.online") private var useOnline = false
     @State private var session: SupportChatModel?
     @State private var showSetup = false
+    @State private var showNotebook = false
 
     var body: some View {
         NavigationStack {
@@ -40,6 +41,11 @@ struct SupportView: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.frame(minHeight: 44) }
+                // The notebook of kept answers (D131), reachable wherever the chat is.
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Notebook", systemImage: "book.closed") { showNotebook = true }
+                        .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
+                }
                 ToolbarItem(placement: .automatic) {
                     Button("Support settings", systemImage: "gearshape") { showSetup = true }
                         .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
@@ -51,7 +57,8 @@ struct SupportView: View {
             #endif
         }
         .preferredColorScheme(.light)
-        .sheet(isPresented: $showSetup) {
+        .sheet(isPresented: $showNotebook) { NotebookView() }
+            .sheet(isPresented: $showSetup) {
             SupportConnectionSettings(endpoint: endpoint, code: code, useOnline: useOnline) { newEndpoint, newCode, newMode in
                 endpoint = newEndpoint
                 code = newCode
@@ -122,6 +129,7 @@ private struct SupportConnectionSettings: View {
 }
 
 private struct SupportConversation: View {
+    @ObservedObject private var notebook = Notebook.shared
     @ObservedObject var model: SupportChatModel
     var name: String?
     @State private var draft = ""
@@ -171,9 +179,6 @@ private struct SupportConversation: View {
 
     private var welcome: some View {
         VStack(alignment: .leading, spacing: 12) {
-            if let guest {
-                guest.resizable().scaledToFit().frame(height: 210).frame(maxWidth: .infinity).accessibilityHidden(true)
-            }
             Text(model.front ? "Hi Emma, or friends!" : "Ask about this hand, or just chat")
                 .font(.system(.title2, design: .serif).weight(.semibold))
             ForEach(starters, id: \.question) { starter in
@@ -191,17 +196,6 @@ private struct SupportConversation: View {
                 .buttonStyle(.plain)
             }
         }
-    }
-
-    /// The guest of honour's picture for the opening page's chat, when the build carries one (D122, D124). It is kept
-    /// out of the repository, so most builds have none.
-    private var guest: Image? {
-        #if canImport(UIKit)
-        guard model.front, UIImage(named: "Guest") != nil else { return nil }
-        return Image("Guest")
-        #else
-        return nil
-        #endif
     }
 
     private var starters: [(question: String, ask: () -> Void)] {
@@ -230,6 +224,15 @@ private struct SupportConversation: View {
                     .frame(minWidth: 44, minHeight: 44, alignment: .leading)
                     .accessibilityHint("Expands or collapses this answer without asking again")
                 }
+                if !user {
+                    // Keep this answer in the notebook, or let it go (D131).
+                    let kept = notebook.holds(message.text)
+                    Button(kept ? "Kept in notebook" : "Keep in notebook", systemImage: kept ? "bookmark.fill" : "bookmark") {
+                        notebook.toggle(message.text)
+                    }
+                    .labelStyle(.iconOnly).foregroundStyle(Theme.Paper.green)
+                    .frame(minWidth: 44, minHeight: 36, alignment: .leading)
+                }
             }
             .padding(user ? 12 : 0)
             .foregroundStyle(user ? .ivory : Theme.Paper.ink)
@@ -247,8 +250,7 @@ private struct SupportConversation: View {
                 .background(.ivory, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(Theme.Paper.rule, lineWidth: 1.5))
                 .disabled(model.isSending)
-                // With a guest's picture on the page the keyboard waits, so the picture is seen first (D122).
-                .onAppear { if model.front, model.messages.isEmpty, guest == nil { writing = true } }
+                .onAppear { if model.front, model.messages.isEmpty { writing = true } }
             if model.isSending {
                 Button("Cancel") { model.cancel() }.frame(minWidth: 44, minHeight: 44)
             } else {

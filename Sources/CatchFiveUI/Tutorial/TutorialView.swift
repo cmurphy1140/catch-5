@@ -73,15 +73,7 @@ struct TutorialView: View {
         }
     }
 
-    @ViewBuilder private var lesson: some View {
-        switch model.lesson {
-        case 0: DealLesson(model: model)
-        case 1: BiddingLesson(model: model)
-        case 2: TrumpLesson(model: model)
-        case 3: TricksLesson(model: model)
-        default: ScoringLesson(model: model)
-        }
-    }
+    private var lesson: some View { TutorialLesson(model: model) }
 
     private var footer: some View {
         HStack(spacing: 10) {
@@ -95,6 +87,21 @@ struct TutorialView: View {
 }
 
 // MARK: - Shared pieces
+
+/// The lesson the model is on; the tutorial sheet and the play page's fixed sheet (D133) both show it.
+struct TutorialLesson: View {
+    @ObservedObject var model: TutorialModel
+
+    var body: some View {
+        switch model.lesson {
+        case 0: DealLesson(model: model)
+        case 1: BiddingLesson(model: model)
+        case 2: TrumpLesson(model: model)
+        case 3: TricksLesson(model: model)
+        default: ScoringLesson(model: model)
+        }
+    }
+}
 
 /// Rules paragraph list followed by one tactic, styled like the table's hint panel.
 struct LessonText: View {
