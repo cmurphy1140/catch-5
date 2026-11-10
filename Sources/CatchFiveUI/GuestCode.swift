@@ -32,7 +32,7 @@ struct GuestCodeCard: View {
     }
 
     /// The link as a QR code in the paper's own ink and no background, so it sits on the ivory.
-    static func code(for text: String) -> CGImage? {
+    nonisolated static func code(for text: String) -> CGImage? {
         let filter = CIFilter.qrCodeGenerator()
         filter.message = Data(text.utf8)
         filter.correctionLevel = "M"
