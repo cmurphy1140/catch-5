@@ -29,7 +29,7 @@ public struct RootView: View {
     /// `pass-table` (pass and play mid-hand, a player other than the first holding the phone);
     /// solo `draw` (the draw for dealer), `bidding` (your bid, a bid and a pass already in the boxes), `trump` (your trump choice), `table` (your play,
     /// cards on the pile), `dealer-bidder` (the same, a side seat having dealt and won the bid), `pause` (the
-    /// pause card over it), `result` (the second hand's result), `review` (with Review hand open) or `over` (the match
+    /// pause card over it), `result` (the second hand's result), `review` (with Review hand open on Points), `review-tricks` (on Tricks) or `over` (the match
     /// won); `stats`, `settings` or `howto` (the menu with that sheet open); `table-rules` (the `table` state with the rules opened
     /// from its book), `table-rules-fold` (the same, held halfway through the book-opening fold); `home` (the menu with a match in
     /// progress) or `home-tips` (the tip card over the table, held), `home-whywe` (the same, turning to why we play); `ninewin`, `ninelose` (a 9 and out made or missed,
@@ -52,7 +52,7 @@ public struct RootView: View {
             Self.passAndPlay(model) { hand in hand.phase == .playing && !hand.currentTrick.isEmpty && hand.nextSeat != 0 }
         case "draw":
             model.newGame(mode: .solo)
-        case "bidding", "table", "table-rules", "table-rules-fold", "demo", "pause", "result", "review", "home", "home-tips", "home-whywe", "confirm9":
+        case "bidding", "table", "table-rules", "table-rules-fold", "demo", "pause", "result", "review", "review-tricks", "home", "home-tips", "home-whywe", "confirm9":
             // The `bidding` stage deals until a bid and a pass are both in the seats' boxes before your turn (N55).
             for _ in 0..<200 {
                 model.newGame(mode: .solo)
@@ -156,7 +156,7 @@ public struct RootView: View {
         _tutorial = StateObject(wrappedValue: model.makeTutorial())
         let screen: Screen = switch stage {
         case "picker", "stats", "settings", "howto", "rules", "signoff", "home": .menu
-        case "curtain", "seat", "pass-table", "draw", "bidding", "dealer-forced", "trump", "table", "table-rules", "table-rules-fold", "dealer-bidder", "pause", "result", "review", "over",
+        case "curtain", "seat", "pass-table", "draw", "bidding", "dealer-forced", "trump", "table", "table-rules", "table-rules-fold", "dealer-bidder", "pause", "result", "review", "review-tricks", "over",
              "home-tips", "home-whywe", "ninewin", "ninelose", "won", "confirm9", "bold", "five", "handline", "panel", "demo": .table
         default: Self.initialScreen(for: model.settings, matchInProgress: model.matchInProgress)
         }
@@ -233,7 +233,7 @@ public struct RootView: View {
                 IntroView(model: model, tutorial: tutorial) { model.markRulesSeen(); show(.table) }.transition(.opacity)
             case .menu:
                 MainMenuView(model: model, tutorial: tutorial, onPlay: { showWelcome = false; showTips = true; show(.table) },
-                             choosingMode: choosingMode)
+                             choosingMode: choosingMode, onNewPlayer: { show(.login) })
                     .transition(.opacity)
             case .table:
                 TableView(model: model, tutorial: tutorial, covered: showWelcome || showTips,

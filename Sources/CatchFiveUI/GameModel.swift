@@ -200,6 +200,19 @@ public final class GameModel: ObservableObject {
         settings = updated   // one write, one save
     }
 
+    /// Starts over as a new player (D108): the name and face go back to unset, so the set-up screen shows again, the
+    /// saved match gives way to a fresh solo deal, and the match records behind Statistics are emptied.
+    public func resetPlayer() {
+        var updated = settings
+        if updated.seatNames[0] == updated.playerName { updated.seatNames[0] = Settings.defaultSeatNames[0] }
+        updated.playerName = nil
+        updated.playerPortrait = Cast.defaultPlayerPortrait
+        settings = updated   // one write, one save
+        records = []
+        persistHistory()
+        newGame(mode: .solo)
+    }
+
     /// One VoiceOver sentence for a seat tile: name, direction, call or card count, dealer, to act.
     public func seatSummary(for seat: Int) -> String {
         let hand = match.hand

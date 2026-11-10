@@ -368,10 +368,16 @@ import Testing
 
 @Test func fannedHandCardsKeepAThumbSizedStrip() {
     // Six overlapped cards must fit the narrowest supported phone and each expose 44pt (docs/redesign-plan.md). The wide
-    // cards (D97) are only dealt on screens at least `wideScreenWidth` across, so they are held to that width.
+    // cards (D97) are only dealt on screens at least `wideScreenWidth` across, so they are held to that width. The
+    // larger cards no longer fit at their loosest overlap, so the check is on the fan `HandLayout` actually deals:
+    // still one row, tightened to the screen, every strip a thumb wide.
     for (width, screen) in [(Theme.Card.handWidth, 375.0), (Theme.Card.handWidthWide, Theme.Card.wideScreenWidth)] {
         #expect(Theme.Card.touchStrip(width: width) >= Theme.Card.minimumTouchStrip)
-        #expect(width + 5 * Theme.Card.touchStrip(width: width) <= screen - 32)
+        guard case .fan(let strip) = HandLayout.arrange(count: 6, cardWidth: width, available: screen - 32) else {
+            Issue.record("six \(width) pt cards fell to two rows on a \(screen) pt screen"); continue
+        }
+        #expect(strip >= Theme.Card.minimumTouchStrip)
+        #expect(width + 5 * strip <= screen - 32 + 0.001)
     }
     #expect(abs(Theme.Card.radius(width: 60) - 3.6) < 0.0001)
 }
@@ -595,7 +601,6 @@ import Testing
     #expect(RootView.initialScreen(for: restored.settings, matchInProgress: restored.matchInProgress) == .table)
 }
 
-
 @Test func tablePauseHoldsWhileAnyCoverRemains() {
     var pause = TablePause()
     #expect(!pause.isPaused)
@@ -660,13 +665,13 @@ import Testing
 @Test func seatRowLeavesRoomForThePileOnEveryVerifiedWidth() {
     // The pile's footprint: a card nudged toward either side seat, plus breathing room.
     let pile = TableLayout.pileReservation
-    #expect(pile == Theme.Card.pileWidth + 2 * Theme.Table.sideNudge + 8)
+    #expect(pile > Theme.Card.pileWidth + 2 * Theme.Table.sideNudge)
     // iPhone 16 (393 − 32) and SE (375 − 32): the tiles give way before the pile can touch them.
     for available in [361.0, 343.0] {
         let tile = TableLayout.sideSeatWidth(available: available)
         #expect(tile <= Theme.Table.seatTileWidth)
         #expect(tile >= TableLayout.minimumSeatWidth)
-        #expect(2 * tile + pile + 2 * TableLayout.seatGap <= available)
+        #expect(2 * tile + TableLayout.pileReservation(scale: TableLayout.pileScale(available: available, preferred: 1.35)) + 2 * TableLayout.seatGap <= available + 0.01)
     }
     // Plenty of room: the tile keeps its full width.
     #expect(TableLayout.sideSeatWidth(available: 600) == Theme.Table.seatTileWidth)
@@ -835,7 +840,7 @@ import Testing
     let outcome = try #require(model.lastHandOutcome)
     let last = try #require(model.match.history.last)
     #expect(outcome.headline == (last.contractMade ? (last.isNineAndOut ? "9 and out made" : "Bid made")
-                                                   : (last.isNineAndOut ? "9 and out failed" : "Bid not made")))
+                                    : (last.isNineAndOut ? "9 and out failed" : "Bid not made")))
     let before = model.match.history.count > 1 ? model.match.history[model.match.history.count - 2].scores : [0, 0]
     #expect(outcome.bidderLine.contains("score \(before[last.bidder % 2]) → \(last.scores[last.bidder % 2])") || last.isNineAndOut)
 }
@@ -1202,7 +1207,6 @@ import Testing
     #expect(TableSurface.hintParts("Pass").recommendation == "Pass" && TableSurface.hintParts("Pass").detail.isEmpty)
 }
 
-
 @Test func deckThicknessFollowsTheStockWithoutShowingANumber() {
     #expect(DeckView.thickness(0) == 1 && DeckView.thickness(6) == 1)
     #expect(DeckView.thickness(7) == 2 && DeckView.thickness(18) == 3)
@@ -1271,17 +1275,20 @@ import Testing
     #expect(GameModel.loadDefault(in: directory).mode == .solo)
 }
 
-@MainActor @Test func playedCardsAreLargerAndNeverOverlap() {
-    // The pile is the heart of the table (T10): bigger cards, each clear of the others even after its toss.
+@MainActor @Test func playedCardsAreLargerAndEachShowsAnIndex() {
+    // The pile is the heart of the table (T10). Since D112 the trick lies as cards do on a real table: the two side
+    // cards clear each other, the partner's card and yours clear each other, and where a side card crosses the top
+    // or bottom one it leaves that card's outer third, the one that carries a rank and suit, in the open.
     #expect(Theme.Card.pileWidth > 62)
     let width = Theme.Card.pileWidth, height = width * Theme.Card.ratio
     let margin = 2 * Theme.Table.tossDrift
-    for a in 0..<4 {
-        for b in (a + 1)..<4 {
-            let p = TableSurface.pileOffset(for: a), q = TableSurface.pileOffset(for: b)
-            let apart = abs(p.width - q.width) >= width + margin || abs(p.height - q.height) >= height + margin
-            #expect(apart, "seats \(a) and \(b) overlap")
-        }
+    let own = TableSurface.pileOffset(for: 0), left = TableSurface.pileOffset(for: 1)
+    let partner = TableSurface.pileOffset(for: 2), right = TableSurface.pileOffset(for: 3)
+    #expect(right.width - left.width >= width + margin, "the side cards overlap")
+    #expect(own.height - partner.height >= height, "the partner's card and yours overlap")
+    for (card, name) in [(partner, "partner's"), (own, "your")] {
+        // A side card is centred on the pile, so it reaches half a card toward this one; what lies beyond is clear.
+        #expect(abs(card.height) >= height / 3, "the \(name) card shows less than a third")
     }
 }
 
@@ -1533,9 +1540,9 @@ private func matchWithTeamOneDownTen() throws -> Match {
     let flipped = try PlayerView(match: match, seat: 0)
     #expect(!ComputerPlayer.isTrailingBadly(flipped))
     #expect(GameModel.boldNoteText(team: [0, 2], deficit: 11, names: Settings.defaultSeatNames, solo: true)
-            == "You and Connor are down 11; Connor is bidding bolder.")
+                == "You and Connor are down 11; Connor is bidding bolder.")
     #expect(GameModel.boldNoteText(team: [1, 3], deficit: 12, names: Settings.defaultSeatNames, solo: true)
-            == "JC and Diane are down 12, bidding bolder.")
+                == "JC and Diane are down 12, bidding bolder.")
 }
 
 @Test func reviewBarSaysItIsTheLastTrick() {

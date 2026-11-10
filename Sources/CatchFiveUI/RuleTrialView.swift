@@ -17,10 +17,10 @@ struct RuleTrialView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("TRY IT").font(.system(.caption2, design: .monospaced).weight(.medium)).tracking(1).foregroundStyle(.gold)
+                Text("TRY IT").font(.system(.caption2, design: .monospaced).weight(.medium)).tracking(1).foregroundStyle(Theme.Paper.green)
                 Spacer()
                 Button("Reset") { withAnimation(motion) { trial.reset() } }
-                    .font(.footnote.weight(.semibold)).tint(.ivory.opacity(0.85))
+                    .font(.footnote.weight(.semibold)).tint(Theme.Paper.green)
                     .disabled(trial.outcome == nil)
             }
             Text(trial.prompt).font(.footnote).opacity(0.9).fixedSize(horizontal: false, vertical: true)
@@ -28,8 +28,8 @@ struct RuleTrialView: View {
             verdict
         }
         .padding(14)
-        .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.gold.opacity(0.35)))
+        .background(Theme.Paper.tan.opacity(0.5), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Theme.Paper.rule.opacity(0.7)))
         .dynamicTypeSize(...Theme.Card.maximumTypeSize)
         .accessibilityElement(children: .contain)
     }
@@ -42,7 +42,7 @@ struct RuleTrialView: View {
                         id: \.seat) { play in
                     VStack(spacing: 3) {
                         CardView(card: play.card, width: 40, style: .rest,
-                                 ring: trial.match.hand.completedTricks.last?.winner == play.seat && trial.match.hand.currentTrick.isEmpty ? .gold : nil)
+                                 ring: trial.match.hand.completedTricks.last?.winner == play.seat && trial.match.hand.currentTrick.isEmpty ? Theme.Paper.green : nil)
                         Text(play.seat == 0 ? "You" : names[play.seat]).font(.caption2).opacity(0.7)
                     }
                 }
@@ -70,8 +70,8 @@ struct RuleTrialView: View {
                 Button { withAnimation(motion) { _ = trial.attempt(action) } } label: {
                     Text(label(for: action)).font(.footnote.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.7)
                         .frame(maxWidth: .infinity).frame(minHeight: 40)
-                        .background(Theme.Wood.inlay.opacity(0.85), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(.ivory.opacity(0.18)))
+                        .foregroundStyle(.ivory)
+                        .background(Theme.Paper.green, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .disabled(trial.outcome != nil && isAccepted(trial.outcome))
@@ -82,10 +82,10 @@ struct RuleTrialView: View {
     @ViewBuilder private var verdict: some View {
         switch trial.outcome {
         case let .refused(reason)?:
-            Label(reason, systemImage: "hand.raised").font(.footnote).foregroundStyle(.ivory.opacity(0.95))
+            Label(reason, systemImage: "hand.raised").font(.footnote).foregroundStyle(Theme.Paper.ink)
                 .transition(.opacity)
         case let .accepted(text)?:
-            Label(text, systemImage: "checkmark.circle").font(.footnote).foregroundStyle(.gold)
+            Label(text, systemImage: "checkmark.circle").font(.footnote).foregroundStyle(Theme.Paper.green)
                 .transition(.opacity)
         case nil:
             Text("The engine will judge whatever you try.").font(.caption2).opacity(0.55)

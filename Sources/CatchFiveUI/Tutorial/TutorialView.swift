@@ -12,18 +12,24 @@ struct TutorialView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
-                    header
+                VStack(spacing: 14) {
                     pills
-                    lesson
-                        .padding(16)
-                        .background(Theme.Wood.inlay.opacity(0.6), in: RoundedRectangle(cornerRadius: 16))
-                    footer
+                    // The lesson is one ivory reading card (D107, D111): its number, its name, the exercise, then the way on.
+                    VStack(spacing: 16) {
+                        header
+                        lesson
+                        footer
+                    }
+                    .padding(18)
+                    .foregroundStyle(Theme.Paper.ink)
+                    .tint(Theme.Paper.green)
+                    .paperCard()
+                    .environment(\.colorScheme, .light)
                 }
-                .padding(20).frame(maxWidth: 640).frame(maxWidth: .infinity)
+                .padding(14).frame(maxWidth: 640).frame(maxWidth: .infinity)
             }
             .foregroundStyle(.ivory)
-            .background(WoodGrainView().ignoresSafeArea())
+            .background(WoodGrainView().overlay(.black.opacity(0.5)).ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Full rules") { showRules = true } }
                 ToolbarItem(placement: .confirmationAction) { Button(isIntro ? "Skip" : "Done", action: onDismiss) }
@@ -35,11 +41,14 @@ struct TutorialView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Catch 5").font(.system(.largeTitle, design: .serif).weight(.bold))
-            Text("HOW TO PLAY · LESSON \(model.lesson + 1) OF \(TutorialModel.lessonCount)")
-                .font(.system(.caption2, design: .monospaced).weight(.medium)).tracking(1)
-        }.frame(maxWidth: .infinity, alignment: .leading)
+        VStack(spacing: 6) {
+            RuledLine {
+                Text("LESSON \(model.lesson + 1) OF \(TutorialModel.lessonCount)")
+                    .font(.caption.weight(.semibold)).tracking(2).foregroundStyle(Theme.Paper.green)
+            }
+            Text(TutorialModel.titles[model.lesson]).font(.system(.largeTitle, design: .serif).weight(.bold))
+                .accessibilityAddTraits(.isHeader)
+        }.frame(maxWidth: .infinity)
     }
 
     private var pills: some View {
@@ -53,9 +62,9 @@ struct TutorialView: View {
                                 Text("\(index + 1) · \(TutorialModel.titles[index])").font(.footnote.weight(.semibold))
                             }
                             .padding(.horizontal, 14).frame(height: 44)
-                            .background(index == model.lesson ? Color.suitRed.opacity(0.18) : Theme.Wood.inlay.opacity(0.5), in: Capsule())
-                            .overlay(Capsule().stroke(index == model.lesson ? Color.suitRed : .white.opacity(0.1)))
-                        }.buttonStyle(.plain).foregroundStyle(index == model.lesson ? Color.suitRed : .ivory)
+                            .background(index == model.lesson ? .ivory : .clear, in: Capsule())
+                            .overlay(Capsule().stroke(.gold.opacity(index == model.lesson ? 1 : 0.55), lineWidth: index == model.lesson ? 2 : 1))
+                        }.buttonStyle(.plain).foregroundStyle(index == model.lesson ? Theme.Paper.green : .ivory)
                         .accessibilityLabel("Lesson \(index + 1), \(TutorialModel.titles[index])\(model.completed.contains(index) ? ", complete" : "")")
                     }
                 }
@@ -75,11 +84,12 @@ struct TutorialView: View {
     }
 
     private var footer: some View {
-        HStack {
-            Button("Back") { model.back() }.buttonStyle(.bordered).tint(.ivory.opacity(0.8)).disabled(model.lesson == 0)
-            Spacer()
+        HStack(spacing: 10) {
+            if model.lesson > 0 {
+                Button("Back") { model.back() }.buttonStyle(PaperSecondaryButtonStyle()).frame(maxWidth: 110)
+            }
             Button(model.isLastLesson ? (isIntro ? "New game" : "Finish") : "Next lesson") { if model.isLastLesson { onDismiss() } else { model.next() } }
-                .buttonStyle(.borderedProminent).tint(Color.suitRed).foregroundStyle(.ivory)
+                .buttonStyle(PaperButtonStyle())
         }
     }
 }
@@ -94,19 +104,19 @@ struct LessonText: View {
         VStack(alignment: .leading, spacing: 10) {
             ForEach(paragraphs, id: \.self) { Text($0).font(.body).lineSpacing(2).fixedSize(horizontal: false, vertical: true) }
             Text("Tactic. \(tactic)")
-                .font(.footnote).foregroundStyle(.ivory.opacity(0.9))
+                .font(.footnote)
                 .padding(12).frame(maxWidth: .infinity, alignment: .leading)
-                .background(.ivory.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(.ivory.opacity(0.25)))
+                .background(Theme.Paper.wash, in: RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.Paper.rule))
         }
     }
 }
 
-/// Gold feedback text with reserved height so the layout does not jump.
+/// Green feedback text with reserved height so the layout does not jump.
 struct Feedback: View {
     let text: String
     var body: some View {
-        Text(text).font(.footnote).foregroundStyle(.ivory.opacity(0.85)).multilineTextAlignment(.center)
+        Text(text).font(.callout.weight(.medium)).foregroundStyle(Theme.Paper.green).multilineTextAlignment(.center)
             .frame(maxWidth: .infinity, minHeight: 60, alignment: .top)
             .accessibilityLabel(text.isEmpty ? "" : "Feedback: \(text)")
     }
@@ -133,9 +143,9 @@ struct SeatTile: View {
             .lineLimit(1).minimumScaleFactor(0.7)
             .padding(.horizontal, 8).padding(.vertical, 10)
             .frame(maxWidth: .infinity, minHeight: 44)
-            .background(Theme.Wood.inlay.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(ring ?? .clear, lineWidth: 3))
-        }.buttonStyle(.plain).foregroundStyle(.ivory)
+            .background(Theme.Paper.tan.opacity(0.6), in: RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(ring ?? Theme.Paper.rule.opacity(0.6), lineWidth: ring == nil ? 1 : 3))
+        }.buttonStyle(.plain)
     }
 }
 
@@ -155,6 +165,21 @@ struct PickableCard: View {
 }
 
 extension Color {
-    static var correctRing: Color { .suitRed }
-    static var incorrectRing: Color { .white.opacity(0.6) }
+    /// On ivory: green for right, the opponents' oxblood for not quite.
+    static var correctRing: Color { Theme.Paper.green }
+    static var incorrectRing: Color { Theme.Team.theirRim }
+}
+
+/// A choice in a lesson (a bid, a suit, a side): an ivory tile with a gold edge and a green serif label.
+struct PaperTileStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
+        configuration.label
+            .font(.system(.title3, design: .serif).weight(.bold)).lineLimit(1).minimumScaleFactor(0.6)
+            .foregroundStyle(Theme.Paper.green)
+            .padding(.horizontal, 8).frame(maxWidth: .infinity, minHeight: 44)
+            .background(shape.fill(.ivory).shadow(color: .black.opacity(0.2), radius: 2, y: 1))
+            .overlay(shape.stroke(Theme.Paper.rule, lineWidth: 1))
+            .opacity(configuration.isPressed ? 0.7 : 1)
+    }
 }

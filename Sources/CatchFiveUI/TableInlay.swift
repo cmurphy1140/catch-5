@@ -138,7 +138,7 @@ struct RulesBook: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.leading, 9)
         }
-        // Taller than the top row (D100); the row holds it at the row's height, so it overhangs a little above and below.
+        // The header reserves the portrait cover, page edges, ribbon and turned shadow.
         .frame(width: Theme.Table.rulesBookWidth, height: Theme.Table.rulesBookHeight)
         .rotationEffect(.degrees(-4))
         .shadow(color: .black.opacity(0.5), radius: 3, x: 2, y: 3)

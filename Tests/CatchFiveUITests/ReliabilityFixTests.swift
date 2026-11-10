@@ -26,3 +26,22 @@ import CatchFive
     #expect(TableFeedback.cue(action: nil, trickWinner: nil, handEnded: false, matchWinner: 0, mode: .solo) == .matchWon)
     #expect(TableFeedback.cue(action: nil, trickWinner: nil, handEnded: false, matchWinner: 1, mode: .solo) == .matchLost)
 }
+
+@MainActor @Test func startingOverAsANewPlayerClearsNameMatchAndRecords() throws {
+    // D108: the reset behind Settings leaves nobody signed in, a fresh untouched solo match and no statistics.
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: url) }
+    let record = MatchRecord(date: Date(), scores: [25, 10], winner: 0, hands: 6, difficulty: .standard,
+                             humanBids: 2, humanBidsMade: 1, humanPlays: 36, humanPlaysAgreed: 30)
+    let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3), records: [record], historyURL: url)
+    model.signIn(name: "Stacy", portrait: Cast.playerChoices[1], difficulty: .easy)
+    model.send(.bid(9))
+    #expect(model.matchInProgress && model.statistics.matches == 1)
+    model.resetPlayer()
+    #expect(!model.settings.hasSignedIn)
+    #expect(model.settings.seatNames[0] == Settings.defaultSeatNames[0])
+    #expect(model.settings.playerPortrait == Cast.defaultPlayerPortrait)
+    #expect(!model.matchInProgress && model.mode == PlayMode.solo)
+    #expect(model.statistics.matches == 0)
+    #expect(try MatchHistoryStore.read(from: url).isEmpty)
+}

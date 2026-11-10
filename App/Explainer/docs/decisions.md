@@ -868,3 +868,47 @@ These are floors, not ceilings: bidding higher to keep the auction away from the
 **Chosen:** Murph's phone feedback found the first support flow too wordy and crowded. Phase-aware starters now send actual online questions when enabled; offline help stays concise and labelled. Ordinary replies target 20–60 words with essential conditions, requested using a 240-token output budget and no reasoning. Long replies expand with More/less in place, without another request. Only submitted questions trigger scroll positioning. The display keeps failed questions with explicit retry/offline help and retains an ephemeral full conversation while sending only four completed online pairs plus the next question. Connection settings move behind a gear into a secondary sheet.
 
 **Why:** The research in the vault's 2026-11-10 support-agent note favors direct answers, optional detail, relevant suggestions and stable reading. The numerical targets and layout are product choices, not experimentally proven thresholds. Actual phone acceptance, including keyboard and large text, remains required. No streaming protocol, fake typing or extra paid summary calls are added. The sheet is ivory paper with green ink (`Theme.Paper`, `Paper.swift`): starters are pale green rows with a gold edge, your question a green bubble, the answer plain ink, so it reads like the other reading cards rather than a dark chat.
+
+
+## D107. Reading cards are ivory paper with green ink (2026-11-10)
+
+**Chosen:** From Murph's six mockups, one look for everything read rather than played: an ivory card with a gold hairline edge, near-black display serif, dark green for the one action and for the side that came out ahead (`Theme.Paper`, `paperCard()`, `PaperButtonStyle`, `RuledLine`). The hand's result is three pages in one card (`HandSummaryView.Page`): Hand complete, then Review hand's Points and Tricks. The rules sheet is six ivory chapter cards on dark wood, each ending in a Next button; chapter I's two paragraphs are shown under three headings (`RulesView.Chapter.sections`) with the rules document's words unchanged. The score sheet (`ScorePanel`) draws the race to 25 as two tracks instead of 25 dots. Settings (`SettingsView`) is one ivory card with a suit beside each section; opponents are still renamed in place, with a pencil where the mockup drew a chevron. Bid tiles carry green serif numerals, the lowest legal bid is ivory on green, and 9 and out sits beside Pass in oxblood. The hand-end card runs down over the bottom row and the empty hand (`Theme.Table.resultSpill`) so it fits without scrolling.
+
+**Why:** The mockups used three looks (flat ivory cards, a carved wood frame, an arched felt board); three borders and textures in one app read as scattered, so the calmest one was kept and the other two gave their ideas only (the race tracks, the number tiles). No gold ring on a bid, because gold means the seat to act. This puts green, not gold, on the main button and wood, not burgundy, behind the rules, against the Aesthetic North Star of September 14; that note needs Murph's amendment if the look stays. The top row, the table and the artwork are unchanged. While the result card is up it covers Support.
+
+
+## D108. Starting over as a new player (2026-11-10)
+
+**Chosen:** Settings, opened from the main menu, ends with "Start over as a new player". After an alert it calls `GameModel.resetPlayer()`: the name and face are unset, the saved match is replaced by a fresh solo deal, the match records behind Statistics are emptied, and the set-up screen (`LoginView`) shows again. Opponent names, haptics and finished lessons stay with the phone. The option is not offered from the table's settings.
+
+**Why:** Murph, 2026-11-10: "we need a way to reset and create a new character, the game doesnt have that option once its done the first time". He chose the clean slate over keeping statistics, because a new character carrying the last one's record reads wrong. The main menu's player card and buttons moved onto ivory paper in the same pass (D107); the wood, the title, the five of hearts and the menu glyph are unchanged.
+
+
+## D109. Make your own face (2026-11-10)
+
+**Chosen:** Under the four ready-made faces, in Settings and on the set-up screen, "Make your own face" opens `FaceBuilder`: a row each for skin, hair, hair colour, details, hat and clothes, every choice drawn as the face it would give, and Shuffle for a whole new one. It writes the same `Portrait` recipe the cast uses, so nothing new is saved or drawn.
+
+**Why:** Murph, 2026-11-10: "please add more character options, more customization". The recipe already had 18,000 faces in it and offered four; opening it up costs one small view and no new artwork.
+
+
+## D110. Your bid and your trump choice come up as a panel (2026-11-10)
+
+**Chosen:** On your turn in the auction, `TableSurface.auctionPanel` lies over the lower table: the status line, the other seats' calls in words (`callsSoFar`, "JC: Bid 5 · Connor: Pass · Diane: to bid"), then the bid tiles with Pass and 9 and out, or the four suits. The column no longer holds the controls (`LowerRow.controls` draws nothing), the side seats rise in both auction phases, compact buttons are 50 pt, and a carved name stays on one line and shrinks to fit.
+
+**Why:** Measured on the iPhone 17 simulator, the auction's column was 635 pt in a 457 pt table and trump choice 557 pt in 439 pt, so the tiles and the suits lay off the bottom, reachable only by scrolling. The larger hand cards, pile and names and the Support row took the room, and trimming could not give back 178 pt. A panel needs no room in the column and fits any phone; the words on it carry what the covered seats' boxes said. While computers bid, the whole table shows as before.
+
+
+## D111. The five lessons are ivory cards too (2026-11-10)
+
+**Chosen:** Each "How to play" lesson is one `paperCard()` on the darkened wood: a ruled "LESSON 2 OF 5" line, the lesson's name in the display serif, the exercise, then Back and Next lesson as the paper buttons. Choices in an exercise (bids, suits, Us or Them) are `PaperTileStyle` tiles; a right pick rings green and a wrong one the opponents' oxblood (`Color.correctRing`, `incorrectRing`); the trick in lesson 4 lies on a felt panel; the lesson pills match the rules chips. Copy, fixtures and `TutorialModel` are unchanged.
+
+**Why:** The lessons were the last reading screens still on dark inlay with red rings, beside rules and results that are ivory (D107). The mockups for the lessons each framed things differently; one card, one set of tiles and one pair of ring colours keeps the five in step with each other and with the rest of the paper.
+
+
+## D112. The trick fits the height; the pad and Support go back where they were (2026-11-10)
+
+**Chosen:** The bottom row is gone. Support sits on the top row beside the rules book (`TableLayout.supportFrame`), as D105 first had it, and the score pad lies on the table's bottom-left corner again (D100), drawn at four fifths (`TableLayout.padScale`). The trick's cards shrink to the height the partner's row and the status line leave (`TableLayout.pileScale(room:preferred:)`), down to `Theme.Table.minimumPileScale`; only below that does the table scroll. `SeatView.portraitTopInset` keeps the full room a face needs at a big moment. While the pad lies under the left seat, that seat's deck is put away and its dealer button rides the face's rim (`SeatView.puckRidesTheFace`).
+
+The trick itself is two cards tall, not three: the partner's card and yours sit about half a card out (`Theme.Table.trickRise`) and the side cards lie across the join. This amends T10, on Murph's word (2026-11-10): side cards still clear each other, the partner's card and yours still clear each other, and every card keeps a rank-and-suit corner in the open (`playedCardsAreLargerAndEachShowsAnIndex`).
+
+**Why:** Measured on the iPhone 17 simulator, the table in play needed 654 pt and had 363 pt, so both side seats lay off the bottom. The bottom row took about 130 pt of that and the larger trick most of the rest. With no overlap at all the trick's cards came out near 49 pt wide beside a 78 pt hand; overlapped as on a real table they keep about 70 pt.

@@ -48,9 +48,12 @@ struct HandFanView: View {
         CGSize(width: translation.width * 0.5, height: min(translation.height, translation.height * 0.3))
     }
 
-    private var wide: Bool { measuredWidth + 32 >= Theme.Card.wideScreenWidth }
-    private var cardWidth: Double { wide ? Theme.Card.handWidthWide : Theme.Card.handWidth }
-    private var scaledWidth: Double { wide ? scaledWide : scaledStandard }
+    private var wide: Bool { measuredWidth + 2 * Theme.Table.horizontalInset >= Theme.Card.wideScreenWidth }
+    private var cardWidth: Double {
+        guard measuredWidth > 0 else { return wide ? scaledWide : scaledStandard }
+        return HandLayout.fittedCardWidth(preferred: wide ? scaledWide : scaledStandard, available: measuredWidth - 16)
+    }
+    private var scaledWidth: Double { cardWidth }
     /// Fan or two rows: whichever keeps every card's exposed strip at least 44 pt (`HandLayout`).
     private var arrangement: HandLayout.Arrangement {
         // Before the first measurement the fan keeps its natural overlap; deciding on a zero width would
@@ -124,6 +127,7 @@ struct HandFanView: View {
                 let style: CardStyle = playing && model.isHumanTurn ? (playable ? .playable : .dimmed) : .rest
                 let inHand = !dealing.contains(card)
                 CardView(card: card, width: cardWidth, style: style)
+                    .dynamicTypeSize(.large)
                     .overlay(RoundedRectangle(cornerRadius: Theme.Card.radius(width: cardWidth), style: .continuous)
                         .strokeBorder(.ivory.opacity(0.9), style: StrokeStyle(lineWidth: 2, dash: [4, 3]))
                         .opacity(model.hint?.action == .play(card) ? 1 : 0))

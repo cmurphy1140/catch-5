@@ -17,7 +17,7 @@ struct TricksLesson: View {
                     "The bid winner leads first, and must lead a trump if they hold one. Each player adds one card; those four cards are a hand. The winner takes them and leads next.",
                     "Follow the led suit if you can. If you cannot, play anything, trump included. The highest trump wins; with no trump, the highest card of the led suit.",
                 ], tactic: "Never lead the five of trump. Lead your highest trump to pull the others out, and save the five for a hand your side is already winning.")
-            }.tint(.gold)
+            }
         }
         .task(id: model.trickPick) {
             // After a correct pick, move on to the second part once the feedback has been read.
@@ -45,8 +45,10 @@ struct TricksLesson: View {
                 }
             }.frame(minHeight: 96)
         }.frame(maxWidth: .infinity).padding(.vertical, 20)
-            .background(.white.opacity(0.025), in: RoundedRectangle(cornerRadius: 24))
-            .overlay(RoundedRectangle(cornerRadius: 24).stroke(.white.opacity(0.08)))
+            // The trick lies on felt, as it does at the table.
+            .foregroundStyle(.ivory)
+            .background(Color.felt, in: RoundedRectangle(cornerRadius: 18))
+            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.Paper.rule, lineWidth: 1.5))
     }
 
     private var hand: some View {

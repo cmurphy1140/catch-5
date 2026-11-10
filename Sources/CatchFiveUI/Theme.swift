@@ -8,9 +8,9 @@ public enum Theme {
         /// Real cards round 3–4 mm on a 63 mm width, about six percent.
         public static func radius(width: Double) -> Double { width * 0.06 }
         /// Hand cards a little larger than the pile's neighbours once were, so the hand reads as the thing you hold (D97).
-        public static let handWidth = 64.0
-        public static let handWidthWide = 70.0
-        public static let pileWidth = 66.0
+        public static let handWidth = 78.0
+        public static let handWidthWide = 84.0
+        public static let pileWidth = 86.0
         public static let backWidth = 40.0
         public static let tutorialWidth = 48.0
         /// Spacing between fanned hand cards; negative so they overlap.
@@ -80,12 +80,16 @@ public enum Theme {
 
     public enum Table {
         /// How far a played card sits from the pile's centre toward its seat: far enough that no two cards
-        /// touch, even after their toss (T10). Side cards clear each other; top and bottom clear the sides.
+        /// touch, even after their toss (T10). Side cards clear each other; top and bottom overlap them (D112).
         public static let sideNudge = Card.pileWidth / 2 + 13
-        /// Top and bottom sit just over a card's height out, so the trick fits the field (D97); the pile scales these
-        /// with the cards themselves, which grow with the reader's text size.
-        public static let partnerNudge = Card.pileWidth * Card.ratio + 12
-        public static let ownNudge = Card.pileWidth * Card.ratio + 12
+        /// Top and bottom sit about half a card's height out (D112), so the partner's card and yours meet in the middle
+        /// and the side cards lie across the join: a trick two cards tall, not three, as cards lie on a real table.
+        /// `trickRise` is that share of a card's height; the pile scales it with the cards themselves.
+        public static let trickRise = 0.52
+        public static let partnerNudge = Card.pileWidth * Card.ratio * trickRise
+        public static let ownNudge = Card.pileWidth * Card.ratio * trickRise
+        /// The smallest the trick's cards are drawn when the table is short of height (D112); below this the table scrolls.
+        public static let minimumPileScale = 0.5
         /// The pile's reserved footprint around a card, so the table does not jump between tricks.
         public static let pileMarginX = 64.0
         public static let pileMarginY = 48.0
@@ -118,6 +122,8 @@ public enum Theme {
         public static let seatTileWidth = 116.0
         /// Air between the header's edge and the partner's halo; the seats hold the top of the table (spec R25).
         public static let seatInset = 6.0
+        public static let horizontalInset = 6.0
+        public static let thinkingHeight = 22.0
         /// The status-line glyph buttons (last trick, hint): hit area; the glyph itself has no plate.
         public static let statusButtonHitSize = 44.0
         /// The deck in the table's top-right corner.
@@ -144,13 +150,17 @@ public enum Theme {
         public static let bidBoxTuck = 14.0
         /// The hand-end card and the demo caption stand in this far from the table's sides.
         public static let overlayInset = 12.0
+        /// How far the hand-end card runs below the table, over the bottom row and where the hand was.
+        public static let resultSpill = 220.0
+        /// How far below the header it starts, clear of the Rules book that hangs from the top row.
+        public static let resultDrop = 44.0
         /// The score sheet's filled dots, layered green: a light fill with a mid-green edge and dark green digits.
         public static let dotInk = Color(red: 0.05, green: 0.17, blue: 0.10)
         public static let dotFill = Color(red: 0.52, green: 0.80, blue: 0.52)
         public static let dotFillEdge = Color(red: 0.26, green: 0.55, blue: 0.30)
         /// Every name carved into the wood under its seat (D94), and the phone holder's under the hand: large enough
         /// to read from across the table.
-        public static let carvedNameSize = 22.0
+        public static let carvedNameSize = 27.0
         /// The layout runs under the bottom safe area and stops this far above the screen's edge, clear of its rounded corners.
         public static let footInset = 16.0
         /// The scorecard (N66): the ruled line's height, the handwritten total's size, and how many lines show.
@@ -161,16 +171,15 @@ public enum Theme {
         public static let auctionButtonHeight = 64.0
         /// Bid pills when they wrap to two rows, and Pass, sit this tall instead, so the whole auction fits above the
         /// hand on an iPhone 16 (D97); still well above the 44 pt minimum.
-        public static let auctionButtonCompactHeight = 54.0
+        public static let auctionButtonCompactHeight = 50.0
         public static let auctionButtonSpacing = 6.0
         public static let auctionButtonRadius = 14.0
         /// The slim row across the top (D93): Home on the left, Rules on the right, each a full thumb tall; the Rules
         /// book is this wide (D94).
         public static let topRowHeight = 44.0
-        /// The book grew in D98 and again in D100, once the score pad left the row: it reads as something to pick up. It is
-        /// taller than the row and overhangs it a little above and below, so the table keeps its height.
-        public static let rulesBookWidth = 156.0
-        public static let rulesBookHeight = 50.0
+        /// A portrait book, with its pages, ribbon, rotation and shadow reserved inside the header.
+        public static let rulesBookWidth = 62.0
+        public static let rulesBookHeight = 90.0
         /// The header band's bottom edge is a frown: the corners hang this much lower than the middle.
         public static let headerDip = 18.0
         /// The table's top corners either side of the partner (D65): the contract plaque on the left, the

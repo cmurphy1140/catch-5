@@ -267,11 +267,12 @@ private func playNext(_ match: inout Match) throws {
 }
 
 @Test func theTrickGrowsWithItsCards() {
-    // The top and bottom of the trick grow with the cards, so cards drawn larger still clear the side ones.
+    // The top and bottom of the trick grow with the cards, so cards drawn larger keep the same share clear of the
+    // side ones (D112: about half a card, where it was a whole one).
     for scale in [1.0, 1.18, 1.27] {
         let height = Theme.Card.pileWidth * Theme.Card.ratio * scale
-        #expect(abs(TableSurface.pileOffset(for: 2, scale: scale).height) >= height + 2 * Theme.Table.tossDrift - 1e-9)
-        #expect(TableSurface.pileOffset(for: 1, scale: scale) == TableSurface.pileOffset(for: 1))
+        #expect(abs(TableSurface.pileOffset(for: 2, scale: scale).height) >= height * Theme.Table.trickRise - 1e-9)
+        #expect(abs(TableSurface.pileOffset(for: 1, scale: scale).width) * 2 >= Theme.Card.pileWidth * scale + 2 * Theme.Table.tossDrift)
     }
 }
 
@@ -329,13 +330,13 @@ private func playNext(_ match: inout Match) throws {
     #expect(Theme.Table.scorecardLines == 3)
 }
 
-@Test func theRulesBookIsBiggerAndOverhangsTheRow() {
-    // D100: with the pad gone from the top row, the book grows; it is taller than the row and overhangs it, so the
-    // table below keeps its height. Arrow, gap and book still fit the narrowest phone (375 less the gutters).
-    #expect(Theme.Table.rulesBookWidth >= 150)
-    #expect(Theme.Table.rulesBookHeight > Theme.Table.topRowHeight)
-    #expect(Theme.Table.rulesBookHeight - Theme.Table.topRowHeight <= 8)
-    #expect(Theme.Table.topRowHeight + 8 + Theme.Table.rulesBookWidth <= 375 - 32)
+@Test func theRulesBookIsPortraitAndKeepsItsTrailingCorner() {
+    #expect(Theme.Table.rulesBookHeight > Theme.Table.rulesBookWidth)
+    for width in [308.0, 363, 390] {
+        let frame = TableLayout.bookFrame(available: width)
+        #expect(frame.maxX <= width && frame.minX >= 44)
+        #expect(frame.maxY + 12 <= Theme.Table.topRowHeight + TableLayout.topCornerClearance)
+    }
 }
 
 @MainActor @Test func theAuctionTakesNoTapsUntilYourDealtHandHasLanded() throws {
