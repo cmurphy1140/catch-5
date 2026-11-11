@@ -18,12 +18,38 @@ struct MainMenuView: View {
     @State private var confirmNewMatch = false
     @State private var showSettings = false
     @State private var menuOpen = false
+    /// The guest's note waits on the table as a place card until she opens it (D137, D138); after that it is in her
+    /// notebook.
+    @State private var openNote = false
+    @State private var shownCode: GuestPrompt?
+    @AppStorage("guestNote.seen") private var noteSeen = false
+    @Environment(\.openURL) private var openURL
     @State private var showPlay = false
     @State private var showNotebook = false
     @State private var showTutorial = false
     @State private var showStatistics = false
     @State private var showExplainer = false
     @State private var support: SupportPresentation?
+
+    /// One of a guest build's own suggestions under the Ask anything bar (D136).
+    struct GuestPrompt: Decodable, Equatable {
+        /// The whole question, asked of the helper when there is no link and read out by VoiceOver.
+        let text: String
+        var url: URL?
+        /// A word or two for the chip (D139); the whole question is too long for one row.
+        var label: String?
+        /// True when the link is one to hand round the table: the chip shows it as a code to scan.
+        var code: Bool?
+    }
+
+    /// The guest's suggestions, from the git-ignored data asset `GuestPrompts`; empty in every other build.
+    static let guestPrompts: [GuestPrompt] = {
+        #if canImport(UIKit)
+        NSDataAsset(name: "GuestPrompts").flatMap { try? JSONDecoder().decode([GuestPrompt].self, from: $0.data) } ?? []
+        #else
+        []
+        #endif
+    }()
 
     /// The guest's scene for the opening page, when the build carries one (D127); kept out of the repository.
     private var guestScene: Image? {
@@ -116,17 +142,42 @@ struct MainMenuView: View {
                 .accessibilityLabel("Ask anything")
                 .accessibilityHint("Opens a chat with the game's helper")
                 // Small things to ask, fainter than the bar; a tap opens the chat with that one already asked (D132).
-                HStack(spacing: 6) {
-                    ForEach(Array(zip(["A joke", "Team name", "Snacks", "Teach me"], FrontDesk.starters)), id: \.1) { label, question in
-                        Button(label) { openSupport(asking: question) }
+                // A guest build may carry its own (D136, D139): a short label each, in the same row; one with a link opens it
+                // or shows it as a code to scan.
+                if Self.guestPrompts.isEmpty {
+                    HStack(spacing: 6) {
+                        ForEach(Array(zip(["A joke", "Team name", "Snacks", "Teach me"], FrontDesk.starters)), id: \.1) { label, question in
+                            Button(label) { openSupport(asking: question) }
+                                .font(.footnote.weight(.medium)).lineLimit(1).minimumScaleFactor(0.8)
+                                .padding(.horizontal, 11).frame(minHeight: 30)
+                                .background(.ultraThinMaterial.opacity(0.55), in: Capsule())
+                                .contentShape(Capsule().inset(by: -7))
+                                .accessibilityLabel(question)
+                        }
+                    }
+                    .buttonStyle(.plain).opacity(0.85)
+                } else {
+                    HStack(spacing: 6) {
+                        ForEach(Self.guestPrompts, id: \.text) { prompt in
+                            Button {
+                                if prompt.code == true, prompt.url != nil { withAnimation(Theme.Motion.overlay) { shownCode = prompt } }
+                                else if let url = prompt.url { openURL(url) } else { openSupport(asking: prompt.text) }
+                            } label: {
+                                HStack(spacing: 5) {
+                                    if prompt.code == true { Image(systemName: "qrcode").imageScale(.small) }
+                                    Text(prompt.label ?? prompt.text)
+                                }
+                            }
                             .font(.footnote.weight(.medium)).lineLimit(1).minimumScaleFactor(0.8)
                             .padding(.horizontal, 11).frame(minHeight: 30)
                             .background(.ultraThinMaterial.opacity(0.55), in: Capsule())
                             .contentShape(Capsule().inset(by: -7))
-                            .accessibilityLabel(question)
+                            .accessibilityLabel(prompt.text)
+                            .accessibilityHint(prompt.code == true ? "Shows a code to scan" : prompt.url == nil ? "Asks the helper" : "Opens a web page")
+                        }
                     }
+                    .buttonStyle(.plain).opacity(0.85)
                 }
-                .buttonStyle(.plain).opacity(0.85)
 
                 // Who is playing and where the saved match stands; Play leads to the page that holds the ways in (D133).
                 if let scene = guestScene {
@@ -148,6 +199,12 @@ struct MainMenuView: View {
                             Button("Play") { openPlay() }
                                 .buttonStyle(WoodWritingButtonStyle(underlined: false, size: 34))
                                 .padding(.top, 40).padding(.trailing, 8)
+                        }
+                        .overlay(alignment: .bottomTrailing) {
+                            if let note = GuestNote.current, !noteSeen {
+                                GuestPlaceCard(name: note.name) { withAnimation(Theme.Motion.overlay) { openNote = true } }
+                                    .padding(.trailing, 26).padding(.bottom, -6).transition(.opacity)
+                            }
                         }
                         .zIndex(-1)
                 } else {
@@ -238,6 +295,18 @@ struct MainMenuView: View {
         .sheet(isPresented: $showNotebook) { NotebookView() }
         .sheet(isPresented: $showStatistics) { StatisticsView(stats: model.statistics, records: model.records) { showStatistics = false } }
         .fullScreenCoverOrSheet(isPresented: $showExplainer) { ExplainerView { showExplainer = false } }
+        .overlay {
+            if let prompt = shownCode, let url = prompt.url {
+                GuestCodeCard(title: prompt.label ?? prompt.text, url: url, onOpen: { openURL(url) }) {
+                    withAnimation(Theme.Motion.overlay) { shownCode = nil }
+                }.transition(.opacity)
+            }
+        }
+        .overlay {
+            if openNote, let note = GuestNote.current {
+                GuestNoteCard(note: note) { withAnimation(Theme.Motion.overlay) { openNote = false; noteSeen = true } }.transition(.opacity)
+            }
+        }
         // The play page slides over the opening page, under the new-game question so that still shows above it (D133).
         .overlay {
             if showPlay {

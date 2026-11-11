@@ -326,3 +326,24 @@ private func supportFinishedFixture() throws -> SupportContext {
     notebook.notes.append(.init(text: "  "))
     #expect(Notebook(defaults: defaults).notes.map(\.text) == ["The five is worth five points"])
 }
+
+@Test func guestPromptsDecodeWithAndWithoutALink() throws {
+    let json = #"[{"text":"Open the album","url":"https://example.com/a?s=%7B1%7D"},{"text":"Tell me a joke"}]"#
+    let prompts = try JSONDecoder().decode([MainMenuView.GuestPrompt].self, from: Data(json.utf8))
+    #expect(prompts.map(\.text) == ["Open the album", "Tell me a joke"])
+    #expect(prompts[0].url?.host == "example.com")
+    #expect(prompts[1].url == nil)
+    // A chip may carry a short label and ask to be shown as a code; both are optional.
+    let short = try JSONDecoder().decode(MainMenuView.GuestPrompt.self, from: Data(#"{"text":"Follow the book club","url":"https://example.com/b","label":"Book club","code":true}"#.utf8))
+    #expect(short.label == "Book club" && short.code == true && prompts[0].label == nil)
+    #expect(GuestCodeCard.code(for: "https://example.com/b") != nil)
+}
+
+@Test func guestNoteDecodesAndTheScallopedCardHasAnEdge() throws {
+    let json = #"{"name":"Ada","greeting":"Ada,","body":"Thank you.","signoff":"C"}"#
+    #expect(try JSONDecoder().decode(GuestNote.self, from: Data(json.utf8)).signoff == "C")
+    let rect = CGRect(x: 0, y: 0, width: 200, height: 300)
+    // The bumps reach the frame; an inset card stays inside it.
+    #expect(abs(Scalloped(bump: 16).path(in: rect).boundingRect.width - 200) < 1)
+    #expect(Scalloped(bump: 16).inset(by: 10).path(in: rect).boundingRect.width < 185)
+}

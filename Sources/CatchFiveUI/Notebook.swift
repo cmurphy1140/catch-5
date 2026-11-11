@@ -40,6 +40,7 @@ struct NotebookView: View {
     @ObservedObject var notebook = Notebook.shared
     @Environment(\.dismiss) private var dismiss
     @FocusState private var writing: UUID?
+    @State private var showNote = false
 
     var body: some View {
         NavigationStack {
@@ -52,6 +53,11 @@ struct NotebookView: View {
                         .listRowBackground(Color.clear).listRowSeparator(.hidden).accessibilityHidden(true)
                 }
                 #endif
+                if GuestNote.current != nil {
+                    // The note she was given when she first opened the game (D137).
+                    Button("A note for you", systemImage: "envelope") { showNote = true }
+                        .frame(minHeight: 44).listRowBackground(Color.clear)
+                }
                 if notebook.notes.isEmpty {
                     Text("Nothing here yet. Tap the bookmark under any answer in the chat to keep it, or write a line of your own.")
                         .font(.callout).opacity(0.7).listRowBackground(Color.clear)
@@ -90,6 +96,7 @@ struct NotebookView: View {
                 #endif
             }
         }
+        .overlay { if showNote, let note = GuestNote.current { GuestNoteCard(note: note) { showNote = false } } }
         // Paper is light whatever the device is set to.
         .environment(\.colorScheme, .light)
     }
