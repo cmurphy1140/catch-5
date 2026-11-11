@@ -250,3 +250,11 @@ private func joined(_ pages: [ExplainerLibrary.Page]) -> [MarkdownDocument.Block
         #expect(cards.map(\.first.title) == pages.filter { $0.part == 1 }.map(\.title), label)
     }
 }
+
+@Test func aCountIsKeptInGatesOfFive() {
+    // D147: a chapter card draws its sections as tally marks.
+    #expect(ExplainerLibrary.tally(0) == (0, 0))
+    #expect(ExplainerLibrary.tally(4) == (0, 4))
+    #expect(ExplainerLibrary.tally(13) == (2, 3))
+    #expect(ExplainerLibrary.tally(-2) == (0, 0))
+}

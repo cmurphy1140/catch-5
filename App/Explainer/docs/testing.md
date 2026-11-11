@@ -57,6 +57,12 @@ Total on 2026-10-31: 270 automated tests (93 engine, 177 view model), under 10 s
 
 Since the written record moved to the vault (2026-10-08), the explainer tests read `App/Explainer/docs`, the copies the app ships, and `explainerBundleHasAPNGForEveryDiagram` checks one PNG per Mermaid fence there. `docs/catch-five-rules.md` stays in the repo because `RulesText` must quote it verbatim and CI has no vault; the record holds a pointer to it.
 
+`TraceHarness.swift` (2 tests, D104) and the one-tap test in `SystemAtWorkTests.swift` trace one tap on the real `GameModel` from outside: listeners on its `@Published` fields, the real `HandFanView` hosted in an unshown Mac window to count body runs, two PNG frames and a Markdown report with a Mermaid sequence diagram, all under `work/trace/` (ignored). The run config "Catch 5 Trace" runs the one-tap test and copies the report to the vault when `CATCH5_VAULT` is set:
+
+```bash
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --filter systemAtWork
+```
+
 The D71 measurement plays a 40-match sample by default. The full 2400 mirrored matches whose numbers D71 records take about 18 s more:
 
 ```bash
@@ -138,13 +144,3 @@ The left side is what the code did, the right side what the test expected. Open 
 `Tests/CatchFiveUITests/SupportTests.swift` checks projected payload privacy by changing opponent cards, canonical legal/advice output, finished scoring, pass-and-play curtains, local fallback, HTTPS validation, authenticated request/response errors, redirect refusal and cancellation/duplicate sends. `node --test help/support.test.mjs` checks the real backend core with controlled fetch: missing config/access code, allowlist and size validation, malicious fields, Responses contract and explicit refusal/incomplete/empty/network fallback. These tests make no paid API requests. Run backend tests, the full `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test`, and simulator SDK build sequentially; instructions and live-service limits are in `help/README.md`.
 
 Refinement regressions additionally verify online starters reach real client transport, local answers stay concise and consistent, bounded previews preserve short text/whole words, failed questions remain visible with one explicit retry, and sixth-and-later turns use alternating histories of at most nine messages. The backend contract test observes the 240-token limit without paid requests. Native keyboard, Dynamic Type, More/less positioning and actual phone acceptance remain visual checks rather than source-text tests.
-
-
-## Reliability checks
-
-`Tests/CatchFiveUITests/ReliabilityFixTests.swift` checks that an unmapped error shows a plain sentence instead of raw enum text, and that a finished pass-and-play match always plays the win cue while solo follows the human result. `UndoTests` also refuses a negative rewind count.
-
-
-## Table layout checks
-
-`Tests/CatchFiveUITests/TableLayoutRefinementTests.swift` holds the larger table to its room: the portrait rules book and Support fit the top row without touching, the seat tiles and the trick fit every verified width, the trick shrinks to the height it is given (`theTrickShrinksToTheHeightItIsGiven`), tossed cards stay inside the pile's reserved footprint, and a face has its full headroom at a big moment. `playedCardsAreLargerAndEachShowsAnIndex` in `GameModelTests.swift` replaces the old no-overlap check (D112).

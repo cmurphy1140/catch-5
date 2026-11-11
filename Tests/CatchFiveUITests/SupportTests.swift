@@ -337,6 +337,9 @@ private func supportFinishedFixture() throws -> SupportContext {
     let short = try JSONDecoder().decode(MainMenuView.GuestPrompt.self, from: Data(#"{"text":"Follow the book club","url":"https://example.com/b","label":"Book club","code":true}"#.utf8))
     #expect(short.label == "Book club" && short.code == true && prompts[0].label == nil)
     #expect(GuestCodeCard.code(for: "https://example.com/b") != nil)
+    // One chip may keep other links on its slip, under a caption for the code (D140).
+    let books = try JSONDecoder().decode(MainMenuView.GuestPrompt.self, from: Data(#"{"text":"Books","url":"https://example.com/b","code":true,"caption":"The book club","also":[{"label":"Reading list","url":"https://example.com/r"}]}"#.utf8))
+    #expect(books.caption == "The book club" && books.also?.first?.label == "Reading list" && short.also == nil)
 }
 
 @Test func guestNoteDecodesAndTheScallopedCardHasAnEdge() throws {

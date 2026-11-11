@@ -19,8 +19,8 @@ Three kinds of surface, and the difference matters:
 stateDiagram-v2
     [*] --> login: no name saved
     [*] --> intro: name saved, rules unseen
-    [*] --> table: name saved, rules seen, match in progress
-    [*] --> menu: name saved, rules seen, no match or match finished
+    [*] --> menu: name saved, rules seen
+    [*] --> table: left the table under thirty minutes ago, match in progress
 
     login --> menu: sign in with a match already in progress
     login --> intro: sign in, no match, rules unseen
@@ -42,9 +42,10 @@ stateDiagram-v2
 `RootView.initialScreen(for:matchInProgress:)` decides the first of these, and
 `RootView.destinationAfterSignIn(matchInProgress:hasSeenRules:)` decides where signing in leads. Both
 are `nonisolated` and tested directly, so the routing can be checked without building a view. A launch
-with a match in progress (no winner yet) opens straight onto the table instead of the main menu
-(decision D64); in pass and play the curtain still comes down for whoever is next, since a restored
-match never carries a revealed seat.
+opens the main menu whether or not a match is in progress (decision D141, replacing D64): the match
+waits behind Back to the table, and in pass and play the curtain still comes down for whoever is next,
+since a restored match never carries a revealed seat. The exception is a short absence (decision D144):
+a launch within thirty minutes of leaving the app from the table goes straight back to it, without the opening.
 
 ## What opens from the main menu
 

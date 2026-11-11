@@ -2,11 +2,12 @@ import CoreImage.CIFilterBuiltins
 import SwiftUI
 
 /// A link to hand round the table (D139): a slip of paper with a code the others can scan from her phone, and one
-/// way to open it on this one.
+/// way to open it on this one. Links that belong with it sit under the code as plain lines (D140).
 struct GuestCodeCard: View {
     let title: String
     let url: URL
-    let onOpen: () -> Void
+    var also: [MainMenuView.GuestPrompt.Also] = []
+    let open: (URL) -> Void
     let onDone: () -> Void
 
     var body: some View {
@@ -18,8 +19,12 @@ struct GuestCodeCard: View {
                         .accessibilityLabel("A code to scan for \(title)")
                 }
                 Text(title).font(.custom("Noteworthy-Bold", size: 20, relativeTo: .title3)).foregroundStyle(Theme.Paper.ink)
+                ForEach(also, id: \.url) { link in
+                    Button { open(link.url) } label: { Label(link.label, systemImage: "arrow.up.right") }
+                        .font(.custom("Noteworthy-Bold", size: 18, relativeTo: .body)).foregroundStyle(Theme.Paper.green).frame(minHeight: 44)
+                }
                 HStack(spacing: 28) {
-                    Button("Open", action: onOpen)
+                    Button("Open") { open(url) }
                     Button("Done", action: onDone)
                 }
                 .font(.headline).foregroundStyle(Theme.Paper.green).frame(minHeight: 44)

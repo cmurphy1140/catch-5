@@ -2,10 +2,9 @@ import CatchFive
 import SwiftUI
 
 /// Owns the one `GameModel`. A new player sees login, then the tutorial as an intro they may skip, then the
-/// table. A returning player with a match in progress lands back on the table, curtain down in pass and play;
-/// with no match, or a finished one, they land on the main menu, Back to the table or New game one tap away
-/// (override of spec R31/R32 and this comment, decision D64). Going from the menu to the table shows the tip
-/// card first (D67); a launch that resumes onto the table does not. The table's menu opens a pause card whose Main
+/// table. A returning player always lands on the main menu once the dealt opening lifts (D141, replacing D64):
+/// Back to the table or New game is one tap away, and a match in progress is kept, curtain down in pass and play.
+/// Going from the menu to the table shows the tip card first (D67). The table's menu opens a pause card whose Main
 /// menu comes back here with the match preserved (spec R31, R32).
 public struct RootView: View {
     enum Screen { case login, intro, menu, table }
@@ -25,6 +24,7 @@ public struct RootView: View {
     private let choosingMode: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.scenePhase) private var scenePhase
 
     /// `stage` opens a named state directly, for headless screenshots: `picker` (the New match question),
     /// `curtain` (a fresh pass-and-play match waiting for its first player) or `seat` (that player's table);
@@ -167,9 +167,13 @@ public struct RootView: View {
         case "picker", "stats", "settings", "howto", "rules", "signoff", "home", "note": .menu
         case "curtain", "seat", "pass-table", "draw", "bidding", "dealer-forced", "trump", "table", "table-rules", "table-rules-fold", "dealer-bidder", "pause", "result", "review", "review-tricks", "over",
              "home-tips", "home-whywe", "ninewin", "ninelose", "won", "confirm9", "bold", "five", "handline", "panel", "demo": .table
-        default: Self.initialScreen(for: model.settings, matchInProgress: model.matchInProgress)
+        default: Self.initialScreen(for: model.settings, matchInProgress: model.matchInProgress,
+                                    leftTableAgo: stage == nil ? Self.leftTableAgo() : nil)
         }
         _screen = State(initialValue: screen)
+        // Coming straight back to the table (D144) skips the dealt opening as well as the menu.
+        _loading = State(initialValue: !(stage == nil && screen == .table))
+        TableTrace.log("launch onto \(screen), match in progress \(model.matchInProgress)")
         _showWelcome = State(initialValue: stage == "pause")
         _showTips = State(initialValue: stage == "home-tips" || stage == "home-whywe")
         holdTips = stage == "home-tips" || stage == "home-whywe"
@@ -214,13 +218,30 @@ public struct RootView: View {
         }
     }
 
-    /// Login until a name is saved; the intro until it has been seen or skipped; then straight onto the table
-    /// if a match is in progress, otherwise the main menu (decision D64). A match with no winner counts as in
-    /// progress; a finished or absent match falls back to the menu, never a popup over the table (spec R32).
-    nonisolated static func initialScreen(for settings: Settings, matchInProgress: Bool) -> Screen {
+    /// Login until a name is saved; the intro until it has been seen or skipped; then the main menu, whether or
+    /// not a match is in progress (D141): the opening lifts onto the front page, and the match waits behind
+    /// Back to the table. The one exception is a short absence (D144): a player who left the app from the table
+    /// less than `resumeWindow` ago, and whose match is still in progress, is put straight back on the table,
+    /// because the phone may have closed the app behind their back.
+    nonisolated static func initialScreen(for settings: Settings, matchInProgress: Bool, leftTableAgo: TimeInterval? = nil) -> Screen {
         if !settings.hasSignedIn { return .login }
         if !settings.hasSeenRules { return .intro }
-        return matchInProgress ? .table : .menu
+        if matchInProgress, let leftTableAgo, leftTableAgo >= 0, leftTableAgo < resumeWindow { return .table }
+        return .menu
+    }
+
+    /// How long after leaving the table a launch still counts as coming back to it.
+    nonisolated static let resumeWindow: TimeInterval = 30 * 60
+    nonisolated static let leftTableKey = "resume.leftTableAt"
+
+    /// Seconds since the app was last left from the table, or nil if it was left from anywhere else.
+    static func leftTableAgo(defaults: UserDefaults = .standard, now: Date = Date()) -> TimeInterval? {
+        (defaults.object(forKey: leftTableKey) as? Date).map { now.timeIntervalSince($0) }
+    }
+
+    /// Notes, as the app leaves the foreground, whether the player was at the table (D144).
+    static func noteLeaving(onTable: Bool, defaults: UserDefaults = .standard, now: Date = Date()) {
+        if onTable { defaults.set(now, forKey: leftTableKey) } else { defaults.removeObject(forKey: leftTableKey) }
     }
 
     enum Destination: Equatable { case menu, intro, table }
@@ -276,6 +297,14 @@ public struct RootView: View {
             }
         }
         .preferredColorScheme(.dark)
+        // Leaving the app saves the match and where the player was, so a phone that closes the app in the
+        // background hands the same table back (D144). Screenshot stages leave no note.
+        .onChange(of: scenePhase) { _, phase in
+            guard phase != .active, ScreenshotStage.name == nil else { return }
+            model.persist()
+            Self.noteLeaving(onTable: screen == .table && model.matchInProgress)
+            TableTrace.log("left app from \(screen)")
+        }
         // The table has its own notice alert; the sign-in and intro screens need one for restore notices.
         .alert("Game notice", isPresented: Binding(get: { screen != .table && model.errorMessage != nil },
                                                   set: { if !$0 { model.errorMessage = nil } })) {
@@ -297,6 +326,7 @@ public struct RootView: View {
     }
 
     private func show(_ next: Screen) {
+        TableTrace.log("screen \(next)")
         withAnimation(motion) { screen = next }
     }
 }

@@ -136,13 +136,13 @@ struct TableSurface: View {
                         }
                         .opacity(dim).zIndex(2)
                     } else if arrangement == .around {
-                        // The contract as one line on the oak (D117); the field starts under it, the partner inside.
+                        // The contract as one line on the oak (D117), then the partner, also on the oak (D153): the cloth
+                        // starts at their name, so nobody sits in the middle of the table.
                         ContractStrip(contract: ContractPlaque.contract(in: model), tally: model.trumpTally,
                                       onAdd: model.tallyTrump, onTakeBack: model.untallyTrump)
                             // The Rules book hangs over this corner; the line stops short of it.
                             .padding(.trailing, Theme.Table.rulesBookWidth + 28)
                             .opacity(dim).accessibilitySortPriority(25)
-                            .onGeometryChange(for: Double.self) { $0.frame(in: .named(Self.column)).maxY } action: { fieldEdges.top = $0 - 4 }
                         SeatView(model: model, seat: model.seat(at: 2), isPartner: true, puckOnRim: true, onField: true, onDeck: onDeck, onRename: onRename,
                                  onAnchor: { onAnchor(2, $0) }, bump: bumps[2, default: 0]).accessibilitySortPriority(20)
                             .overlay(alignment: .topLeading) {
@@ -152,7 +152,7 @@ struct TableSurface: View {
                                 }
                             }
                             .padding(.top, 4)
-                            .onGeometryChange(for: Double.self) { $0.frame(in: .named(Self.column)).maxY } action: { partnerBottom = $0 }
+                            .onGeometryChange(for: Double.self) { $0.frame(in: .named(Self.column)).maxY } action: { partnerBottom = $0; fieldEdges.top = $0 - Theme.Field.verticalGap }
                             .opacity(dim)
                     } else {
                     HStack(alignment: .top, spacing: 0) {
@@ -258,7 +258,7 @@ struct TableSurface: View {
                 .coordinateSpace(.named(Self.column))
                 .background(alignment: .topLeading) {
                     if let rect = drawnEdges.rect {
-                        TableField(rect: rect, trump: arrangement == .around ? nil : hand.trump, lamp: lampPlace, cloth: reworked, colours: model.settings.tableColours).opacity(dim)
+                        TableField(rect: rect, trump: hand.trump, lamp: lampPlace, cloth: reworked, colours: model.settings.tableColours).opacity(dim)
                     }
                 }
                 .padding(.top, Theme.Table.seatInset)
@@ -421,11 +421,30 @@ struct TableSurface: View {
         let landed = motion?.hasLanded(playIndex: trick * 4 + position) ?? true
         let offset = Self.pileOffset(for: model.place(of: play.seat), scale: scale, rise: rise) + toss.offset
         let radius = Theme.Card.radius(width: Theme.Card.pileWidth * scale)
+        let width = Theme.Card.pileWidth * scale
+        let peek = Self.peek(for: model.place(of: play.seat))
         return Button { model.explain(play, inLastTrick: isLast) } label: {
-            CardView(card: play.card, width: Theme.Card.pileWidth * scale, style: .pile)
+            CardView(card: play.card, width: width, style: .pile)
                 .dynamicTypeSize(.large)
                 .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous)
                     .stroke(.gold, lineWidth: winner == play.seat ? 3 : 0))
+                // Whoever played it looks over the card's edge from their side of the table (D145): the figure is
+                // drawn behind the card, which crops it, so no label or box is needed to say whose card this is.
+                .background(alignment: peek?.alignment ?? .center) {
+                    if let peek {
+                        let size = width * Self.peekShare
+                        Group {
+                            // The player's own figure (D148) when the build has it, else the drawn face.
+                            if let art = SeatArt.image(seat: play.seat) {
+                                art.resizable().scaledToFit().frame(width: size * 1.3, height: size)
+                            } else {
+                                PortraitView(portrait: Cast.opponent(at: play.seat)?.portrait ?? model.settings.playerPortrait, size: size, cutOut: true)
+                            }
+                        }
+                            .offset(x: peek.out.width * size, y: peek.out.height * size)
+                            .accessibilityHidden(true)
+                    }
+                }
         }
         .buttonStyle(.plain)
         .allowsHitTesting(coaching)
@@ -453,6 +472,20 @@ struct TableSurface: View {
         case 2: CGSize(width: 0, height: -TableLayout.pileRise(scale: scale, rise: rise))
         case 3: CGSize(width: Theme.Table.sideNudge * scale, height: 0)
         default: CGSize(width: 0, height: TableLayout.pileRise(scale: scale, rise: rise))
+        }
+    }
+
+    /// The peeking figure's size as a share of the card's width (D145).
+    nonisolated static let peekShare = 0.9
+
+    /// Where the player of a card looks over it from (D145): the card's edge on their side of the table, and how far
+    /// out the figure sits, in figure sizes. Your own card has none; it lies nearest you.
+    nonisolated static func peek(for place: Int) -> (alignment: Alignment, out: CGSize)? {
+        switch place {
+        case 1: (.topLeading, CGSize(width: -0.42, height: -0.5))
+        case 2: (.top, CGSize(width: 0, height: -0.62))
+        case 3: (.topTrailing, CGSize(width: 0.42, height: -0.5))
+        default: nil
         }
     }
 
@@ -553,19 +586,11 @@ struct TableSurface: View {
         .accessibilityLabel(label)
     }
 
-    /// Your prompt: gold words on the oak, or, in play on the cloth tables, an ivory plaque that also says how (D117).
+    /// Your prompt: gold words on the oak, or, in play on the cloth tables, a pencilled scrap that also says how (D117, D150).
     @ViewBuilder private var turnWords: some View {
         if reworked, hand.phase == .playing, let prompt = promptWords {
-            VStack(spacing: 0) {
-                Text(prompt).font(.system(.title2, design: .serif).weight(.bold))
-                Text(selected == nil ? "Tap a card" : "Now tap your spot").font(.footnote.weight(.medium)).opacity(0.75)
-            }
-            .lineLimit(1).minimumScaleFactor(0.7)
-            .foregroundStyle(Theme.Paper.ink)
-            .padding(.horizontal, 26).padding(.vertical, 4)
-            .background(.ivory, in: Capsule())
-            .overlay(Capsule().stroke(Theme.Paper.rule, lineWidth: 1.5))
-            .shadow(color: .black.opacity(0.35), radius: 3, y: 2)
+            // A scrap off the score pad with the pencil across it, not a pill (D150).
+            TurnSlip(prompt: prompt, hint: selected == nil ? "Tap a card" : "Now tap your spot")
         } else {
             statusText.font(model.isHumanTurn ? .title2.weight(.bold) : .title3.weight(.medium))
                 .multilineTextAlignment(.center).lineLimit(1).minimumScaleFactor(0.7)
@@ -956,6 +981,27 @@ struct SeatView: View {
     /// The player has marked this seat as out of trump (D65).
     private var markedOut: Bool { hand.trump != nil && model.outOfTrump.contains(seat) }
 
+    private var art: Image? { SeatArt.image(seat: seat) }
+
+    /// The seat's figure. With a cut-out picture (D148) it stands in the disc's place with no disc, rim or ring: the
+    /// seat to act glows gold round its own outline. Without one it is the drawn portrait, whose rim says the side.
+    @ViewBuilder private var face: some View {
+        let size = Theme.Table.portraitSize
+        if let art {
+            Color.clear.frame(width: size, height: size)
+                .overlay(alignment: .bottom) {
+                    art.resizable().scaledToFit()
+                        .frame(width: size * SeatArt.width, height: size * SeatArt.height, alignment: .bottom)
+                        .shadow(color: .gold.opacity(active ? 0.95 : 0), radius: active ? 5 : 0)
+                        .shadow(color: .black.opacity(0.35), radius: 3, y: 2)
+                        .animation(reduceMotion ? Theme.Motion.reduced : Theme.Motion.overlay, value: active)
+                }
+        } else {
+            PortraitView(portrait: portrait, size: size, expression: expression, popsOut: true,
+                         rim: Self.rim(seat: seat, ourTeam: model.ourTeam), rimWidth: Theme.Team.rimWidth)
+        }
+    }
+
     /// A face over its carved name (D94) over one line of badges: the dealer's mark beside the face
     /// (N65), no stack of backs (D93) and no BIDDER, since the bid box shows who bid. Everything a seat says sits on or under its own portrait, so nothing
     /// about a player floats elsewhere on the table (spec R2). The seat to act wears a gold halo that
@@ -967,8 +1013,7 @@ struct SeatView: View {
                 .frame(height: Theme.Table.thinkingHeight)
                 .opacity(thinking ? 1 : 0)
             // The rim says the side: your team's light, the opponents' oxblood (D97).
-            PortraitView(portrait: portrait, size: Theme.Table.portraitSize, expression: expression, popsOut: true,
-                         rim: Self.rim(seat: seat, ourTeam: model.ourTeam), rimWidth: Theme.Team.rimWidth)
+            face
                 .onGeometryChange(for: CGPoint.self) { proxy in
                     let frame = proxy.frame(in: .named(TableLayout.space))
                     return CGPoint(x: frame.midX, y: frame.midY)
@@ -981,7 +1026,7 @@ struct SeatView: View {
                 .overlay {
                     Circle().strokeBorder(Theme.Wood.streakLight,
                                           style: StrokeStyle(lineWidth: Theme.Table.bidderRingWidth, dash: Theme.Table.bidderRingDash))
-                        .opacity(isBidder ? 1 : 0)
+                        .opacity(isBidder && art == nil ? 1 : 0)
                 }
                 // While the score pad lies in the corner under the left seat, that seat's dealer button rides its face (D112).
                 .overlay(alignment: .bottomTrailing) {
@@ -996,12 +1041,14 @@ struct SeatView: View {
                 .overlay {
                     Circle().stroke(.gold, lineWidth: Theme.Table.activeRingWidth)
                         .padding(-Theme.Table.activeRingGap)
-                        .opacity(active ? 1 : 0)
+                        .opacity(active && art == nil ? 1 : 0)
                 }
                 // The popped head goes over the rings as well, so it stays in front of its circle (N49).
                 .overlay {
-                    PortraitView(portrait: portrait, size: Theme.Table.portraitSize, expression: expression, popsOut: true, headOnly: true)
-                        .scaleEffect(bigMomentScale, anchor: .bottom)
+                    if art == nil {
+                        PortraitView(portrait: portrait, size: Theme.Table.portraitSize, expression: expression, popsOut: true, headOnly: true)
+                            .scaleEffect(bigMomentScale, anchor: .bottom)
+                    }
                 }
                 .scaleEffect(pulsing ? Theme.Table.activePulseScale : 1)
                 // A trick taken lands in the face, which nods (D97); Reduce Motion keeps it still.

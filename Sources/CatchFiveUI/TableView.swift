@@ -10,6 +10,8 @@ public struct TableView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// The seat whose name tag was tapped, and the name being typed for it (D93).
     @State private var renaming: Int?
+    /// The seat whose player card is up (D151).
+    @State private var carding: Int?
     @State private var nameDraft = ""
     /// The rules, opened from the book in the top row (D93); they open like a book (D94).
     @State private var showRules = ScreenshotStage.name == "table-rules" || BookFold.heldProgress(stage: ScreenshotStage.name) != nil
@@ -86,7 +88,7 @@ public struct TableView: View {
         TablePause(sceneActive: scenePhase == .active,
                    welcomeShown: covered,
                    sheetShown: showSettings || showTutorial || showRules || scorePanel || showStatistics || support != nil,
-                   dialogShown: renaming != nil || confirmNineAndOut || model.tallyDemo != nil || model.errorMessage != nil || model.saveError != nil,
+                   dialogShown: renaming != nil || carding != nil || confirmNineAndOut || model.tallyDemo != nil || model.errorMessage != nil || model.saveError != nil,
                    inspectingTrick: reopenedTrick != nil,
                    drawShown: drawShown)
     }
@@ -291,10 +293,29 @@ public struct TableView: View {
         .preferredColorScheme(.dark)
     }
 
-    /// A tapped name tag asks for the seat's new name, starting from the one it wears (D93).
+    /// A tapped name tag flips up that player's card (D151); the pencil on the card asks for the seat's new name,
+    /// starting from the one it wears (D93).
     private func rename(_ seat: Int) {
-        nameDraft = model.seatNames[seat]
-        renaming = seat
+        withAnimation(motion(.spring(duration: 0.45, bounce: 0.25))) { carding = seat }
+    }
+
+    @ViewBuilder private var playerCard: some View {
+        if let seat = carding {
+            ZStack {
+                Color.black.opacity(0.6).ignoresSafeArea()
+                    .onTapGesture { withAnimation(motion(Theme.Motion.overlay)) { carding = nil } }
+                    .accessibilityLabel("Close the card").accessibilityAddTraits(.isButton)
+                PlayerCard(name: model.seatNames[seat], figure: SeatArt.image(seat: seat), item: SeatArt.named("GuestItem\(seat)"),
+                           sheet: PlayerSheet(seat: seat, match: model.match)) {
+                    nameDraft = model.seatNames[seat]
+                    carding = nil
+                    renaming = seat
+                }
+                .transition(.asymmetric(insertion: .scale(scale: 0.3).combined(with: .opacity).combined(with: .offset(y: 120)),
+                                        removal: .opacity))
+            }
+            .accessibilityAddTraits(.isModal)
+        }
     }
 
     /// US or THEM in solo, the pair's names in pass and play.
@@ -308,6 +329,11 @@ public struct TableView: View {
         layout
             .animation(motion(Theme.Motion.flight), value: model.revision)
             .task(id: SchedulerKey(revision: model.revision, paused: pause.isPaused)) { await advance() }
+            .onChange(of: pause) { _, now in TableTrace.log("pause \(now)") }
+            // Every touch on the table, whether or not a control took it (D142).
+            .simultaneousGesture(SpatialTapGesture(coordinateSpace: .global).onEnded { tap in
+                TableTrace.log("touch \(Int(tap.location.x)),\(Int(tap.location.y)) \(traceState)")
+            })
             .onChange(of: model.match.handNumber) { _, _ in collapsedTricks = 0; reopenedTrick = nil }
             .onChange(of: model.revision) { _, revision in
                 withAnimation(motion(Theme.Motion.collapse)) { reopenedTrick = nil }
@@ -409,6 +435,7 @@ public struct TableView: View {
                 Button("Retry") { model.retrySave() }
                 Button("Not now", role: .cancel) { model.saveError = nil }
             } message: { Text(model.saveError ?? "") }
+            .overlay { playerCard }
             // Renaming a seat from its tag (D93); blank keeps the old name (`Settings.renameSeat`).
             .alert("Rename", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
                 TextField("Name", text: $nameDraft)
@@ -421,6 +448,15 @@ public struct TableView: View {
     }
 
     private func motion(_ animation: Animation) -> Animation { reduceMotion ? Theme.Motion.reduced : animation }
+
+    /// What the table knows right now, for the step log (D142).
+    private var traceState: String {
+        let hand = model.match.hand, number = model.match.handNumber
+        let landed = TableSurface.handLanded(model.humanCards, motion: flightState, handNumber: number)
+        return "rev \(model.revision) hand \(number) \(hand.phase) next \(hand.nextSeat.map(String.init) ?? "-") human \(model.isHumanTurn)"
+            + " paused \(pause.isPaused) landed \(landed) dealt \(flightState.dealtHand) started \(flightState.dealStarted)"
+            + " flights \(flightState.flights.count) tricks \(hand.completedTricks.count) collapsed \(collapsedTricks) covered \(covered)"
+    }
 
 
 
@@ -438,7 +474,8 @@ public struct TableView: View {
     /// next computer act. Everything here waits on the table's own pace; none of it changes the match except
     /// `stepComputer`, the one place a computer acts.
     private func advance() async {
-        guard !pause.isPaused else { return }
+        TableTrace.log("advance \(traceState)")
+        guard !pause.isPaused else { TableTrace.log("advance stop: paused \(pause)"); return }
         let hand = model.match.hand
         if collapsedTricks > hand.completedTricks.count { collapsedTricks = hand.completedTricks.count }
         // A fresh hand is dealt round the table before anyone bids (D97); one that can no longer be dealt shows at once.
@@ -447,9 +484,11 @@ public struct TableView: View {
         case .animate:
             // One beat so the new dealer's deck has said where it rests. If a bid lands meanwhile, the next run skips it.
             try? await Task.sleep(for: .milliseconds(60))
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled else { TableTrace.log("advance cancelled before deal"); return }
             deal()
+            TableTrace.log("deal started hand \(number) flights \(flightState.flights.count) ends in \(dealEnds?.timeIntervalSinceNow ?? 0)")
         case .skip:
+            TableTrace.log("deal skipped hand \(number)")
             flightState.skipDeal(handNumber: number)
         case .none:
             break
@@ -473,9 +512,12 @@ public struct TableView: View {
             try? await Task.sleep(for: Theme.Motion.dealHold)
             guard !Task.isCancelled else { return }
         }
-        guard !model.isHumanTurn, hand.nextSeat != nil, model.match.winner == nil else { return }
+        guard !model.isHumanTurn, hand.nextSeat != nil, model.match.winner == nil else {
+            TableTrace.log("advance rests: \(traceState)")
+            return
+        }
         try? await Task.sleep(for: model.settings.delay(leadingTrick: step.leading))
-        guard !Task.isCancelled else { return }
+        guard !Task.isCancelled else { TableTrace.log("advance cancelled before computer"); return }
         model.stepComputer()
     }
 

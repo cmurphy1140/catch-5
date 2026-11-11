@@ -236,9 +236,9 @@ struct ContractChip: View {
     }
 }
 
-/// The contract as one line across the oak above the cloth table (D117): who bid and how many, trump by name once
-/// it is chosen, and the player's own count of trump seen. A tap adds to the count, a long press takes one back.
-/// Empty during the auction, keeping its height so the table does not jump.
+/// The contract as one line across the oak above the cloth table (D117), as large as the line allows (D143): who bid
+/// and how many, the trump suit once it is chosen, and the player's own count of trump seen. A tap adds to the count,
+/// a long press takes one back. Empty during the auction, keeping its height so the table does not jump.
 struct ContractStrip: View {
     let contract: ContractPlaque.Contract?
     var tally = 0
@@ -248,8 +248,8 @@ struct ContractStrip: View {
     var body: some View {
         // One Text, so the whole line shrinks together and no part of it is cut short.
         line
-        .font(.system(.subheadline, design: .serif).weight(.bold)).lineLimit(1).minimumScaleFactor(0.5)
-        .frame(maxWidth: .infinity, minHeight: 34)
+        .font(.system(.title2, design: .serif).weight(.bold)).lineLimit(1).minimumScaleFactor(0.5)
+        .frame(maxWidth: .infinity, minHeight: 38)
         .overlay(alignment: .top) { rule }
         .overlay(alignment: .bottom) { rule }
         .padding(.horizontal, 10)
@@ -267,7 +267,8 @@ struct ContractStrip: View {
         let bar = Text("  |  ").foregroundColor(Theme.Paper.rule)
         var text = Text("\(contract.bidder) bid \(contract.number)\(contract.qualifier.map { " " + $0 } ?? "")")
         if let trump = contract.trump {
-            text = text + bar + Text(trump.glyph).foregroundColor(trump.isRed ? .suitRed : nil) + Text(" \(trump.rawValue.capitalized) trump")
+            // The suit itself lies on the cloth below, so the line names it without the word "trump" and has room to be larger.
+            text = text + bar + Text(trump.glyph).foregroundColor(trump.isRed ? .suitRed : nil) + Text(" \(trump.rawValue.capitalized)")
                 + bar + Text("\(tally) seen").italic()
         }
         return text

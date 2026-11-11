@@ -1121,3 +1121,131 @@ Amends D136. Whole questions took three lines and pushed the guest's scene down.
 `label` and they share one row, as the default chips do; the whole question is still what the helper is asked and what
 VoiceOver reads. A suggestion marked `code` shows its link as a QR code on a slip of paper (`GuestCodeCard`), because a
 link worth sharing is one the others at the table scan from her phone; Open still opens it here.
+
+## D140. One chip can hold the links that belong together (2026-11-11)
+
+Amends D139. A fourth suggestion does not fit the row, and two links about the same thing are one thought. A
+suggestion's slip may carry a `caption` saying what the code leads to and a list `also` of further links, each a plain
+line under the code that opens here. The code stays the one thing to scan; a slip has one code, never two.
+
+## D141. A launch opens the main menu, match in progress or not (2026-11-11)
+
+Replaces D64. Connor: "the loading screen is great but should open up into the main page, not the game." The dealt
+opening ends on the title, so the front page is what it should lift onto; dropping a player mid-hand after it was a
+jolt. `RootView.initialScreen` now returns the menu for any signed-in player who has seen the rules. The match is kept
+and Back to the table is the prominent button (D66), so resuming costs one tap.
+
+## D142. A step log on the phone, for the freeze hunt only (2026-11-11)
+
+Sets D104 aside for one job. Connor's phone ignores taps and sticks between hands; a new solo game, five tricks, the
+hand-end card and the next deal all ran on the simulator, so the cause has to be read where it happens. `TableTrace`
+writes one line per scheduler decision, pause change, touch on the table, `send`, computer move and refused action to
+`trace.log` beside the saved game. It compiles to nothing outside a debug build, holds no names or words typed, and
+comes out again when the freeze is found.
+
+## D143. Trump lies on the cloth, and the contract reads larger (2026-11-11)
+
+Amends D117. Connor, playing on the phone: "can you put the trump suit on the table, and make the bid, trump and 0
+seen larger?" The Around table now carries the trump suit on the cloth, large and faint like a weave and set below the
+partner, so the suit is where the eyes already are. With the suit on the table the contract line drops the word
+"trump" ("Connor bid 2 | Spades | 0 seen") and uses the room to be larger. Two lines were tried and pushed the Your
+turn plaque under the hand, so it stays one line.
+
+## D144. A short absence comes back to the table (2026-11-11)
+
+Amends D141. Connor: "ensure that exiting the app briefly doesn't restart game state." The step log (D142) showed
+what happens: he left the table, the phone closed the app in the background, and the next launch dealt the opening
+and stopped on the menu. The match itself was never lost. Now `RootView` notes, each time the app leaves the
+foreground, whether the player was at the table; a launch within thirty minutes of that, with the match still in
+progress, skips the opening and the menu and shows the table as it was, curtain down in pass and play. A longer
+absence, or leaving from the menu, still opens on the front page.
+
+## D145. A played card shows who played it (2026-11-11)
+
+Connor: "the cards being played need to clearly be implied who they were played by, maybe that's something to be
+creative about." The pile already nudges each card toward its seat, but with the tighter stack (D119) and each card's
+own toss that reads as a heap. Now the player of a card looks over its edge from their side of the table: their
+figure, cut out of its disc (D124), is drawn behind the card, which crops it. No label, ring or box is added. Your
+own card carries no face; it lies nearest you. `TableSurface.peek(for:)` says where each place looks from.
+
+## D146. The helper's suggestions are small glass chips (2026-11-11)
+
+Connor: "make the suggestion prompts in the popup smaller, and have a frosted apple glass look." The suggestions in
+the Ask anything sheet were full-width paper rows, 48 points tall, each in a ruled box. They are now chips as wide as
+their words, in the system's frosted glass (`FrostedChip`: `glassEffect` where the phone has it, a thin material with
+a light rim before that). Each row still takes a 44-point touch.
+
+## D147. The guide's contents page is a notebook with a sideways shelf (2026-11-11)
+
+Connor sent a picture of the contents page as a spiral notebook on the wood, with Modules and Swift vocab tabs, and
+asked for it with "the elements scrollable in a horizontal box, with the time/diagram,ect in a more creative format."
+The chapters were a tall list of dark cards under a navigation bar. The page is now ivory paper with a wire binding;
+the chapters are index cards on a shelf that scrolls sideways and rests one card at a time (`ModuleCard`,
+`ExplainerLibrary.Facts`), and the glossary is the second tab. A card's measures are drawn: reading time as a clock
+wedge of the hour, sections as tally marks in gates of five (`ExplainerLibrary.tally`), diagrams as joined dots; a
+count over fifteen is written as a number. The tabs are in sentence case, as the rest of the app is.
+
+Later the same day Connor sent four more pictures ("use some inspiration from these too"): flat ivory pages with ruled
+lists. From them: card numbers are two digits; a chapter and its pages are ivory paper with ink text (`PaperPage`), the
+chapter's title large over its measures, its sections ruled lines under "In this chapter" instead of dark boxes, and
+Previous and Next green words; the vocabulary's terms are large and green with a hairline between. The pictures'
+walkthrough page and illustrated vocabulary are new writing and are not built.
+
+## D148. A seat can be a cut-out figure with no ring (2026-11-11)
+
+Connor sent faceless, flat-colour figures of card players and asked for them in the game, starting with the four
+seats. When a build carries the image assets `GuestSeat0` to `GuestSeat3` (`SeatArt`), each seat draws its figure in
+place of the portrait disc, with no disc, team rim, bidder ring or turn ring; the seat to act glows gold round its own
+outline, and your own tag under the hand shows your figure. The pictures stay out of the public repository, as the
+other `Guest` assets do, so a build without them keeps the drawn portraits. Not carried yet without a ring: which
+side a seat is on, and who won the bid (the contract line still names the bidder).
+
+## D149. The cloth has a nap (2026-11-11)
+
+Connor: "i want the felts/tables to have more texture." The Around table's cloth was a smooth gradient. It now carries
+`ClothNap`: blurred worn patches and short fibres lying every way, colourless so it suits each cloth colour, drawn
+once for the whole surface and masked to the cloth so it does not redraw as the table changes shape.
+
+## D150. Your turn is a scrap off the score pad (2026-11-11)
+
+Connor: "use some ui container and boxes as creative objects, like your turn box can something fun. Also I like the
+idea of having a player card." The ivory pill that said Your turn is now `TurnSlip`: a torn scrap of ruled pad paper,
+the words in pencil, tilted a little, with the pencil lying across its corner when the build has that picture
+(`GuestPencil`, kept out of the repository). `PlayerCard` is a first sketch of a player as the face of a playing
+card (figure above and below, name on a ribbon, initial in the corners); it is not shown anywhere yet.
+
+## D151. A tapped name flips up the player's card (2026-11-11)
+
+Connor: "Yes, and their card should have one of the fun items, their scoreboard, and play style." Tapping a seat's
+name used to open a plain rename box. It now flips up `PlayerCard`: the figure, the name on a ribbon, one object from
+the table (`GuestItem0` to `GuestItem3`, kept out of the repository), a scoreboard and a line on how they play. Both
+are counted from the match by `PlayerSheet` (bids won, made, set, tricks this hand, the side's score); the play style
+is read off those counts, since the computer players have no personalities to report. A pencil on the card opens the
+old rename box. The card pauses play like any dialog.
+
+
+## D152. No grey plate round a control (2026-11-11)
+
+Connor, of a grey pill behind the chat's send arrow: "remove the gray highlight around any element, it doesnt look
+good." The chat's own buttons (send, cancel, more, keep, try again, offline help) now wear `BareButton`: the plain
+style, the paper's green, no hover plate. The system draws nothing round them.
+
+## D153. The partner sits on the oak (2026-11-11)
+
+Connor: "move the connor player off the table." On the Around table the partner sat inside the cloth, in the middle
+of it. The cloth now starts under the partner's name, so the partner is on the oak like the other two and the cloth is
+the trick's alone.
+
+## D154. Support settings on paper (2026-11-11)
+
+From Connor's mockup: the support settings sheet is ivory paper with the title in the serif, two soft cards (the
+on-call helper switch with the station address, then the access code with a lock) and the caution at the foot, in
+place of the grey system form. Sentence case throughout. The caution still says never to enter an OpenAI key.
+
+## D155. A wittier helper (2026-11-11)
+
+Connor: "can you make chatgpt support funnier and more witty? that's half the fun." The helper's instructions in
+`help/support-core.mjs` now ask for the funniest person at the table: answer first, then one dry joke, play along with
+a silly question, tease the game and never the player, right before funny when the question is real. It takes effect
+when the help server is deployed; deployed 2026-11-11 on Connor's go.
+

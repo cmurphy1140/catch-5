@@ -237,7 +237,8 @@ public final class GameModel: ObservableObject {
     }
 
     public func send(_ action: PlayerAction) {
-        guard isHumanTurn, let seat = viewerSeat else { return }
+        guard isHumanTurn, let seat = viewerSeat else { TableTrace.log("send dropped, not your turn: \(action)"); return }
+        TableTrace.log("send \(action) seat \(seat)")
         notice = nil
         let announces = namesTrump(action)
         if perform({ try match.apply(action, seat: seat) }) {
@@ -248,14 +249,15 @@ public final class GameModel: ObservableObject {
         }
     }
     public func stepComputer() {
-        guard match.winner == nil, let seat = match.hand.nextSeat, !isHuman(seat) else { return }
+        guard match.winner == nil, let seat = match.hand.nextSeat, !isHuman(seat) else { TableTrace.log("computer step skipped"); return }
         var announces = false
         // Read before the call: the auction may close on it, and the note belongs to the hand it was made in.
         let hand = match.handNumber
         let bold = boldNoteHand == hand ? nil : boldNote(for: seat)
         let acted = perform {
             let view = try PlayerView(match: match, seat: seat)
-            guard let action = ComputerPlayer.decide(view, difficulty: settings.difficulty) else { return }
+            guard let action = ComputerPlayer.decide(view, difficulty: settings.difficulty) else { TableTrace.log("computer \(seat) has no move"); return }
+            TableTrace.log("computer \(seat) \(action)")
             announces = namesTrump(action)
             try match.apply(action, seat: seat)
         }
@@ -525,6 +527,7 @@ public final class GameModel: ObservableObject {
     }
 
     public func nextHand() {
+        TableTrace.log("next hand asked")
         perform { try match.startNextHand(deck: Self.deck()) }
         revealedSeat = nil
         lastHumanAction = nil
@@ -533,6 +536,7 @@ public final class GameModel: ObservableObject {
     }
     /// A fresh match in `mode`, or in the current mode when none is given (Play again keeps it).
     public func newGame(mode: PlayMode? = nil) {
+        TableTrace.log("new game")
         let draw = DealerDraw.draw(from: Self.deck())
         if let mode { self.mode = mode }
         revealedSeat = nil
@@ -552,6 +556,7 @@ public final class GameModel: ObservableObject {
         do {
             try action()
         } catch {
+            TableTrace.log("refused: \(error)")
             errorMessage = Self.message(for: error)
             return false
         }

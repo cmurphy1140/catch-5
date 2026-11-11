@@ -350,3 +350,25 @@ private func playNext(_ match: inout Match) throws {
     // Reduce Motion passes no motion: nothing is dealt in flight, so the hand is already there.
     #expect(TableSurface.handLanded(cards, motion: nil, handNumber: fresh.handNumber))
 }
+
+@Test func aPlayedCardShowsItsPlayerOnTheirSideOfTheTable() {
+    // The player of a card looks over its edge from where they sit (D145); your own card needs no face.
+    #expect(TableSurface.peek(for: 0) == nil)
+    #expect((TableSurface.peek(for: 1)?.out.width ?? 0) < 0)   // the left seat peeks from the left
+    #expect((TableSurface.peek(for: 3)?.out.width ?? 0) > 0)   // the right seat from the right
+    #expect(TableSurface.peek(for: 2)?.out.width == 0)         // the partner from straight above
+    for place in 1...3 { #expect((TableSurface.peek(for: place)?.out.height ?? 0) < 0) }
+}
+
+@Test func aPlayerCardReadsPlayStyleOffTheCounts() {
+    // D151: the card's line about how someone plays comes from the match, not from a made-up personality.
+    func style(hands: Int, won: Int, made: Int, average: Double?) -> String {
+        PlayerSheet(hands: hands, bidsWon: won, made: made, set: won - made, averageBid: average, tricksThisHand: 0, sideScore: 0).style
+    }
+    #expect(style(hands: 0, won: 0, made: 0, average: nil) == "Too early to tell")
+    #expect(style(hands: 4, won: 0, made: 0, average: nil) == "Lets others do the bidding")
+    #expect(style(hands: 4, won: 3, made: 1, average: 5) == "Bites off more than they can chew")
+    #expect(style(hands: 4, won: 1, made: 1, average: 5) == "Bold bidder")
+    #expect(style(hands: 4, won: 2, made: 2, average: 3) == "Likes to run the table")
+    #expect(style(hands: 6, won: 1, made: 1, average: 3) == "Steady hand")
+}

@@ -100,31 +100,56 @@ private struct SupportConnectionSettings: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("Connection") {
-                    Toggle("Online answers", isOn: $useOnline)
-                    TextField("HTTPS support endpoint", text: $endpoint).textContentType(.URL)
-                    SecureField("Support access code", text: $code)
-                }
-                Section {
-                    Text("Use your trusted support server and its access code. Never enter an OpenAI API key here. Applying starts a fresh chat.")
-                        .font(.footnote)
-                }
+        // Paper, not a system form (D154): the title in the serif, two soft cards, the caution at the foot.
+        VStack(spacing: 0) {
+            HStack {
+                Button("Close") { dismiss() }
+                Spacer()
+                Button("Apply") { onApply(endpoint, code, useOnline) }
+                    .disabled(useOnline && SupportClient(endpoint: endpoint, code: code) == nil)
             }
-            .navigationTitle("Support settings")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() }.frame(minHeight: 44) }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Apply") { onApply(endpoint, code, useOnline) }
-                        .disabled(useOnline && SupportClient(endpoint: endpoint, code: code) == nil)
-                        .frame(minHeight: 44)
+            .font(.title3).modifier(BareButton()).frame(minHeight: 44)
+            Text("Support settings").font(.system(.largeTitle, design: .serif).weight(.bold)).foregroundStyle(Theme.Paper.green)
+                .padding(.top, 14).padding(.bottom, 26).accessibilityAddTraits(.isHeader)
+            VStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 0) {
+                    Toggle("On-call helper", isOn: $useOnline).tint(Theme.Paper.green).frame(minHeight: 44)
+                    Rectangle().fill(Theme.Paper.rule.opacity(0.5)).frame(height: 1).padding(.vertical, 10)
+                    Text("Support station address")
+                    TextField("An https address", text: $endpoint).textContentType(.URL).autocorrectionDisabled()
+                        #if os(iOS)
+                        .textInputAutocapitalization(.never).keyboardType(.URL)
+                        #endif
+                        .font(.body).foregroundStyle(Theme.Paper.green).frame(minHeight: 36)
                 }
+                .modifier(SettingsCard())
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Access code")
+                    HStack {
+                        SecureField("From whoever runs the helper", text: $code).font(.body).foregroundStyle(Theme.Paper.green)
+                        Image(systemName: "lock").foregroundStyle(Theme.Paper.green).accessibilityHidden(true)
+                    }
+                    .frame(minHeight: 36)
+                }
+                .modifier(SettingsCard())
             }
+            .font(.title3).foregroundStyle(Theme.Paper.ink)
+            Spacer(minLength: 20)
+            Text("Use your own trusted helper's address and its access code. Never enter an OpenAI key here. Applying starts a fresh chat.")
+                .font(.footnote).multilineTextAlignment(.center).foregroundStyle(Theme.Paper.ink).padding(.horizontal, 12)
         }
+        .padding(.horizontal, 20).padding(.top, 12).padding(.bottom, 16)
+        .frame(maxWidth: 520).frame(maxWidth: .infinity)
+        .background(Color.ivory.ignoresSafeArea())
+        .environment(\.colorScheme, .light)
+    }
+}
+
+/// A soft card on the paper for a group of settings (D154): a shade lighter than the page, no outline.
+private struct SettingsCard: ViewModifier {
+    func body(content: Content) -> some View {
+        content.padding(.horizontal, 18).padding(.vertical, 14).frame(maxWidth: .infinity, alignment: .leading)
+            .background(.white.opacity(0.55), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
 
@@ -162,7 +187,7 @@ private struct SupportConversation: View {
                                 Button("Try again") { model.send(question) }.frame(minHeight: 44)
                                 Button("Offline help") { model.useLocalFallback() }.frame(minHeight: 44)
                             }
-                            .font(.callout.weight(.semibold))
+                            .font(.callout.weight(.semibold)).modifier(BareButton())
                         }
                     } else if let error = model.error { Text(error).font(.callout) }
                 }
@@ -181,19 +206,21 @@ private struct SupportConversation: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(model.front ? "Hi Emma, or friends!" : "Ask about this hand, or just chat")
                 .font(.system(.title2, design: .serif).weight(.semibold))
-            ForEach(starters, id: \.question) { starter in
-                Button(action: starter.ask) {
-                    HStack {
+            // Small frosted-glass chips, each as wide as its words (D146). The row stays 44 points tall to the
+            // finger; only the glass is smaller.
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(starters, id: \.question) { starter in
+                    Button(action: starter.ask) {
                         Text(starter.question)
-                        Spacer(minLength: 8)
-                        Image(systemName: "arrow.up.left").font(.caption)
+                            .font(.subheadline.weight(.medium)).foregroundStyle(Theme.Paper.green)
+                            .lineLimit(2).multilineTextAlignment(.leading)
+                            .padding(.horizontal, 12).padding(.vertical, 7)
+                            .modifier(FrostedChip())
+                            .frame(minHeight: 44, alignment: .leading)
+                            .contentShape(Rectangle())
                     }
-                    .font(.body.weight(.medium)).foregroundStyle(Theme.Paper.green)
-                    .padding(.horizontal, 14).frame(minHeight: 48)
-                    .background(Theme.Paper.wash, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Theme.Paper.rule))
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
         }
     }
@@ -220,7 +247,7 @@ private struct SupportConversation: View {
                     Button(expanded.contains(message.id) ? "Less" : "More") {
                         if !expanded.insert(message.id).inserted { expanded.remove(message.id) }
                     }
-                    .font(.callout.weight(.semibold))
+                    .font(.callout.weight(.semibold)).modifier(BareButton())
                     .frame(minWidth: 44, minHeight: 44, alignment: .leading)
                     .accessibilityHint("Expands or collapses this answer without asking again")
                 }
@@ -230,7 +257,7 @@ private struct SupportConversation: View {
                     Button(kept ? "Kept in notebook" : "Keep in notebook", systemImage: kept ? "bookmark.fill" : "bookmark") {
                         notebook.toggle(message.text)
                     }
-                    .labelStyle(.iconOnly).foregroundStyle(Theme.Paper.green)
+                    .labelStyle(.iconOnly).modifier(BareButton())
                     .frame(minWidth: 44, minHeight: 36, alignment: .leading)
                 }
             }
@@ -252,10 +279,10 @@ private struct SupportConversation: View {
                 .disabled(model.isSending)
                 .onAppear { if model.front, model.messages.isEmpty { writing = true } }
             if model.isSending {
-                Button("Cancel") { model.cancel() }.frame(minWidth: 44, minHeight: 44)
+                Button("Cancel") { model.cancel() }.modifier(BareButton()).frame(minWidth: 44, minHeight: 44)
             } else {
                 Button("Send", systemImage: "arrow.up.circle.fill", action: send)
-                    .labelStyle(.iconOnly).font(.title).foregroundStyle(Theme.Paper.green).frame(minWidth: 44, minHeight: 44)
+                    .labelStyle(.iconOnly).font(.title).modifier(BareButton()).frame(minWidth: 44, minHeight: 44)
                     .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !SupportMessage.fits(draft))
             }
         }
@@ -290,5 +317,32 @@ private struct TypedText: View {
                 }
                 done()
             }
+    }
+}
+
+/// A chip of frosted glass (D146): the system's own glass where the phone has it, and before that a thin material
+/// with a light rim, so the chip reads as glass on paper either way.
+struct FrostedChip: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26, macOS 26, *) {
+            content.glassEffect(.regular.interactive(), in: .capsule)
+        } else {
+            content
+                .background(.ultraThinMaterial, in: Capsule())
+                .overlay(Capsule().strokeBorder(.white.opacity(0.7), lineWidth: 1))
+                .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
+        }
+    }
+}
+
+/// A button with nothing drawn round it (D152): no system pill, no grey plate under the finger or the pointer. The
+/// words or the symbol are the whole control, in the paper's green.
+struct BareButton: ViewModifier {
+    func body(content: Content) -> some View {
+        #if os(iOS)
+        content.buttonStyle(.plain).foregroundStyle(Theme.Paper.green).hoverEffectDisabled()
+        #else
+        content.buttonStyle(.plain).foregroundStyle(Theme.Paper.green)
+        #endif
     }
 }

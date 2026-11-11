@@ -75,6 +75,28 @@ public enum ExplainerLibrary {
         max(1, Int((Double(words) / 200).rounded()))
     }
 
+    /// What a chapter's card on the contents shelf says about it (D147).
+    struct Facts: Equatable, Identifiable {
+        let chapter: Chapter
+        let title: String
+        let minutes: Int
+        let sections: Int
+        let diagrams: Int
+        var id: String { chapter.id }
+    }
+
+    static func facts(for chapter: Chapter, in bundle: Bundle = .main) -> Facts {
+        let document = document(for: chapter.file, in: bundle)
+        return Facts(chapter: chapter, title: document?.title ?? chapter.file, minutes: document.map(readingMinutes) ?? 0,
+                     sections: document?.sections.count ?? 0, diagrams: document?.diagramCount ?? 0)
+    }
+
+    /// A count as tally marks: full gates of five, and the strokes left over.
+    static func tally(_ count: Int) -> (gates: Int, loose: Int) { (max(0, count) / 5, max(0, count) % 5) }
+
+    /// The largest count a card draws mark by mark; a bigger one is written as a number.
+    static let drawnUpTo = 15
+
     /// One short page of a chapter: a `##` section, or one part of a long one.
     struct Page: Equatable, Hashable, Identifiable {
         let file: String
@@ -222,33 +244,51 @@ public enum ExplainerLibrary {
     }
 }
 
-/// The contents page: the chapters in reading order, then the Swift vocabulary.
+/// The contents page (D147): a spiral notebook lying on the wood. Its Modules tab is a shelf of index cards that
+/// scrolls sideways, one chapter to a card; its Swift vocab tab is the glossary.
 struct ExplainerView: View {
     let onDismiss: () -> Void
     @State private var contents: MarkdownDocument?
     @State private var open: ExplainerLibrary.Chapter?
+    @State private var tab = Tab.modules
+    /// The card the shelf has come to rest on.
+    @State private var facing: String?
+    private let shelf: [ExplainerLibrary.Facts]
+
+    enum Tab: String, CaseIterable { case modules = "Modules", vocab = "Swift vocab" }
 
     /// `initial` opens straight into a chapter by file name; nil shows the contents page.
     init(initial: String? = nil, onDismiss: @escaping () -> Void) {
         self.onDismiss = onDismiss
         let contents = ExplainerLibrary.document(for: ExplainerLibrary.contentsChapter.file)
+        let chapters = contents.map(ExplainerLibrary.chapters) ?? []
         _contents = State(initialValue: contents)
-        _open = State(initialValue: contents.flatMap { ExplainerLibrary.chapters(from: $0).first { $0.file == initial } })
+        _open = State(initialValue: chapters.first { $0.file == initial })
+        shelf = chapters.map { ExplainerLibrary.facts(for: $0) }
     }
 
     var body: some View {
         NavigationStack {
-            Group {
+            VStack(spacing: 12) {
+                header
                 if let contents {
-                    contentsPage(contents)
+                    if case let .paragraph(lede)? = contents.blocks.dropFirst().first {
+                        // Its first sentence only: the page under it says the rest.
+                        MarkdownText(lede.components(separatedBy: ". ").first.map { $0.hasSuffix(".") ? $0 : $0 + "." } ?? lede).font(.subheadline).multilineTextAlignment(.center).opacity(0.85)
+                            .lineLimit(3).minimumScaleFactor(0.8).padding(.horizontal, 24)
+                    }
+                    notebook(contents)
                 } else {
-                    Text("The explainer pages are not in this build.").foregroundStyle(.secondary).padding()
+                    Text("The explainer pages are not in this build.").opacity(0.7).padding()
+                    Spacer()
                 }
             }
             .foregroundStyle(.ivory)
             .background(WoodGrainView().ignoresSafeArea())
             .navigationTitle("How Catch 5 is built")
-            .toolbar { Button("Done", action: onDismiss) }
+            #if os(iOS)
+            .toolbar(.hidden, for: .navigationBar)
+            #endif
             .navigationDestination(item: $open) { chapter in
                 DocumentReaderView(chapter: chapter, chapters: chapters) { open = $0 }
             }
@@ -256,61 +296,255 @@ struct ExplainerView: View {
         .preferredColorScheme(.dark)
     }
 
-    private var chapters: [ExplainerLibrary.Chapter] { contents.map(ExplainerLibrary.chapters) ?? [] }
+    private var chapters: [ExplainerLibrary.Chapter] { shelf.map(\.chapter) }
 
-    private func contentsPage(_ contents: MarkdownDocument) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                if case let .paragraph(lede)? = contents.blocks.dropFirst().first {
-                    MarkdownText(lede).font(.body).opacity(0.85)
-                }
-                VStack(spacing: 10) {
-                    ForEach(chapters) { chapter in
-                        Button { open = chapter } label: { chapterCard(chapter) }.buttonStyle(.plain)
-                    }
-                }
-                glossarySection(ExplainerLibrary.glossary(from: contents))
+    /// The title in ivory on the wood, with Done as a round stamp beside it.
+    private var header: some View {
+        HStack(spacing: 12) {
+            Text("How Catch 5 is built").font(.system(size: 30, weight: .bold, design: .serif))
+                .lineLimit(1).minimumScaleFactor(0.6).accessibilityAddTraits(.isHeader)
+            Spacer(minLength: 0)
+            Button(action: onDismiss) {
+                Text("Done").font(.system(.subheadline, design: .serif).weight(.bold)).foregroundStyle(Theme.Paper.ink)
+                    .frame(width: 54, height: 54).background(Color.ivory, in: Circle())
             }
-            .padding(16).frame(maxWidth: 640).frame(maxWidth: .infinity)
+            .buttonStyle(.plain)
+            .keyboardShortcut(.cancelAction)
         }
+        .padding(.horizontal, 20).padding(.top, 8)
     }
 
-    private func chapterCard(_ chapter: ExplainerLibrary.Chapter) -> some View {
-        let document = ExplainerLibrary.document(for: chapter.file)
-        return HStack(alignment: .top, spacing: 14) {
-            Text(String(chapter.number)).font(.system(.title2, design: .serif).weight(.bold)).foregroundStyle(Color.suitRed)
-                .frame(width: 28, alignment: .trailing)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(document?.title ?? chapter.file).font(.headline)
-                Text(chapter.summary).font(.footnote).opacity(0.8).fixedSize(horizontal: false, vertical: true)
-                if let document {
-                    Text("\(ExplainerLibrary.readingMinutes(document)) min · \(document.sections.count) sections\(document.diagramCount > 0 ? " · \(document.diagramCount) diagram\(document.diagramCount == 1 ? "" : "s")" : "")")
-                        .font(.caption2.monospaced()).opacity(0.55)
-                }
+    private func notebook(_ contents: MarkdownDocument) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            tabs
+            switch tab {
+            case .modules: modules
+            case .vocab:
+                ScrollView { glossarySection(ExplainerLibrary.glossary(from: contents)).padding(.trailing, 18).padding(.bottom, 30) }
             }
-            Spacer(minLength: 0)
-            Image(systemName: "chevron.right").font(.footnote).opacity(0.4)
         }
-        .padding(14)
-        .background(Theme.Wood.inlay.opacity(0.85), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.ivory.opacity(0.12)))
-        .accessibilityElement(children: .combine)
+        .padding(.leading, SpiralBinding.margin)
+        .foregroundStyle(Theme.Paper.ink)
+        .frame(maxWidth: 640, maxHeight: .infinity, alignment: .top)
+        .background {
+            UnevenRoundedRectangle(topLeadingRadius: 6, topTrailingRadius: 6).fill(Color.ivory)
+                .shadow(color: .black.opacity(0.35), radius: 8, y: 3)
+        }
+        .overlay(alignment: .leading) { SpiralBinding().allowsHitTesting(false) }
+        .padding(.leading, 18).padding(.trailing, 10)
+        .ignoresSafeArea(edges: .bottom)
+    }
+
+    /// Two words on the page; the open one is underlined in green.
+    private var tabs: some View {
+        HStack(spacing: 0) {
+            ForEach(Tab.allCases, id: \.self) { item in
+                Button { withAnimation(.easeOut(duration: 0.18)) { tab = item } } label: {
+                    Text(item.rawValue).font(.system(.subheadline, design: .serif).weight(.bold))
+                        .foregroundStyle(tab == item ? Theme.Paper.green : Theme.Paper.ink.opacity(0.6))
+                        .frame(maxWidth: .infinity, minHeight: 46)
+                        .overlay(alignment: .bottom) { Rectangle().fill(tab == item ? Theme.Paper.green : .clear).frame(height: 2) }
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(tab == item ? .isSelected : [])
+            }
+        }
+        .overlay(alignment: .bottom) { Rectangle().fill(Theme.Paper.rule.opacity(0.5)).frame(height: 0.5) }
+        .padding(.trailing, 14)
+    }
+
+    /// The shelf: chapter cards side by side, coming to rest one at a time, with the place written under them.
+    private var modules: some View {
+        VStack(spacing: 6) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(alignment: .top, spacing: 14) {
+                    ForEach(shelf) { facts in
+                        Button { open = facts.chapter } label: { ModuleCard(facts: facts) }
+                            .buttonStyle(.plain)
+                            .containerRelativeFrame(.horizontal) { width, _ in min(width * 0.82, 320) }
+                    }
+                }
+                .scrollTargetLayout()
+                .padding(.vertical, 16)
+            }
+            .scrollTargetBehavior(.viewAligned)
+            .scrollPosition(id: $facing)
+            .contentMargins(.trailing, 18, for: .scrollContent)
+            .contentMargins(.leading, 4, for: .scrollContent)
+            Text("\((shelf.firstIndex { $0.id == facing } ?? 0) + 1) of \(shelf.count)")
+                .font(.custom("Noteworthy-Bold", size: 15, relativeTo: .footnote)).opacity(0.6)
+                .padding(.bottom, 34).accessibilityHidden(true)
+        }
     }
 
     private func glossarySection(_ entries: [ExplainerLibrary.GlossaryEntry]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("SWIFT VOCABULARY").font(.system(.caption2, design: .monospaced).weight(.medium)).tracking(1).opacity(0.6)
             ForEach(entries, id: \.term) { entry in
-                VStack(alignment: .leading, spacing: 2) {
-                    MarkdownText(entry.term).font(.subheadline.weight(.semibold))
-                    MarkdownText(entry.meaning).font(.footnote).opacity(0.85)
-                    MarkdownText(entry.where_).font(.caption2).opacity(0.55)
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(entry.term.replacingOccurrences(of: "`", with: "")).font(.title3.weight(.bold)).foregroundStyle(Theme.Paper.green)
+                    MarkdownText(entry.meaning).font(.subheadline).opacity(0.85)
+                    MarkdownText(entry.where_).font(.caption).opacity(0.6)
+                    PaperRule().padding(.top, 9)
                 }
-                .padding(.vertical, 4)
                 .accessibilityElement(children: .combine)
             }
         }
-        .padding(.top, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 14)
+    }
+}
+
+/// One chapter as an index card on the shelf (D147): its number, its name over a red rule, what it teaches, and at
+/// the foot its measures, drawn rather than listed.
+private struct ModuleCard: View {
+    let facts: ExplainerLibrary.Facts
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(String(format: "%02d", facts.chapter.number)).font(.system(size: 54, weight: .heavy, design: .serif)).foregroundStyle(Color.suitRed)
+                Spacer()
+                Image(systemName: "arrow.right").font(.body.weight(.semibold)).opacity(0.55)
+            }
+            Text(facts.title).font(.system(.title2, design: .serif).weight(.bold)).foregroundStyle(Theme.Paper.green)
+                .lineLimit(2).minimumScaleFactor(0.7).multilineTextAlignment(.leading)
+            Rectangle().fill(Color.suitRed.opacity(0.45)).frame(height: 1)
+            Text(facts.chapter.summary).font(.callout).multilineTextAlignment(.leading).minimumScaleFactor(0.8)
+            Spacer(minLength: 12)
+            HStack(alignment: .bottom, spacing: 0) {
+                measure("\(facts.minutes) min") { ClockWedge(minutes: facts.minutes).frame(width: 34, height: 34) }
+                measure("section\(facts.sections == 1 ? "" : "s")", count: facts.sections) { SectionTally(count: facts.sections) }
+                if facts.diagrams > 0 {
+                    measure("diagram\(facts.diagrams == 1 ? "" : "s")", count: facts.diagrams) { DiagramDots(count: facts.diagrams) }
+                }
+            }
+            .accessibilityHidden(true)
+        }
+        .foregroundStyle(Theme.Paper.ink)
+        .padding(18)
+        .frame(maxHeight: 520, alignment: .top)
+        .background {
+            RoundedRectangle(cornerRadius: 4, style: .continuous).fill(Color(red: 0.995, green: 0.985, blue: 0.955))
+                .shadow(color: .black.opacity(0.22), radius: 5, y: 3)
+        }
+        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(facts.chapter.number). \(facts.title). \(facts.chapter.summary)")
+        .accessibilityValue("\(facts.minutes) minutes, \(facts.sections) sections, \(facts.diagrams) diagrams")
+        .accessibilityAddTraits(.isButton)
+    }
+
+    /// A drawing over its caption. A count too big to draw is written as a number in the same hand.
+    private func measure(_ caption: String, count: Int? = nil, @ViewBuilder drawing: () -> some View) -> some View {
+        VStack(spacing: 4) {
+            if let count, count > ExplainerLibrary.drawnUpTo {
+                Text(String(count)).font(.custom("Noteworthy-Bold", fixedSize: 26))
+            } else {
+                drawing()
+            }
+            Text(count.map { $0 > ExplainerLibrary.drawnUpTo ? caption : "\($0) \(caption)" } ?? caption)
+                .font(.custom("Noteworthy-Bold", fixedSize: 13)).opacity(0.7)
+        }
+        .frame(maxWidth: .infinity, minHeight: 58, alignment: .bottom)
+    }
+}
+
+/// Reading time as a clock face: the green wedge is the share of an hour the chapter takes.
+private struct ClockWedge: View {
+    let minutes: Int
+
+    var body: some View {
+        Canvas { context, size in
+            let centre = CGPoint(x: size.width / 2, y: size.height / 2), radius = min(size.width, size.height) / 2 - 1.5
+            var wedge = Path()
+            wedge.move(to: centre)
+            wedge.addArc(center: centre, radius: radius, startAngle: .degrees(-90),
+                         endAngle: .degrees(-90 + 360 * min(1, Double(minutes) / 60)), clockwise: false)
+            wedge.closeSubpath()
+            context.fill(wedge, with: .color(Theme.Paper.green.opacity(0.8)))
+            context.stroke(Path(ellipseIn: CGRect(x: centre.x - radius, y: centre.y - radius, width: radius * 2, height: radius * 2)),
+                           with: .color(Theme.Paper.ink.opacity(0.8)), lineWidth: 1.4)
+            var hand = Path()
+            hand.move(to: centre); hand.addLine(to: CGPoint(x: centre.x, y: centre.y - radius))
+            context.stroke(hand, with: .color(Theme.Paper.ink.opacity(0.8)), style: StrokeStyle(lineWidth: 1.4, lineCap: .round))
+        }
+    }
+}
+
+/// Sections kept as a card player keeps score: pencil strokes, every fifth one struck across the four before it.
+private struct SectionTally: View {
+    let count: Int
+    private static let step = 5.0, gap = 7.0, height = 26.0
+
+    var body: some View {
+        let tally = ExplainerLibrary.tally(count)
+        let width = Double(tally.gates) * (Self.step * 4 + Self.gap) + Double(tally.loose) * Self.step + 2
+        Canvas { context, _ in
+            let pencil = GraphicsContext.Shading.color(Theme.Paper.ink.opacity(0.8))
+            let style = StrokeStyle(lineWidth: 1.6, lineCap: .round)
+            var x = 2.0
+            func stroke(lean: Double) {
+                var line = Path()
+                line.move(to: CGPoint(x: x + lean, y: 3)); line.addLine(to: CGPoint(x: x - lean, y: Self.height - 3))
+                context.stroke(line, with: pencil, style: style)
+                x += Self.step
+            }
+            for _ in 0..<tally.gates {
+                let start = x
+                for mark in 0..<4 { stroke(lean: mark % 2 == 0 ? 0.6 : -0.4) }
+                var strike = Path()
+                strike.move(to: CGPoint(x: start - 2, y: Self.height - 7)); strike.addLine(to: CGPoint(x: x - 2, y: 7))
+                context.stroke(strike, with: pencil, style: style)
+                x += Self.gap - Self.step + Self.step
+            }
+            for mark in 0..<tally.loose { stroke(lean: mark % 2 == 0 ? 0.6 : -0.4) }
+        }
+        .frame(width: max(width, 6), height: Self.height)
+    }
+}
+
+/// Diagrams as a little diagram: one dot for each, joined in a zigzag.
+private struct DiagramDots: View {
+    let count: Int
+
+    var body: some View {
+        let step = count > 1 ? min(11, 60 / Double(count - 1)) : 0
+        Canvas { context, _ in
+            let points = (0..<count).map { CGPoint(x: 4 + Double($0) * step, y: $0 % 2 == 0 ? 20 : 6) }
+            var line = Path()
+            line.addLines(points)
+            context.stroke(line, with: .color(Theme.Paper.ink.opacity(0.6)), lineWidth: 1.2)
+            for point in points {
+                context.fill(Path(ellipseIn: CGRect(x: point.x - 3, y: point.y - 3, width: 6, height: 6)), with: .color(Color.suitRed))
+            }
+        }
+        .frame(width: 8 + Double(max(0, count - 1)) * step, height: 26)
+    }
+}
+
+/// The wire down the notebook's left edge: a punched hole in the paper for each coil, and the coil itself coming
+/// out past the edge.
+private struct SpiralBinding: View {
+    /// How far the page's writing is kept clear of the holes.
+    static let margin = 30.0
+    private static let overhang = 12.0
+
+    var body: some View {
+        Canvas { context, size in
+            var y = 20.0
+            while y < size.height {
+                context.fill(Path(ellipseIn: CGRect(x: Self.overhang + 9, y: y - 4.5, width: 9, height: 9)),
+                             with: .color(Color(red: 0.24, green: 0.15, blue: 0.09)))
+                let coil = Path(roundedRect: CGRect(x: 0, y: y - 2.5, width: Self.overhang + 15, height: 5), cornerRadius: 2.5)
+                context.fill(coil, with: .color(Color(white: 0.42)))
+                context.fill(Path(roundedRect: CGRect(x: 1, y: y - 2.5, width: Self.overhang + 13, height: 1.6), cornerRadius: 0.8),
+                             with: .color(.white.opacity(0.45)))
+                y += 26
+            }
+        }
+        .frame(width: Self.overhang + Self.margin)
+        .offset(x: -Self.overhang)
     }
 }
 
@@ -328,26 +562,33 @@ struct DocumentReaderView: View {
         ScrollView {
             if let document {
                 VStack(alignment: .leading, spacing: 14) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        MarkdownText(document.title).font(.system(.title2, design: .serif).weight(.semibold))
-                            .accessibilityAddTraits(.isHeader)
-                        Text(chapter.summary).font(.footnote).opacity(0.8).fixedSize(horizontal: false, vertical: true)
-                    }
-                    VStack(spacing: 10) {
+                    MarkdownText(document.title).font(.system(size: 40, weight: .semibold, design: .serif))
+                        .minimumScaleFactor(0.6).accessibilityAddTraits(.isHeader)
+                    Text("\(ExplainerLibrary.readingMinutes(document)) min · \(document.sections.count) sections\(document.diagramCount > 0 ? " · \(document.diagramCount) diagram\(document.diagramCount == 1 ? "" : "s")" : "")")
+                        .font(.subheadline).opacity(0.65)
+                    PaperRule()
+                    Text(chapter.summary).font(.title3).opacity(0.8).fixedSize(horizontal: false, vertical: true)
+                    Text("In this chapter").font(.subheadline.weight(.bold)).foregroundStyle(Theme.Paper.green).padding(.top, 12)
+                    VStack(spacing: 0) {
                         ForEach(ExplainerLibrary.cards(for: pages)) { card in
+                            PaperRule()
                             Button { reading = card.first } label: { pageCard(card) }.buttonStyle(.plain)
                         }
+                        PaperRule()
                     }
                     neighbours
                 }
-                .padding(16).frame(maxWidth: 640).frame(maxWidth: .infinity)
+                .padding(.horizontal, 22).padding(.vertical, 16).frame(maxWidth: 640).frame(maxWidth: .infinity)
             } else {
                 Text("This chapter is not in this build.").foregroundStyle(.secondary).padding()
             }
         }
-        .foregroundStyle(.ivory)
-        .background(WoodGrainView().ignoresSafeArea())
-        .navigationTitle(document?.title ?? "")
+        .modifier(PaperPage())
+        .toolbar {
+            if let position = chapters.firstIndex(of: chapter) {
+                Text("Chapter \(position + 1) of \(chapters.count)").font(.subheadline.weight(.semibold)).foregroundStyle(.ivory.opacity(0.9))
+            }
+        }
         .environment(\.openURL, chapterLinks)
         .navigationDestination(item: $reading) { page in
             PageReaderView(pages: pages, start: page.number, next: nextChapter, close: { reading = nil }, open: open)
@@ -383,7 +624,8 @@ struct DocumentReaderView: View {
     }
 
     private func pageCard(_ card: ExplainerLibrary.Card) -> some View {
-        HStack(alignment: .top, spacing: 14) {
+        // A ruled line of the page, not a box (D147).
+        HStack(alignment: .center, spacing: 14) {
             VStack(alignment: .leading, spacing: 4) {
                 MarkdownText(card.first.title).font(.headline).multilineTextAlignment(.leading)
                 HStack(spacing: 6) {
@@ -392,14 +634,13 @@ struct DocumentReaderView: View {
                         Image(systemName: "point.3.connected.trianglepath.dotted").accessibilityLabel("with a diagram")
                     }
                 }
-                .font(.caption2.monospaced()).opacity(0.55)
+                .font(.subheadline).opacity(0.6)
             }
             Spacer(minLength: 0)
-            Image(systemName: "chevron.right").font(.footnote).opacity(0.4)
+            Image(systemName: "chevron.right").font(.body.weight(.semibold)).foregroundStyle(Theme.Paper.green)
         }
-        .padding(14)
-        .background(Theme.Wood.inlay.opacity(0.85), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.ivory.opacity(0.12)))
+        .padding(.vertical, 12).frame(minHeight: 44)
+        .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
     }
 
@@ -409,13 +650,11 @@ struct DocumentReaderView: View {
         let next = position.flatMap { $0 + 1 < chapters.count ? chapters[$0 + 1] : nil }
         return HStack {
             if let previous {
-                Button { open(previous) } label: { Label("Previous", systemImage: "chevron.left") }
-                    .buttonStyle(.borderedProminent).tint(Theme.Wood.dark).foregroundStyle(.ivory)
+                Button { open(previous) } label: { Text("‹ Previous") }.modifier(PaperTurn())
             }
             Spacer()
             if let next {
-                Button { open(next) } label: { Label("Next: \(ExplainerLibrary.document(for: next.file)?.title ?? next.file)", systemImage: "chevron.right") }
-                    .buttonStyle(.borderedProminent).tint(Color.suitRed).foregroundStyle(.ivory).lineLimit(1)
+                Button { open(next) } label: { Text("\(ExplainerLibrary.document(for: next.file)?.title ?? next.file) ›") }.modifier(PaperTurn())
             }
         }
         .padding(.top, 20)
@@ -447,7 +686,7 @@ struct PageReaderView: View {
                 let page = pages[number]
                 VStack(alignment: .leading, spacing: 14) {
                     VStack(alignment: .leading, spacing: 4) {
-                        MarkdownText(page.title).font(.system(.title2, design: .serif).weight(.semibold))
+                        MarkdownText(page.title).font(.system(.largeTitle, design: .serif).weight(.semibold))
                             .accessibilityAddTraits(.isHeader)
                         if page.parts > 1 {
                             Text("Part \(page.part) of \(page.parts)").font(.footnote).opacity(0.7)
@@ -458,36 +697,64 @@ struct PageReaderView: View {
                     }
                     turns
                 }
-                .padding(16).frame(maxWidth: 640).frame(maxWidth: .infinity)
+                .padding(.horizontal, 22).padding(.vertical, 16).frame(maxWidth: 640).frame(maxWidth: .infinity)
             }
         }
         // A fresh scroll view for each page, so a turned page opens at its top: scrolling the old one to the top in
         // the same update as the turn reached the outgoing page, and the new one kept its offset.
         .id(number)
-        .foregroundStyle(.ivory)
-        .background(WoodGrainView().ignoresSafeArea())
-        .navigationTitle(ExplainerLibrary.document(for: pages.first?.file ?? "")?.title ?? "")
+        .modifier(PaperPage())
+        .toolbar { Text(ExplainerLibrary.document(for: pages.first?.file ?? "")?.title ?? "").font(.subheadline.weight(.semibold)).foregroundStyle(.ivory.opacity(0.9)).lineLimit(1) }
     }
 
     private var turns: some View {
         HStack {
             Button {
                 if number > 0 { number -= 1 } else { close() }
-            } label: { Label("Previous", systemImage: "chevron.left") }
-                .buttonStyle(.borderedProminent).tint(Theme.Wood.dark).foregroundStyle(.ivory)
+            } label: { Text("‹ Previous") }
+                .modifier(PaperTurn())
                 .accessibilityHint(number > 0 ? "The page before" : "Back to the list of pages")
             Spacer()
             if number + 1 < pages.count {
-                Button { number += 1 } label: { Label("Next", systemImage: "chevron.right") }
-                    .buttonStyle(.borderedProminent).tint(Color.suitRed).foregroundStyle(.ivory)
+                Button { number += 1 } label: { Text("Next ›") }.modifier(PaperTurn())
             } else if let next {
-                Button { open(next) } label: { Label("Next: \(ExplainerLibrary.document(for: next.file)?.title ?? next.file)", systemImage: "chevron.right") }
-                    .buttonStyle(.borderedProminent).tint(Color.suitRed).foregroundStyle(.ivory).lineLimit(1)
+                Button { open(next) } label: { Text("\(ExplainerLibrary.document(for: next.file)?.title ?? next.file) ›") }.modifier(PaperTurn())
             }
         }
         .padding(.top, 20)
     }
 
+}
+
+/// A chapter or page as flat ivory paper (D147): ink text, green for what can be tapped, the wood's bar over it.
+private struct PaperPage: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .foregroundStyle(Theme.Paper.ink)
+            .background(Color.ivory.ignoresSafeArea())
+            .tint(Theme.Paper.green)
+            .navigationTitle("")
+            #if os(iOS)
+            // The bar over the paper is the wood it lies on, so the clock and the way back read in ivory.
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Theme.Wood.dark, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            #endif
+    }
+}
+
+/// Previous and Next as green words at the foot of the page.
+private struct PaperTurn: ViewModifier {
+    func body(content: Content) -> some View {
+        content.buttonStyle(.plain).font(.title3.weight(.bold)).foregroundStyle(Theme.Paper.green).lineLimit(1)
+            .frame(minHeight: 44).contentShape(Rectangle())
+    }
+}
+
+/// A hairline across the paper.
+private struct PaperRule: View {
+    var body: some View { Rectangle().fill(Theme.Paper.ink.opacity(0.14)).frame(height: 1) }
 }
 
 /// One Markdown block drawn natively; diagrams load from the chapter's rendered PNGs.
@@ -548,7 +815,7 @@ struct BlockView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(12)
-                    .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .background(Theme.Paper.tan.opacity(0.55), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
                     .accessibilityElement(children: .combine)
                 }
             }
@@ -557,7 +824,7 @@ struct BlockView: View {
                 Text(text).font(.system(.footnote, design: .monospaced)).textSelection(.enabled)
                     .padding(12)
             }
-            .background(Theme.Wood.inlay.opacity(0.85), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .background(Theme.Paper.wash.opacity(0.8), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .overlay(alignment: .topTrailing) {
                 if !language.isEmpty { Text(language).font(.system(.caption2, design: .monospaced)).opacity(0.4).padding(6) }
             }

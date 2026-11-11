@@ -113,8 +113,15 @@ struct HandFanView: View {
                     HStack(spacing: 4) {
                     // Your own face (D115), with a help bubble on its rim: a tap opens Support.
                     Button(action: onSupport) {
-                        PortraitView(portrait: Cast.opponent(at: seat)?.portrait ?? model.settings.playerPortrait, size: Self.faceSize,
-                                     rim: SeatView.rim(seat: seat, ourTeam: model.ourTeam), rimWidth: Theme.Team.rimWidth)
+                        Group {
+                            // Your own figure as a cut-out (D148) when the build has one, else the drawn face.
+                            if let art = SeatArt.image(seat: seat) {
+                                art.resizable().scaledToFit().frame(width: Self.faceSize * 1.25, height: Self.faceSize)
+                            } else {
+                                PortraitView(portrait: Cast.opponent(at: seat)?.portrait ?? model.settings.playerPortrait, size: Self.faceSize,
+                                             rim: SeatView.rim(seat: seat, ourTeam: model.ourTeam), rimWidth: Theme.Team.rimWidth)
+                            }
+                        }
                             .overlay(alignment: .topTrailing) {
                                 Image(systemName: "questionmark.bubble.fill").font(.system(size: 20, weight: .bold))
                                     .foregroundStyle(Theme.Paper.ink, .ivory)

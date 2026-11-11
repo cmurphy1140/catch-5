@@ -40,6 +40,15 @@ struct MainMenuView: View {
         var label: String?
         /// True when the link is one to hand round the table: the chip shows it as a code to scan.
         var code: Bool?
+        /// What the code leads to, written under it on the slip (D140); the chip's label when there is none.
+        var caption: String?
+        /// Other links kept on the same slip, each a plain line under the code (D140).
+        var also: [Also]?
+
+        struct Also: Decodable, Equatable {
+            let label: String
+            let url: URL
+        }
     }
 
     /// The guest's suggestions, from the git-ignored data asset `GuestPrompts`; empty in every other build.
@@ -297,7 +306,7 @@ struct MainMenuView: View {
         .fullScreenCoverOrSheet(isPresented: $showExplainer) { ExplainerView { showExplainer = false } }
         .overlay {
             if let prompt = shownCode, let url = prompt.url {
-                GuestCodeCard(title: prompt.label ?? prompt.text, url: url, onOpen: { openURL(url) }) {
+                GuestCodeCard(title: prompt.caption ?? prompt.label ?? prompt.text, url: url, also: prompt.also ?? [], open: { openURL($0) }) {
                     withAnimation(Theme.Motion.overlay) { shownCode = nil }
                 }.transition(.opacity)
             }

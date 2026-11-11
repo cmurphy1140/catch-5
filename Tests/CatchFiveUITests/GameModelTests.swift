@@ -576,14 +576,33 @@ import Testing
     #expect(RootView.initialScreen(for: Settings(), matchInProgress: true) == .login)
 }
 
-@MainActor @Test func rootResumesAMatchInProgressOntoTheTable() {
+@MainActor @Test func rootOpensOnTheMenuEvenWithAMatchInProgress() {
+    // The dealt opening lifts onto the front page; the match waits behind Back to the table (D141).
     let settings = Settings(hasSeenRules: true, playerName: "Connor")
-    #expect(RootView.initialScreen(for: settings, matchInProgress: true) == .table)
-    #expect(RootView.initialScreen(for: settings, matchInProgress: false) == .menu)   // finished or no match: unchanged
+    #expect(RootView.initialScreen(for: settings, matchInProgress: true) == .menu)
+    #expect(RootView.initialScreen(for: settings, matchInProgress: false) == .menu)
+}
+
+@MainActor @Test func aShortAbsenceFromTheTableComesBackToTheTable() throws {
+    // The phone may close the app in the background; a launch soon after leaving the table returns to it (D144).
+    let settings = Settings(hasSeenRules: true, playerName: "Connor")
+    #expect(RootView.initialScreen(for: settings, matchInProgress: true, leftTableAgo: 60) == .table)
+    #expect(RootView.initialScreen(for: settings, matchInProgress: true, leftTableAgo: RootView.resumeWindow + 1) == .menu)
+    #expect(RootView.initialScreen(for: settings, matchInProgress: false, leftTableAgo: 60) == .menu)   // nothing to come back to
+    #expect(RootView.initialScreen(for: settings, matchInProgress: true, leftTableAgo: -5) == .menu)    // a clock set back
+    #expect(RootView.initialScreen(for: Settings(), matchInProgress: true, leftTableAgo: 60) == .login)
+    // The note is written from the table and wiped from anywhere else.
+    let defaults = try #require(UserDefaults(suiteName: "resume-\(UUID().uuidString)"))
+    let left = Date(timeIntervalSince1970: 1_000)
+    #expect(RootView.leftTableAgo(defaults: defaults) == nil)
+    RootView.noteLeaving(onTable: true, defaults: defaults, now: left)
+    #expect(RootView.leftTableAgo(defaults: defaults, now: left.addingTimeInterval(90)) == 90)
+    RootView.noteLeaving(onTable: false, defaults: defaults, now: left)
+    #expect(RootView.leftTableAgo(defaults: defaults) == nil)
 }
 
 @MainActor @Test func rootResumesPassAndPlayWithTheCurtainDown() throws {
-    // A restored pass-and-play match resumes onto the table, but nobody's hand is showing: the curtain
+    // A restored pass-and-play match waits behind the menu, and nobody's hand is showing: the curtain
     // is down for whoever is next, exactly as a fresh restore leaves `revealedSeat`.
     let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: directory) }
@@ -598,7 +617,8 @@ import Testing
     model.settings = settings
     let restored = GameModel.loadDefault(in: directory)
     #expect(restored.revealedSeat == nil)
-    #expect(RootView.initialScreen(for: restored.settings, matchInProgress: restored.matchInProgress) == .table)
+    #expect(restored.matchInProgress)
+    #expect(RootView.initialScreen(for: restored.settings, matchInProgress: restored.matchInProgress) == .menu)
 }
 
 @Test func tablePauseHoldsWhileAnyCoverRemains() {

@@ -25,13 +25,26 @@ struct TableField: View {
                 shape.fill(RadialGradient(colors: Theme.Field.cloth(colours),
                                           center: .init(x: 0.5, y: 0.48), startRadius: 10, endRadius: max(rect.width, rect.height) * 0.62))
                     .frame(width: rect.width, height: rect.height).offset(x: rect.minX, y: rect.minY)
+                // The nap (D149), drawn once for the whole surface like the walnut, so it stays put while the cloth
+                // changes shape.
+                ClothNap().equatable()
+                    .mask(alignment: .topLeading) { shape.frame(width: rect.width, height: rect.height).offset(x: rect.minX, y: rect.minY) }
             } else {
             WalnutGrain().equatable()
                 .mask(alignment: .topLeading) { shape.frame(width: rect.width, height: rect.height).offset(x: rect.minX, y: rect.minY) }
             }
             ZStack {
                 lampPool
-                if let trump { TrumpInlay(suit: trump, size: min(rect.width * 0.55, Theme.Field.inlayMaximum)).transition(.opacity) }
+                if let trump {
+                    if cloth {
+                        // On the cloth the suit is woven in, large and faint, low enough to clear the partner (D143).
+                        Text(trump.glyph).font(.system(size: min(rect.width * 0.5, 190)))
+                            .foregroundStyle(trump.isRed ? Color.suitRed : Color.ivory).opacity(trump.isRed ? 0.3 : 0.2)
+                            .offset(y: rect.height * 0.16).transition(.opacity)
+                    } else {
+                        TrumpInlay(suit: trump, size: min(rect.width * 0.55, Theme.Field.inlayMaximum)).transition(.opacity)
+                    }
+                }
                 // Recessed: the oak's edge throws a shadow across the top of the panel.
                 shape.stroke(.black.opacity(0.55), lineWidth: 10).blur(radius: 7).offset(y: 4).clipShape(shape)
                 // The lower lip catches the light.
@@ -154,6 +167,38 @@ struct WalnutGrain: View, Equatable {
                 let alpha = random.next(in: 0.04...0.13)
                 context.stroke(path, with: .color((light ? Theme.Wood.streakLight : Color.black).opacity(alpha)),
                                lineWidth: random.next(in: 0.5...1.6))
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+/// The felt's nap (D149): soft mottling where the cloth has worn, then thousands of short fibres lying every way,
+/// some catching the light and some in shadow. It is colourless, so it sits on any of the cloth colours, and it is
+/// drawn the same every time.
+struct ClothNap: View, Equatable {
+    var body: some View {
+        Canvas(rendersAsynchronously: true) { context, size in
+            var random = GrainRandom(seed: 0xF317)
+            // Worn patches, blurred into the cloth.
+            context.drawLayer { layer in
+                layer.addFilter(.blur(radius: 26))
+                for _ in 0..<Int(size.width * size.height / 9000) {
+                    let w = random.next(in: 50...150), h = random.next(in: 40...110)
+                    let spot = CGRect(x: random.next(in: -40...size.width), y: random.next(in: -40...size.height), width: w, height: h)
+                    layer.fill(Path(ellipseIn: spot), with: .color(random.next() < 0.5 ? .white.opacity(0.07) : .black.opacity(0.10)))
+                }
+            }
+            // The fibres.
+            for _ in 0..<Int(size.width * size.height / 7) {
+                let x = random.next(in: 0...size.width), y = random.next(in: 0...size.height)
+                let angle = random.next(in: 0...(2 * .pi)), length = random.next(in: 0.8...3.4)
+                var fibre = Path()
+                fibre.move(to: CGPoint(x: x, y: y))
+                fibre.addLine(to: CGPoint(x: x + cos(angle) * length, y: y + sin(angle) * length))
+                let light = random.next() < 0.5
+                context.stroke(fibre, with: .color(light ? .white.opacity(random.next(in: 0.03...0.13)) : .black.opacity(random.next(in: 0.05...0.20))),
+                               lineWidth: 0.7)
             }
         }
         .accessibilityHidden(true)
