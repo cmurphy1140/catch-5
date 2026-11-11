@@ -28,12 +28,15 @@ struct BidBox: View {
                 Text(label)
                     .font(.system(size: label.count > 1 ? Theme.Table.bidBoxWordSize : Theme.Table.bidBoxNumberSize,
                                   weight: .heavy, design: .rounded))
-                    // Chalked (D97), like the tally: it reads on the oak and on the walnut field the side seats' boxes
-                    // tuck over, where a carving would vanish.
-                    .foregroundStyle(.ivory.opacity(0.94))
-                    .shadow(color: .black.opacity(0.45), radius: 0.5, y: 1)
+                    // Said aloud (D157): ink in an ivory speech bubble whose tail points at the seat that called.
+                    .foregroundStyle(Theme.Paper.ink)
                     .lineLimit(1).minimumScaleFactor(0.5)
-                    .padding(.horizontal, 3)
+                    .padding(.horizontal, 5)
+                    .frame(width: Theme.Table.bidBoxWidth, height: Theme.Table.bidBoxHeight)
+                    .background {
+                        SpeechBubble(tail: SpeechBubble.tail(toward: from)).fill(Color.ivory)
+                            .shadow(color: .black.opacity(0.4), radius: 2, y: 2)
+                    }
                     .id(label)
                     .transition(reduceMotion ? .opacity
                         : .asymmetric(insertion: .offset(from).combined(with: .scale(scale: 0.5)).combined(with: .opacity),
@@ -43,5 +46,32 @@ struct BidBox: View {
         .frame(width: Theme.Table.bidBoxWidth, height: Theme.Table.bidBoxHeight)
         .dynamicTypeSize(...Theme.Card.maximumTypeSize)
         .accessibilityHidden(true)
+    }
+}
+
+/// A rounded bubble with a small tail on one side, pointing at whoever spoke (D157).
+struct SpeechBubble: Shape {
+    let tail: Edge
+
+    /// The side the speaker is on, from where the call comes in: sideways if it comes from the side, else up or down.
+    nonisolated static func tail(toward from: CGSize) -> Edge {
+        if from.width != 0 { return from.width < 0 ? .leading : .trailing }
+        return from.height < 0 ? .top : .bottom
+    }
+
+    func path(in rect: CGRect) -> Path {
+        let reach = 7.0, half = 6.0
+        let body = rect.insetBy(dx: tail == .leading || tail == .trailing ? reach / 2 : 0, dy: tail == .top || tail == .bottom ? reach / 2 : 0)
+            .offsetBy(dx: tail == .leading ? reach / 2 : tail == .trailing ? -reach / 2 : 0, dy: tail == .top ? reach / 2 : tail == .bottom ? -reach / 2 : 0)
+        var path = Path(roundedRect: body, cornerRadius: min(body.height, body.width) * 0.36, style: .continuous)
+        let tip: CGPoint, a: CGPoint, b: CGPoint
+        switch tail {
+        case .leading: tip = CGPoint(x: rect.minX, y: rect.midY + 6); a = CGPoint(x: body.minX + 1, y: rect.midY - half); b = CGPoint(x: body.minX + 1, y: rect.midY + half)
+        case .trailing: tip = CGPoint(x: rect.maxX, y: rect.midY + 6); a = CGPoint(x: body.maxX - 1, y: rect.midY - half); b = CGPoint(x: body.maxX - 1, y: rect.midY + half)
+        case .top: tip = CGPoint(x: rect.midX + 6, y: rect.minY); a = CGPoint(x: rect.midX - half, y: body.minY + 1); b = CGPoint(x: rect.midX + half, y: body.minY + 1)
+        case .bottom: tip = CGPoint(x: rect.midX + 6, y: rect.maxY); a = CGPoint(x: rect.midX - half, y: body.maxY - 1); b = CGPoint(x: rect.midX + half, y: body.maxY - 1)
+        }
+        path.move(to: a); path.addLine(to: tip); path.addLine(to: b); path.closeSubpath()
+        return path
     }
 }

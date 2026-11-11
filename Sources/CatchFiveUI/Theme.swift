@@ -238,7 +238,7 @@ public enum Theme {
             }
         }
         /// The cloth table's oak rail, and how round its corners are as a share of its shorter side (D117).
-        public static let railWidth = 10.0
+        public static let railWidth = 14.0
         public static let clothRounding = 0.3
         /// The stringing: a strip of maple set into the walnut just inside its edge, with a dark seam either side.
         public static let maple = Color(red: 0.86, green: 0.74, blue: 0.53)

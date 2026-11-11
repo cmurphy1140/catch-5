@@ -52,8 +52,10 @@ struct TableField: View {
                                                                      .init(color: Theme.Wood.streakLight.opacity(0.55), location: 1)],
                                                              startPoint: .top, endPoint: .bottom), lineWidth: 1.5)
                 if cloth {
-                    // The rail (D117): a band of oak round the cloth, lit from above, a gold line where it meets the cloth.
-                    shape.strokeBorder(LinearGradient(colors: [Theme.Wood.light, Theme.Wood.dark], startPoint: .top, endPoint: .bottom),
+                    // The rail (D117): a band round the cloth, lit from above, a gold line where it meets the cloth. It is
+                    // mahogany (D156), the only mahogany on the table; everything else stays oak.
+                    MahoganyRail(radius: radius, width: Theme.Field.railWidth)
+                    shape.strokeBorder(LinearGradient(colors: [.white.opacity(0.16), .clear, .black.opacity(0.3)], startPoint: .top, endPoint: .bottom),
                                        lineWidth: Theme.Field.railWidth)
                     shape.inset(by: Theme.Field.railWidth).stroke(Theme.Paper.rule.opacity(0.9), lineWidth: 1.5)
                     shape.stroke(Theme.Wood.streakDark.opacity(0.8), lineWidth: 1)
@@ -199,6 +201,65 @@ struct ClothNap: View, Equatable {
                 let light = random.next() < 0.5
                 context.stroke(fibre, with: .color(light ? .white.opacity(random.next(in: 0.03...0.13)) : .black.opacity(random.next(in: 0.05...0.20))),
                                lineWidth: 0.7)
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+/// The table's trim in mahogany (D156): a deep red-brown band with grain running along it the way a bent rail's does,
+/// dark pores broken along their length, and a few pale ribbons of figure crossing it where the wood catches the
+/// light. Drawn the same every time.
+struct MahoganyRail: View {
+    let radius: Double
+    let width: Double
+
+    private static let base = Color(red: 0.34, green: 0.11, blue: 0.07)
+    private static let deep = Color(red: 0.16, green: 0.04, blue: 0.03)
+    private static let glow = Color(red: 0.62, green: 0.26, blue: 0.14)
+
+    var body: some View {
+        Canvas { context, size in
+            let bounds = CGRect(origin: .zero, size: size)
+            func ring(_ inset: Double) -> Path {
+                Path(roundedRect: bounds.insetBy(dx: inset, dy: inset), cornerRadius: max(0, radius - inset), style: .continuous)
+            }
+            // The band itself.
+            context.stroke(ring(width / 2), with: .color(Self.base), lineWidth: width)
+            var random = GrainRandom(seed: 0x3A40)
+            context.drawLayer { layer in
+                // Keep everything that follows inside the band.
+                var band = ring(0)
+                band.addPath(ring(width))
+                layer.clip(to: band, style: FillStyle(eoFill: true))
+                // Ribbon figure: soft pale and dark bars lying across the rail at a slant.
+                layer.drawLayer { figure in
+                    figure.addFilter(.blur(radius: 5))
+                    for _ in 0..<Int((size.width + size.height) / 9) {
+                        let x = random.next(in: -20...size.width), y = random.next(in: -20...size.height)
+                        var bar = Path()
+                        bar.move(to: CGPoint(x: x, y: y))
+                        bar.addLine(to: CGPoint(x: x + random.next(in: 14...34), y: y + random.next(in: 10...26)))
+                        figure.stroke(bar, with: .color(random.next() < 0.55 ? Self.glow.opacity(0.5) : Self.deep.opacity(0.55)),
+                                      lineWidth: random.next(in: 4...10))
+                    }
+                }
+                // Grain: fine lines running along the rail, some pale, most dark, each broken into runs.
+                var inset = 0.4
+                while inset < width {
+                    let dark = random.next() < 0.62
+                    let run = random.next(in: 18...90), gap = random.next(in: 2...14)
+                    layer.stroke(ring(inset), with: .color((dark ? Self.deep : Self.glow).opacity(random.next(in: 0.25...0.6))),
+                                 style: StrokeStyle(lineWidth: random.next(in: 0.4...1.1), lineCap: .round, dash: [run, gap],
+                                                    dashPhase: random.next(in: 0...100)))
+                    inset += random.next(in: 0.7...1.5)
+                }
+                // Pores: short dark flecks along the grain.
+                for _ in 0..<Int(width * 2.2) {
+                    layer.stroke(ring(random.next(in: 0.5...(width - 0.5))), with: .color(Self.deep.opacity(0.7)),
+                                 style: StrokeStyle(lineWidth: 0.7, lineCap: .round, dash: [random.next(in: 1.5...5), random.next(in: 30...140)],
+                                                    dashPhase: random.next(in: 0...140)))
+                }
             }
         }
         .accessibilityHidden(true)

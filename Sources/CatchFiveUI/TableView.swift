@@ -12,6 +12,8 @@ public struct TableView: View {
     @State private var renaming: Int?
     /// The seat whose player card is up (D151).
     @State private var carding: Int?
+    /// The hand whose contract card has been read and put down (D157), by its number in the match.
+    @State private var contractRead: Int?
     @State private var nameDraft = ""
     /// The rules, opened from the book in the top row (D93); they open like a book (D94).
     @State private var showRules = ScreenshotStage.name == "table-rules" || BookFold.heldProgress(stage: ScreenshotStage.name) != nil
@@ -88,7 +90,7 @@ public struct TableView: View {
         TablePause(sceneActive: scenePhase == .active,
                    welcomeShown: covered,
                    sheetShown: showSettings || showTutorial || showRules || scorePanel || showStatistics || support != nil,
-                   dialogShown: renaming != nil || carding != nil || confirmNineAndOut || model.tallyDemo != nil || model.errorMessage != nil || model.saveError != nil,
+                   dialogShown: renaming != nil || carding != nil || contractSummary != nil || confirmNineAndOut || model.tallyDemo != nil || model.errorMessage != nil || model.saveError != nil,
                    inspectingTrick: reopenedTrick != nil,
                    drawShown: drawShown)
     }
@@ -299,6 +301,21 @@ public struct TableView: View {
         withAnimation(motion(.spring(duration: 0.45, bounce: 0.25))) { carding = seat }
     }
 
+    /// The auction to read back (D157): once trump is named and before the first card, until the player taps Play.
+    private var contractSummary: ContractCard.Summary? {
+        let hand = model.match.hand
+        // It holds through the whole first trick, so it cannot be missed if a lead lands before the table pauses.
+        guard hand.phase == .playing, hand.completedTricks.isEmpty, contractRead != model.match.handNumber, !covered else { return nil }
+        return ContractCard.Summary(auction: hand.auction, trump: hand.trump, names: model.seatNames, scores: model.match.scores, ourTeam: model.ourTeam)
+    }
+
+    @ViewBuilder private var contractCard: some View {
+        if let summary = contractSummary {
+            ContractCard(summary: summary) { withAnimation(motion(Theme.Motion.overlay)) { contractRead = model.match.handNumber } }
+                .transition(.opacity)
+        }
+    }
+
     @ViewBuilder private var playerCard: some View {
         if let seat = carding {
             ZStack {
@@ -435,6 +452,7 @@ public struct TableView: View {
                 Button("Retry") { model.retrySave() }
                 Button("Not now", role: .cancel) { model.saveError = nil }
             } message: { Text(model.saveError ?? "") }
+            .overlay { contractCard }
             .overlay { playerCard }
             // Renaming a seat from its tag (D93); blank keeps the old name (`Settings.renameSeat`).
             .alert("Rename", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {

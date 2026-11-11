@@ -372,3 +372,20 @@ private func playNext(_ match: inout Match) throws {
     #expect(style(hands: 4, won: 2, made: 2, average: 3) == "Likes to run the table")
     #expect(style(hands: 6, won: 1, made: 1, average: 3) == "Steady hand")
 }
+
+@Test func theContractCardReadsTheAuctionBack() throws {
+    // D157: who took it, each seat's last call in the order they spoke, the score from our side.
+    var auction = try Auction(dealer: 0)
+    try auction.act(seat: 1, bid: 2)
+    try auction.act(seat: 2, bid: nil)
+    try auction.act(seat: 3, bid: 4)
+    try auction.act(seat: 0, bid: nil)
+    let summary = try #require(ContractCard.Summary(auction: auction, trump: .hearts, names: ["Ann", "Bo", "Cy", "Di"], scores: [7, 12], ourTeam: 1))
+    #expect(summary.headline == "Di took the bid at 4")
+    #expect(summary.calls.map(\.name) == ["Bo", "Cy", "Di", "Ann"])
+    #expect(summary.calls.map(\.words) == ["2", "Pass", "4", "Pass"])
+    #expect(summary.calls.map(\.won) == [false, false, true, false])
+    #expect(summary.us == 12 && summary.them == 7)
+    #expect(SpeechBubble.tail(toward: CGSize(width: -10, height: -5)) == .leading)
+    #expect(SpeechBubble.tail(toward: CGSize(width: 0, height: 20)) == .bottom)
+}

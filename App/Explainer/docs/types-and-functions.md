@@ -310,6 +310,9 @@ The sin hunt (D58): a sweep that finds the computer's bad decisions so each one 
 | `TableTrace` | a temporary, debug-only step log for the freeze hunt (D142): `log(_:)` appends one line to `trace.log` beside the saved game; a release build compiles it to nothing |
 | `TurnSlip`, `TornScrap` | Your turn as a torn scrap of pad paper with a pencil across it (D150), in place of the ivory pill |
 | `PlayerCard`, `Ribbon` | a player as a card (D150, D151): figure, name ribbon, an object, play style and scoreboard, a pencil to rename; flips up when a seat's name is tapped |
+| `MahoganyRail` | the cloth's trim in figured mahogany: grain along the rail, pores, ribbon figure (D156) |
+| `SpeechBubble` | a rounded bubble with a tail toward whoever spoke; `BidBox` wears it for each call (D157) |
+| `ContractCard`, `ContractCard.Summary` | the auction read back before the first card: who took the bid, each seat's call, trump, the score (`theContractCardReadsTheAuctionBack`) |
 | `BareButton` | a button with nothing drawn round it: plain style, paper green, no hover plate (D152) |
 | `PlayerSheet` | the card's figures, counted from the match: bids won, made and set, tricks this hand, the side's score, and `style`, a few words read off those counts (`aPlayerCardReadsPlayStyleOffTheCounts`) |
 | `ClothNap` | the felt's texture on the cloth table (D149): worn patches and short fibres, colourless, drawn once and masked to the cloth |

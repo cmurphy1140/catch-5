@@ -152,6 +152,15 @@ struct TableSurface: View {
                                 }
                             }
                             .padding(.top, 4)
+                            // Something left on the oak beside them (D157), when the build carries the picture.
+                            .frame(maxWidth: .infinity)
+                            .overlay(alignment: .bottomLeading) {
+                                if let glass = SeatArt.named("GuestItem2") {
+                                    glass.resizable().scaledToFit().frame(width: 58)
+                                        .shadow(color: .black.opacity(0.45), radius: 3, y: 3)
+                                        .padding(.leading, 34).padding(.bottom, 10).accessibilityHidden(true).allowsHitTesting(false)
+                                }
+                            }
                             .onGeometryChange(for: Double.self) { $0.frame(in: .named(Self.column)).maxY } action: { partnerBottom = $0; fieldEdges.top = $0 - Theme.Field.verticalGap }
                             .opacity(dim)
                     } else {

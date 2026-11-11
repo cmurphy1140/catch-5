@@ -117,6 +117,8 @@ struct HandFanView: View {
                             // Your own figure as a cut-out (D148) when the build has one, else the drawn face.
                             if let art = SeatArt.image(seat: seat) {
                                 art.resizable().scaledToFit().frame(width: Self.faceSize * 1.25, height: Self.faceSize)
+                                    // Drawn half as big again without moving the row (D157): it grows up and away from the name.
+                                    .scaleEffect(1.5, anchor: .bottomTrailing)
                             } else {
                                 PortraitView(portrait: Cast.opponent(at: seat)?.portrait ?? model.settings.playerPortrait, size: Self.faceSize,
                                              rim: SeatView.rim(seat: seat, ourTeam: model.ourTeam), rimWidth: Theme.Team.rimWidth)

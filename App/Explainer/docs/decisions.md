@@ -1249,3 +1249,24 @@ Connor: "can you make chatgpt support funnier and more witty? that's half the fu
 a silly question, tease the game and never the player, right before funny when the question is real. It takes effect
 when the help server is deployed; deployed 2026-11-11 on Connor's go.
 
+## D156. The trim is mahogany (2026-11-11)
+
+Connor: "use mahogany only for the trim, and give that wood character." The band round the cloth was a plain oak
+gradient. It is now `MahoganyRail`: deep red-brown, grain running along the rail in broken lines, dark pores, and pale
+ribbons of figure crossing it. The rail is a little wider (14 points) so the figure can be seen. Mahogany appears
+nowhere else; the table, the header and the sheets stay oak.
+
+## D157. Bids in speech bubbles, the contract read back, a glass on the oak (2026-11-11)
+
+Connor: "the wood can have a whiskey glass or something on it, also make the current player character larger, and make
+the bid for each player show up in a speech bubble, with a pop up that says who took the bid, who bid what, trump, and
+score, this comes after bidding and before the hand."
+
+- A call in the auction is ink in an ivory `SpeechBubble` whose tail points at the seat that spoke, in place of the
+  chalked number.
+- Once trump is named, `ContractCard` lies over the table: who took the bid, each seat's last call in the order they
+  spoke, trump, and the score, on a scrap off the score pad. Play puts it down. The table waits while it is up, and it
+  holds through the first trick so it cannot be missed.
+- A whiskey glass sits on the oak beside the partner when the build carries the picture (`GuestItem2`).
+- The player's own figure is drawn half as big again; the row under the hand keeps its height.
+
