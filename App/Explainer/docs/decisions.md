@@ -1447,3 +1447,25 @@ computer players; it is an optional key, so an older save loads without it and r
 tag renamed at the table in pass and play changes that list. Playing between phones is not offered. Seen as still
 renders on the Mac (the text fields do not draw there); awaits Connor's look on the phone.
 
+
+## D181. Practice and Settings sit under a cloth band (2026-11-12, proposed)
+
+From Connor's three mocks. Both pages are now a `ClothPage`: a burgundy cloth band that stays put, the page's name on
+it with a dark Done pill, and one sheet of ivory paper scrolling under it on the wood. Practice: the promise beside the
+five of hearts coming off the deck (the app's own cards, where the mock had a painted hand), the three starting hands
+as rows to tap, each with a tick and a line saying what it gives (`PracticeDeal.detail`), in place of the menu; the
+loose heart is gone; each seat's name and place beside its own Easy or Standard switch, which practice already kept
+per seat. Settings: the cloth is chosen from two pinked swatches (`PinkedSquare`) with a tick; the name is written on a
+line and the roster is three rows with hairlines, neither in a box; the rest is as it was. Difficulty in a real game
+stays one switch for all three. Seen as still renders on the Mac; awaits Connor's look on the phone.
+
+## D182. Her dog runs up through the snow before the swans (2026-11-12, proposed)
+
+Connor's eight pictures of a golden retriever bounding toward the viewer are whole scenes, not cut-out pieces, so they
+are played as a flipbook (`GuestDogRun`) the first time her page opens, and after that whenever she taps the one paw
+print beside her figure (Codex's thought, taken: a family secret, and the run does not wear thin by playing on every
+visit): each picture stands a fifth of a second and fades into
+the next, the last, her face close up, is held a second, and the scene fades into the felt as the swans begin. A tap
+ends it early; Reduce Motion never plays it unasked, but the paw print still calls it. The pictures are git-ignored `GuestDogRun1…8`; a build without them opens
+on the swans as before. The timing is a plain function with a test. The puppet (D178) stays for a dog that lies down
+beside her, should its pieces come. Not yet seen moving; awaits Connor's look on the phone.

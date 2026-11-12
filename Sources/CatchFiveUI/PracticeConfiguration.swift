@@ -11,6 +11,15 @@ public enum PracticeDeal: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// What the choice gives you, in a line under its name (D181).
+    public var detail: String {
+        switch self {
+        case .fresh: "Shuffled, a new hand every time."
+        case .trumpRich: "Six hearts, the five among them."
+        case .mixed: "A card or two of every suit."
+        }
+    }
+
     /// Curated deals put their six sample cards at seat 0 when dealer 3 deals in packets of three.
     public func deck() -> [Card] {
         let all = Suit.allCases.flatMap { suit in Rank.allCases.map { Card(suit, $0) } }

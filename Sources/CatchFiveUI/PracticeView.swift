@@ -17,44 +17,116 @@ struct PracticeSetupView: View {
         self.onClose = onClose
     }
 
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    /// The mock's page (D181): the cloth band, the promise beside a card off the deck, the three hands as rows to
+    /// tap, and each seat's name and place beside its own switch.
     var body: some View {
-        LearningPage(title: "Practice", onClose: onClose) {
-            Text("Try a hand, keep the family score.")
-                .font(.system(.title2, design: .serif).weight(.bold))
-                .accessibilityAddTraits(.isHeader)
-            Text("Practice starts at zero in its own game. Your real game, saved hands and statistics stay as they are.")
+        ClothPage(title: "Practice", onDone: onClose) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Try a hand, keep the family score.")
+                        .font(.system(.title, design: .serif).weight(.bold))
+                        .accessibilityAddTraits(.isHeader)
+                    Text("Practice starts at zero. Your real game, saved hands and statistics stay as they are.")
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                if !typeSize.isAccessibilitySize { PracticeDeckArt().padding(.trailing, 6) }
+            }
             if let replayDescription {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Original deal").font(.headline)
+                    heading("Original deal")
                     Text(replayDescription)
                 }
             } else {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Your starting hand").font(.headline)
-                    Picker("Starting deal", selection: $configuration.deal) {
-                        ForEach(PracticeDeal.allCases) { deal in Text(deal.title).tag(deal) }
+                VStack(alignment: .leading, spacing: 2) {
+                    heading("Your starting hand")
+                    ForEach(PracticeDeal.allCases) { deal in
+                        dealRow(deal)
+                        if deal != PracticeDeal.allCases.last { PageRule(weight: 1).opacity(0.6) }
                     }
-                    .pickerStyle(.menu).frame(minHeight: 44)
-                    Text("Fresh is shuffled. The two sample hands let you revisit the same opening.")
-                        .font(.footnote).foregroundStyle(Theme.Paper.ink.opacity(0.75))
                 }
             }
-            Divider().overlay(Theme.Paper.rule)
-            Text("The other seats").font(.headline).accessibilityAddTraits(.isHeader)
-            difficulty(seat: 1, role: "Left opponent", selection: $configuration.left)
-            difficulty(seat: 2, role: "Your partner", selection: $configuration.partner)
-            difficulty(seat: 3, role: "Right opponent", selection: $configuration.right)
-            Button("Start practice") { onStart(configuration) }.buttonStyle(PaperButtonStyle())
+            PageRule()
+            VStack(alignment: .leading, spacing: 8) {
+                heading("The other seats")
+                seatRow(seat: 1, role: "Left opponent", selection: $configuration.left)
+                PageRule(weight: 1).opacity(0.6)
+                seatRow(seat: 2, role: "Your partner", selection: $configuration.partner)
+                PageRule(weight: 1).opacity(0.6)
+                seatRow(seat: 3, role: "Right opponent", selection: $configuration.right)
+            }
+            Button { onStart(configuration) } label: {
+                HStack(spacing: 10) {
+                    Text("Start practice")
+                    Image(systemName: "arrow.right").accessibilityHidden(true)
+                }
+            }
+            .buttonStyle(PaperButtonStyle())
         }
     }
 
-    private func difficulty(seat: Int, role: String, selection: Binding<Difficulty>) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("\(names.indices.contains(seat) ? names[seat] : "Seat \(seat + 1)") · \(role)")
-                .font(.system(.headline, design: .serif))
-            PaperSwitch(options: [("Easy", Difficulty.easy), ("Standard", Difficulty.standard)], selection: selection)
-                .accessibilityLabel("\(role) difficulty")
+    private func heading(_ title: String) -> some View {
+        Text(title).font(.system(.title2, design: .serif).weight(.bold)).accessibilityAddTraits(.isHeader)
+    }
+
+    /// One starting hand: a tick when it is the one, its name, and what it gives you.
+    private func dealRow(_ deal: PracticeDeal) -> some View {
+        let chosen = configuration.deal == deal
+        return Button { configuration.deal = deal } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "checkmark").font(.body.weight(.bold)).foregroundStyle(Theme.Paper.green)
+                    .opacity(chosen ? 1 : 0).accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(deal.title).font(.system(.title3, design: .serif).weight(chosen ? .bold : .medium))
+                    Text(deal.detail).font(.subheadline).foregroundStyle(Theme.Paper.ink.opacity(0.75))
+                }
+                Spacer(minLength: 0)
+            }
+            .frame(minHeight: 52).contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(chosen ? .isSelected : [])
+    }
+
+    private func seatRow(seat: Int, role: String, selection: Binding<Difficulty>) -> some View {
+        let name = VStack(alignment: .leading, spacing: 0) {
+            Text(names.indices.contains(seat) ? names[seat] : "Seat \(seat + 1)")
+                .font(.system(.title3, design: .serif).weight(.bold))
+            Text(role).font(.subheadline).foregroundStyle(Theme.Paper.ink.opacity(0.75))
+        }
+        let choice = PaperSwitch(options: [("Easy", Difficulty.easy), ("Standard", Difficulty.standard)],
+                                 selection: selection, ticks: true)
+            .accessibilityLabel("\(role) difficulty")
+        return ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) {
+                name
+                Spacer(minLength: 0)
+                choice.frame(width: 200)
+            }
+            VStack(alignment: .leading, spacing: 8) { name; choice }
+        }
+    }
+}
+
+/// The five of hearts coming off the deck, from the app's own cards, where the mock has a painted hand.
+struct PracticeDeckArt: View {
+    var body: some View {
+        let width = 58.0
+        ZStack(alignment: .bottom) {
+            ForEach(0..<4, id: \.self) { layer in CardBackView(width: width + 6).offset(y: Double(-layer) * 2.5) }
+            CardFace(card: Card(.hearts, .five), width: width)
+                .frame(width: width, height: width * Theme.Card.ratio)
+                .background(CardFace.paper, in: RoundedRectangle(cornerRadius: Theme.Card.radius(width: width), style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: Theme.Card.radius(width: width), style: .continuous)
+                    .stroke(.black.opacity(0.18), lineWidth: 0.75))
+                .shadow(color: .black.opacity(0.3), radius: 3, y: 2)
+                .rotationEffect(.degrees(-11), anchor: .bottom)
+                .offset(x: 8, y: -30)
+        }
+        .padding(.top, 34)
+        .dynamicTypeSize(.large)
+        .accessibilityHidden(true)
     }
 }
 

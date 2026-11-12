@@ -152,3 +152,17 @@ private func practiceTestDirectory() throws -> URL {
     let standard = GameModel(match: match, settings: Settings(difficulty: .easy), practice: PracticeConfiguration(left: .standard))
     #expect(easy.boldNote(for: 1) == nil && standard.boldNote(for: 1) != nil)
 }
+
+@Test func everyPracticeDealSaysWhatItGivesInItsOwnWords() {
+    let details = PracticeDeal.allCases.map(\.detail)
+    #expect(details.allSatisfy { !$0.isEmpty })
+    #expect(Set(details).count == PracticeDeal.allCases.count)
+}
+
+@Test func aPinkedSwatchHasAValleyAndAPeakForEveryToothAndStaysInsideItsSquare() {
+    let rect = CGRect(x: 10, y: 20, width: 90, height: 90)
+    let points = PinkedSquare.points(in: rect, teeth: 9)
+    #expect(points.count == 72)
+    #expect(points.allSatisfy { rect.insetBy(dx: -0.001, dy: -0.001).contains($0) })
+    #expect(PinkedSquare.points(in: rect, teeth: 0).count == 8)
+}

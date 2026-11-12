@@ -25,3 +25,17 @@ import Testing
     #expect(widest(0.1...0.6) > widest(2.0...2.5))
     #expect(widest(0.1...0.6) <= GuestDogMotion.stride)
 }
+
+@Test func theDogsRunShowsEachPictureInTurnFadesIntoTheNextAndHoldsTheLast() {
+    let step = GuestDogRunMotion.step
+    #expect(GuestDogRunMotion.frame(at: 0, frames: 8).index == 0)
+    #expect(GuestDogRunMotion.frame(at: 0, frames: 8).blend == 0)
+    #expect(GuestDogRunMotion.frame(at: step * 2.1, frames: 8).index == 2)
+    let late = GuestDogRunMotion.frame(at: step * 2.9, frames: 8)
+    #expect(late.index == 2 && late.blend > 0.5 && late.blend < 1)
+    let end = GuestDogRunMotion.frame(at: 60, frames: 8)
+    #expect(end.index == 7 && end.blend == 0)
+    #expect(GuestDogRunMotion.frame(at: -1, frames: 8).index == 0)
+    #expect(GuestDogRunMotion.frame(at: 1, frames: 0).index == 0)
+    #expect(abs(GuestDogRunMotion.duration(frames: 8) - (8 * step + GuestDogRunMotion.hold)) < 0.0001)
+}

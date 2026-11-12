@@ -30,7 +30,7 @@ enum GuestLook {
     }
 }
 
-/// The guest's own page (D177), in place of `GuestThings`: two swans glide in and meet, she rises under them, her name
+/// The guest's own page (D177), in place of `GuestThings`: her dog runs up through the snow (D182), two swans glide in and meet, she rises under them, her name
 /// writes itself, and then her note, her things and her looks are laid out below. A tap skips the opening; with Reduce
 /// Motion it is not played at all.
 struct GuestPage: View {
@@ -46,6 +46,10 @@ struct GuestPage: View {
     /// How far the opening has got: the swans, her, her name, then everything else.
     @State private var beat = 0
     @State private var breathing = false
+    /// Her dog's run through the snow, played once before the swans (D182), when the build carries its pictures.
+    @State private var dogRun = GuestDogRun.carried
+    /// It plays by itself the first time only; after that the paw print beside her calls the dog.
+    @State private var running = !UserDefaults.standard.bool(forKey: GuestDogRun.seenKey)
     private let looks = GuestLook.all
 
     private static let last = 4
@@ -79,6 +83,16 @@ struct GuestPage: View {
         }
         .foregroundStyle(.ivory)
         .background { HomeFelt(colours: colours) }
+        .overlay {
+            if running, let dogRun {
+                GuestDogRun(frames: dogRun)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background { HomeFelt(colours: colours) }
+                    .contentShape(Rectangle())
+                    .onTapGesture { withAnimation(Theme.Motion.overlay) { running = false } }
+                    .transition(.opacity)
+            }
+        }
         .task { await open() }
         .onChange(of: beat) { _, now in
             if now == Self.last, !reduceMotion { withAnimation(Theme.Motion.pulse) { breathing = true } }
@@ -87,7 +101,14 @@ struct GuestPage: View {
 
     /// The opening, one beat after another; it stops where a tap has already skipped ahead.
     private func open() async {
-        guard !reduceMotion else { beat = Self.last; return }
+        guard !reduceMotion else { running = false; beat = Self.last; return }
+        if running, let dogRun {
+            // The run first; a tap on it ends the wait early.
+            let ends = Date().addingTimeInterval(GuestDogRunMotion.duration(frames: dogRun.count))
+            while running, Date() < ends, !Task.isCancelled { try? await Task.sleep(for: .milliseconds(50)) }
+            withAnimation(.easeInOut(duration: 0.6)) { running = false }
+            UserDefaults.standard.set(true, forKey: GuestDogRun.seenKey)
+        } else { running = false }
         let beats: [(wait: Duration, motion: Animation)] = [
             (.milliseconds(150), .spring(duration: 0.9, bounce: 0.15)),
             (.milliseconds(550), .spring(duration: 0.7, bounce: 0.3)),
@@ -98,6 +119,15 @@ struct GuestPage: View {
             try? await Task.sleep(for: step.wait)
             guard !Task.isCancelled, beat == index else { return }
             withAnimation(step.motion) { beat = index + 1 }
+        }
+    }
+
+    /// Plays the run again, then lets it fade as it did the first time; a tap on it still ends it early.
+    private func callDog(_ frames: Int) {
+        withAnimation(Theme.Motion.overlay) { running = true }
+        Task {
+            try? await Task.sleep(for: .seconds(GuestDogRunMotion.duration(frames: frames)))
+            withAnimation(.easeInOut(duration: 0.6)) { running = false }
         }
     }
 
@@ -121,6 +151,15 @@ struct GuestPage: View {
                     .overlay(alignment: .bottomTrailing) {
                         if beat >= Self.last, let dog = GuestDogFigure.Parts.carried {
                             GuestDog(parts: dog, width: 150, distance: 260).offset(x: 46, y: 8)
+                        } else if beat >= Self.last, let dogRun {
+                            // One paw print beside her: tap it and the dog comes running again (D182).
+                            Button { callDog(dogRun.count) } label: {
+                                Image(systemName: "pawprint.fill").font(.system(size: 24)).rotationEffect(.degrees(18))
+                                    .opacity(0.8).shadow(color: .black.opacity(0.4), radius: 1, y: 1)
+                                    .frame(width: 48, height: 48).contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain).accessibilityLabel("Call the dog")
+                            .offset(x: 56, y: 6).transition(.opacity)
                         }
                     }
             }

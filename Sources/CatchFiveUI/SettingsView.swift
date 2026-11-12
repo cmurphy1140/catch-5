@@ -1,7 +1,7 @@
 import CatchFive
 import SwiftUI
 
-/// Settings on the same ivory paper as the hand's result (D107): difficulty, your name and face, the opponents'
+/// Settings on ivory paper under the cloth band (D107, D181): difficulty, your name and face, the opponents'
 /// names, haptics and, from the main menu, starting over as a new player (D108), each under a suit, with gold rules between.
 struct SettingsView: View {
     @Binding var settings: Settings
@@ -12,119 +12,91 @@ struct SettingsView: View {
     @State private var confirmNewPlayer = false
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 12) {
-                    Image(systemName: "gearshape.fill").font(.title).foregroundStyle(Theme.Paper.green).accessibilityHidden(true)
-                    Text("Settings").font(.system(.largeTitle, design: .serif).weight(.bold)).accessibilityAddTraits(.isHeader)
-                    Spacer()
-                    Button { dismiss() } label: {
-                        Text("Done").font(.system(.title3, design: .serif).weight(.bold)).foregroundStyle(.ivory)
-                            .padding(.horizontal, 18).frame(minHeight: 44)
-                            .background(Theme.Paper.green, in: Capsule())
-                            .overlay(Capsule().stroke(Theme.Paper.rule, lineWidth: 1.5))
-                    }
-                    .buttonStyle(.plain)
-                }
-                rule
-                heading("♠", "Difficulty")
-                PaperSwitch(options: [("Easy", Difficulty.easy), ("Standard", Difficulty.standard)], selection: $settings.difficulty, ticks: true)
-                Text("Easy players use the original strategy and lose about two matches in three to Standard. Hints always use Standard.")
-                    .font(.subheadline).fixedSize(horizontal: false, vertical: true)
-                rule
-                heading("♥", "Table")
-                // One table now (D158); the only choice is the cloth, one of two.
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach([("Charcoal felt", Settings.TableColours.charcoal), ("Green felt", .green)], id: \.1) { title, cloth in
-                        let chosen = settings.tableColours == cloth
-                        Button { settings.tableColours = cloth } label: {
-                            HStack(spacing: 12) {
-                                Image(systemName: chosen ? "largecircle.fill.circle" : "circle").font(.title3)
-                                Text(title).font(.title3.weight(chosen ? .semibold : .regular))
-                                Spacer(minLength: 0)
-                            }
-                            .frame(minHeight: 44).contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityAddTraits(chosen ? .isSelected : [])
-                    }
-                }
-                rule
-                heading("♦", "You")
-                // A draft, so spaces and clearing work while typing; each non-blank edit is committed.
+        ClothPage(title: "Settings", onDone: { dismiss() }, spacing: 14) {
+            heading("♠", "Difficulty")
+            PaperSwitch(options: [("Easy", Difficulty.easy), ("Standard", Difficulty.standard)], selection: $settings.difficulty, ticks: true)
+            Text("Easy players use the original strategy and lose about two matches in three to Standard. Hints always use Standard.")
+                .font(.subheadline).fixedSize(horizontal: false, vertical: true)
+            rule
+            heading("♥", "Table")
+            // One table now (D158); the only choice is the cloth, shown as the two cloths themselves (D181).
+            HStack(alignment: .top, spacing: 0) {
+                FeltSwatch(title: "Charcoal felt", cloth: .charcoal, chosen: settings.tableColours != .green) { settings.tableColours = .charcoal }
+                FeltSwatch(title: "Green felt", cloth: .green, chosen: settings.tableColours == .green) { settings.tableColours = .green }
+            }
+            rule
+            heading("♦", "You")
+            // A draft, so spaces and clearing work while typing; each non-blank edit is committed.
+            VStack(spacing: 0) {
                 field(TextField("Your name", text: $nameDraft)
                     .onAppear { nameDraft = settings.playerName ?? settings.seatNames[0] }
                     .onChange(of: nameDraft) { _, new in settings.setPlayerName(new) })
-                    .padding(.horizontal, 14)
-                    .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Theme.Paper.green, lineWidth: 1.5))
-                HStack(spacing: 0) {
-                    ForEach(Array(Cast.playerChoices.enumerated()), id: \.offset) { index, choice in
-                        let chosen = settings.playerPortrait == choice
-                        Button { settings.playerPortrait = choice } label: {
-                            PortraitView(portrait: choice, size: 60)
-                                .padding(4)
-                                .overlay(Circle().stroke(Theme.Paper.green, lineWidth: chosen ? 3 : 0))
-                                .overlay(alignment: .bottomTrailing) {
-                                    if chosen {
-                                        Image(systemName: "checkmark.circle.fill").font(.title3)
-                                            .foregroundStyle(.ivory, Theme.Paper.green)
-                                    }
+                Rectangle().fill(Theme.Paper.green).frame(height: 1.5).accessibilityHidden(true)
+            }
+            HStack(spacing: 0) {
+                ForEach(Array(Cast.playerChoices.enumerated()), id: \.offset) { index, choice in
+                    let chosen = settings.playerPortrait == choice
+                    Button { settings.playerPortrait = choice } label: {
+                        PortraitView(portrait: choice, size: 60)
+                            .padding(4)
+                            .overlay(Circle().stroke(Theme.Paper.green, lineWidth: chosen ? 3 : 0))
+                            .overlay(alignment: .bottomTrailing) {
+                                if chosen {
+                                    Image(systemName: "checkmark.circle.fill").font(.title3)
+                                        .foregroundStyle(.ivory, Theme.Paper.green)
                                 }
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Face \(index + 1)")
-                        .accessibilityAddTraits(chosen ? .isSelected : [])
-                    }
-                }
-                DisclosureGroup("Make your own face") {
-                    FaceBuilder(portrait: $settings.playerPortrait).padding(.top, 8)
-                }
-                .font(.title3.weight(.medium)).tint(Theme.Paper.green)
-                rule
-                heading("♣", "Opponents")
-                PaperSwitch(options: [("Friends", Settings.Opponents.friends), ("Family", Settings.Opponents.family)],
-                            selection: Binding(get: { settings.opponents }, set: { settings.seat($0) }), ticks: true)
-                VStack(spacing: 0) {
-                    ForEach(1..<4, id: \.self) { seat in
-                        HStack(spacing: 14) {
-                            if let art = SeatArt.image(seat: seat, opponents: settings.opponents) {
-                                art.resizable().scaledToFit().frame(width: 44, height: 44)
-                            } else if let character = Cast.opponent(at: seat) {
-                                PortraitView(portrait: character.portrait, size: 44)
                             }
-                            field(TextField(settings.opponents.names[seat], text: Binding(
-                                get: { settings.seatNames[seat] },
-                                set: { settings.seatNames[seat] = $0.trimmingCharacters(in: .whitespaces).isEmpty ? settings.opponents.names[seat] : $0 })))
-                        }
-                        .padding(.horizontal, 12).padding(.vertical, 6)
-                        if seat < 3 { Rectangle().fill(Theme.Paper.rule.opacity(0.7)).frame(height: 1).padding(.horizontal, 8) }
+                            .frame(maxWidth: .infinity)
                     }
-                }
-                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Theme.Paper.green, lineWidth: 1.5))
-                rule
-                Toggle(isOn: $settings.haptics) {
-                    Label("Haptics on every hand", systemImage: "iphone.radiowaves.left.and.right").font(.title3)
-                }
-                .tint(Theme.Paper.green)
-                if onNewPlayer != nil {
-                    rule
-                    Button { confirmNewPlayer = true } label: {
-                        Label("Start over as a new player", systemImage: "person.crop.circle.badge.plus").font(.title3.weight(.medium))
-                            .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading).contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain).foregroundStyle(Theme.Team.theirRim)
-                    .accessibilityHint("Clears your name, saved game and statistics; asks first")
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Face \(index + 1)")
+                    .accessibilityAddTraits(chosen ? .isSelected : [])
                 }
             }
-            .padding(20)
-            .foregroundStyle(Theme.Paper.ink)
-            .paperCard()
-            // Paper is light whatever the sheet around it is, so the fields and the switch draw for light.
-            .environment(\.colorScheme, .light)
-            .padding(12)
+            DisclosureGroup("Make your own face") {
+                FaceBuilder(portrait: $settings.playerPortrait).padding(.top, 8)
+            }
+            .font(.title3.weight(.medium)).tint(Theme.Paper.green)
+            rule
+            heading("♣", "Opponents")
+            PaperSwitch(options: [("Friends", Settings.Opponents.friends), ("Family", Settings.Opponents.family)],
+                        selection: Binding(get: { settings.opponents }, set: { settings.seat($0) }), ticks: true)
+            // The roster: each figure beside its name, a hairline between, no box round the three (D181).
+            VStack(spacing: 0) {
+                ForEach(1..<4, id: \.self) { seat in
+                    HStack(spacing: 16) {
+                        Group {
+                            if let art = SeatArt.image(seat: seat, opponents: settings.opponents) {
+                                art.resizable().scaledToFit()
+                            } else if let character = Cast.opponent(at: seat) {
+                                PortraitView(portrait: character.portrait, size: 52)
+                            }
+                        }
+                        .frame(width: 68, height: 60, alignment: .bottom)
+                        field(TextField(settings.opponents.names[seat], text: Binding(
+                            get: { settings.seatNames[seat] },
+                            set: { settings.seatNames[seat] = $0.trimmingCharacters(in: .whitespaces).isEmpty ? settings.opponents.names[seat] : $0 }))
+                            .font(.system(.title2, design: .serif).weight(.semibold)))
+                    }
+                    .padding(.vertical, 6)
+                    if seat < 3 { PageRule(weight: 1).opacity(0.6) }
+                }
+            }
+            rule
+            Toggle(isOn: $settings.haptics) {
+                Label("Haptics on every hand", systemImage: "iphone.radiowaves.left.and.right").font(.title3)
+            }
+            .tint(Theme.Paper.green)
+            if onNewPlayer != nil {
+                rule
+                Button { confirmNewPlayer = true } label: {
+                    Label("Start over as a new player", systemImage: "person.crop.circle.badge.plus").font(.title3.weight(.medium))
+                        .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading).contentShape(Rectangle())
+                }
+                .buttonStyle(.plain).foregroundStyle(Theme.Team.theirRim)
+                .accessibilityHint("Clears your name, saved game and statistics; asks first")
+            }
         }
-        .background(WoodGrainView().ignoresSafeArea())
         // An alert, as New game uses (D57), so Cancel is always there.
         .alert("Start over as a new player?", isPresented: $confirmNewPlayer) {
             Button("Start over", role: .destructive) { onNewPlayer?() }
@@ -132,9 +104,7 @@ struct SettingsView: View {
         } message: { Text("This clears your name and face, your saved game and your statistics. It cannot be undone.") }
     }
 
-    private var rule: some View {
-        Rectangle().fill(Theme.Paper.rule).frame(height: 1.5).accessibilityHidden(true)
-    }
+    private var rule: some View { PageRule() }
 
     /// A section's name in the display serif, behind its suit.
     private func heading(_ suit: String, _ title: String) -> some View {
