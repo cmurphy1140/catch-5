@@ -26,14 +26,10 @@ struct PlayPage: View {
                     .frame(width: 44, height: 44).contentShape(Rectangle())
                     .frame(maxWidth: .infinity, alignment: .leading)
                 VStack(spacing: 14) {
-                    HStack(spacing: 20) {
-                        // New game first, so it is on the left whether or not a game is saved.
-                        ForEach(buttons.sorted { $0.action == .newGame && $1.action != .newGame }, id: \.title) { button in
-                            Button { perform(button.action) } label: {
-                                Label(button.title, systemImage: button.action == .newGame ? "plus.square" : "arrow.right")
-                            }
-                            .buttonStyle(WoodWritingButtonStyle(size: onAsk == nil ? 28 : 22))
-                        }
+                    // Side by side at their own widths, so "Back to the table" stays on one line; halves when that is too wide.
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 20) { gameButtons.fixedSize(horizontal: true, vertical: false) }
+                        HStack(spacing: 20) { gameButtons }
                     }
                     if onPractice != nil || onSavedHands != nil {
                         ViewThatFits(in: .horizontal) {
@@ -43,20 +39,36 @@ struct PlayPage: View {
                     }
                     if let onAsk { promptBox(onAsk) }
                 }
-                .padding(.horizontal, 8).padding(.top, scene ? 4 : 0).frame(maxHeight: .infinity, alignment: scene ? .top : .center)
-                lessons.frame(height: geo.size.height * 0.54)
-                    // The three of them sit at the sheet's top edge, as they sat at the table's (D162).
-                    .background(alignment: .top) {
-                        if scene {
-                            let width = geo.size.width - 32
-                            HomeScene(width: width * 0.88).offset(y: 10 - HomeScene.height(width: width * 0.88))
-                        }
+                .padding(.horizontal, 8).padding(.top, scene ? 4 : 0)
+                .frame(maxHeight: scene ? nil : .infinity, alignment: .center)
+                if scene {
+                    // The three of them sit at the sheet's top edge, as they sat at the table's (D162), in the room the
+                    // buttons leave: the scene shrinks to fit that room rather than standing on the prompt box.
+                    GeometryReader { room in
+                        let width = min((geo.size.width - 32) * 0.88, max(0, room.size.height - Self.sceneGap + Self.sceneTuck) / 0.54)
+                        HomeScene(width: width).offset(y: Self.sceneTuck)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                     }
+                }
+                lessons.frame(height: geo.size.height * 0.52)
             }
             .padding(.horizontal, 16).padding(.bottom, 8)
         }
         .foregroundStyle(.ivory)
         .background { if scene, let colours { HomeFelt(colours: colours) } else { WoodGrainView().ignoresSafeArea() } }
+    }
+
+    /// How far the scene's feet tuck behind the sheet, and the clear air kept under the prompt box.
+    private static let sceneTuck = 10.0, sceneGap = 8.0
+
+    // New game first, so it is on the left whether or not a game is saved.
+    private var gameButtons: some View {
+        ForEach(buttons.sorted { $0.action == .newGame && $1.action != .newGame }, id: \.title) { button in
+            Button { perform(button.action) } label: {
+                Label(button.title, systemImage: button.action == .newGame ? "plus.square" : "arrow.right")
+            }
+            .buttonStyle(WoodWritingButtonStyle(size: onAsk == nil ? 28 : 22))
+        }
     }
 
     @ViewBuilder private var learningButtons: some View {
@@ -83,7 +95,10 @@ struct PlayPage: View {
                 .frame(maxWidth: .infinity)
                 step("chevron.right", "Next lesson", enabled: !tutorial.isLastLesson) { tutorial.next() }
             }
-            ScrollView { TutorialLesson(model: tutorial).padding(.bottom, 8) }.id(tutorial.lesson)
+            // The lesson fades out at the sheet's bottom edge, so what scrolls on below it is not cut by a hard line.
+            ScrollView { TutorialLesson(model: tutorial).padding(.bottom, 24) }.id(tutorial.lesson)
+                .mask(LinearGradient(stops: [.init(color: .black, location: 0.94), .init(color: .clear, location: 1)],
+                                     startPoint: .top, endPoint: .bottom))
         }
         .padding(14)
         .foregroundStyle(Theme.Paper.ink).tint(Theme.Paper.green)

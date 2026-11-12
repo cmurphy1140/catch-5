@@ -8,10 +8,10 @@ struct BiddingLesson: View {
         VStack(spacing: 16) {
             Text("High bid: 3. Your bid.").font(.headline)
             HStack(spacing: 8) {
-                SeatTile(name: Cast.opponents[0].name, detail: "West · Bid 2", portrait: Cast.opponents[0].portrait) {}
-                SeatTile(name: Cast.opponents[1].name, detail: "Partner · Bid 3", portrait: Cast.opponents[1].portrait) {}
-                SeatTile(name: Cast.opponents[2].name, detail: "East · Waiting", badge: "DEALER", portrait: Cast.opponents[2].portrait) {}
-            }.disabled(true)
+                SeatTile(name: Settings.defaultSeatNames[1], detail: "West · Bid 2", portrait: Cast.opponents[0].portrait, figure: SeatArt.image(seat: 1, opponents: .friends)) {}
+                SeatTile(name: Settings.defaultSeatNames[2], detail: "Partner · Bid 3", portrait: Cast.opponents[1].portrait, figure: SeatArt.image(seat: 2, opponents: .friends)) {}
+                SeatTile(name: Settings.defaultSeatNames[3], detail: "East · Waiting", badge: "DEALER", portrait: Cast.opponents[2].portrait, figure: SeatArt.image(seat: 3, opponents: .friends)) {}
+            }.fixedSize(horizontal: false, vertical: true).disabled(true)   // one height, the badge or not
             HStack(spacing: 8) { ForEach(TutorialFixtures.biddingHand, id: \.self) { CardView(card: $0) } }
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 8) {
                 ForEach(2...9, id: \.self) { amount in bidButton(String(amount), .points(amount)) }

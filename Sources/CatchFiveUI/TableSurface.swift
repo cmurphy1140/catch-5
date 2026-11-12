@@ -39,6 +39,8 @@ struct TableSurface: View {
     var onRename: (Int) -> Void = { _ in }
     /// The room table says where its far edge is, down the screen: where the seated players' figures end (D158).
     var onTableEdge: (Double) -> Void = { _ in }
+    /// Says when the hand-end card is up, so the room's rail can pass behind it.
+    var onResultCard: (Bool) -> Void = { _ in }
     /// A match-win celebration is playing; the hand-end card waits until it has finished (D69).
     var holdsResult = false
     var onReplay: (() -> Void)?
@@ -315,6 +317,7 @@ struct TableSurface: View {
             // The card takes the whole table and runs down over the bottom row and the empty hand, so the result and
             // its one button fit without scrolling; it starts clear of the Rules book and stops above the name under the hand.
             .overlay { if showsResult, !holdsResult { finishedCard.padding(.top, Theme.Table.resultDrop).padding(.bottom, -Theme.Table.resultSpill) } }
+            .onChange(of: showsResult && !holdsResult, initial: true) { onResultCard($1) }
             .overlay(alignment: .bottom) {
                 if showsAuctionPanel {
                     auctionPanel.transition(reduceMotion ? .opacity : .offset(y: 12).combined(with: .opacity))

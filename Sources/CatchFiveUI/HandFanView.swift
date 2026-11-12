@@ -130,8 +130,13 @@ struct HandFanView: View {
                     .buttonStyle(.plain)
                     .accessibilityLabel("Support")
                     .accessibilityHint("Rules, scoring and advice; pauses play")
-                    NameTag(name: model.seatNames[seat], trump: SeatView.carvedTrump(seat: seat, bidder: hand.auction.winner, trump: hand.trump), inlaid: plate, side: "US")
-                        .renames { onRename(seat) }
+                    // When the dealer's deck shares the row, the side word yields before the name is cut short.
+                    ViewThatFits(in: .horizontal) {
+                        ForEach(["US", nil] as [String?], id: \.self) { side in
+                            NameTag(name: model.seatNames[seat], trump: SeatView.carvedTrump(seat: seat, bidder: hand.auction.winner, trump: hand.trump), inlaid: plate, side: side)
+                                .renames { onRename(seat) }
+                        }
+                    }
                         .onGeometryChange(for: CGPoint.self) { proxy in
                             let frame = proxy.frame(in: .named(TableLayout.space))
                             return CGPoint(x: frame.midX, y: frame.midY)

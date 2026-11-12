@@ -407,6 +407,7 @@ struct MainMenuView: View {
             case "practice": learning = LearningPresentation(start: .practice)
             case "chat": openSupport()
             case "built": showExplainer = true
+            case "play": showPlay = true; tutorial.lesson = min(max(UserDefaults.standard.integer(forKey: "lesson"), 0), TutorialModel.lessonCount - 1)
             default: break
             }
         }

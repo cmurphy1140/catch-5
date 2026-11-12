@@ -6,12 +6,14 @@ struct DealLesson: View {
     private let names = Settings.defaultSeatNames
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             Text("East is dealing. Tap the seat that receives the first three cards.").font(.headline)
-            VStack(spacing: 12) {
-                tile(2)
-                HStack { tile(1); Spacer(); tile(3) }
-                tile(0)
+                .fixedSize(horizontal: false, vertical: true)
+            // The four seats as they sit round a table, short enough that all four show on the play page's sheet.
+            VStack(spacing: 8) {
+                tile(2).frame(maxWidth: 200)
+                HStack(spacing: 8) { tile(1); tile(3) }
+                tile(0).frame(maxWidth: 200)
             }
             Feedback(text: model.dealFeedback)
             
@@ -30,6 +32,6 @@ struct DealLesson: View {
         let detail = seat == 0 ? "that's you" : "\(Cast.seatWords[seat]) · 6 cards"
         return SeatTile(name: names[seat], detail: detail,
                         badge: seat == TutorialFixtures.dealer ? "DEALER" : nil, ring: ring,
-                        portrait: Cast.opponent(at: seat)?.portrait) { model.pickSeat(seat) }
+                        portrait: Cast.opponent(at: seat)?.portrait, figure: seat == 0 ? nil : SeatArt.image(seat: seat, opponents: .friends), compact: true) { model.pickSeat(seat) }
     }
 }

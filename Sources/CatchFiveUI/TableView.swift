@@ -14,6 +14,8 @@ public struct TableView: View {
     @State private var carding: Int?
     /// Where the room table's far edge lies down the screen (D158), once the seats have been measured.
     @State private var tableEdge: Double?
+    /// The hand-end card is up, so the rail passes behind it.
+    @State private var resultCardUp = false
     /// The hand whose contract card has been read and put down (D157), by its number in the match.
     @State private var contractRead: Int?
     @State private var nameDraft = ""
@@ -331,6 +333,7 @@ public struct TableView: View {
                          onDeck: { dealerDeck = $0 },
                          onRename: rename,
                          onTableEdge: { tableEdge = $0 },
+                         onResultCard: { resultCardUp = $0 },
                          holdsResult: !celebrating.isEmpty || celebrationDue,
                          onReplay: openReplay, onReplayTrick: { openReplay(trick: $0) }, onAdvice: openAdvice,
                          statusFocus: $statusFocused)
@@ -368,6 +371,17 @@ public struct TableView: View {
         .overlay {
             if model.settings.tableArrangement == .rail, let tableEdge {
                 GeometryReader { geometry in RoomRail(top: tableEdge - geometry.frame(in: .global).minY) }.ignoresSafeArea().allowsHitTesting(false)
+                    // The hand-end card stands in front of the rail: the rail shows only in the margins beside it.
+                    .mask {
+                        let side = Theme.Table.horizontalInset + Theme.Table.overlayInset
+                        HStack(spacing: 0) {
+                            Rectangle().frame(width: side)
+                            Rectangle().opacity(resultCardUp ? 0 : 1)
+                            Rectangle().frame(width: side)
+                        }
+                        .ignoresSafeArea()
+                    }
+                    .animation(Theme.Motion.overlay, value: resultCardUp)
             }
         }
         .background {

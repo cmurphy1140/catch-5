@@ -136,23 +136,46 @@ struct SeatTile: View {
     var badge: String? = nil
     var ring: Color? = nil
     var portrait: Portrait? = nil
+    /// The seat's cut-out figure, as at the table; nil draws the portrait.
+    var figure: Image? = nil
+    /// A short tile for a tight sheet: the face beside the words and the badge in the corner, so every tile is one height.
+    var compact = false
     let action: () -> Void
     /// Every label stays on one line and shrinks a little rather than wrapping, so three tiles fit a row
     /// at the boosted text size.
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 4) {
-                if let portrait { PortraitView(portrait: portrait, size: Theme.Table.tutorialPortraitSize) }
-                Text(name).font(.subheadline.weight(.semibold))
-                Text(detail).font(.caption).opacity(0.7)
-                if let badge { Text(badge).font(.system(.caption2, design: .monospaced)).foregroundStyle(Color.suitRed) }
+            Group {
+                if compact {
+                    HStack(spacing: 8) {
+                        if let portrait { SeatFace(portrait: portrait, figure: figure, size: Theme.Table.tutorialPortraitSize) }
+                        VStack(alignment: portrait == nil ? .center : .leading, spacing: 2) { words }
+                        if portrait != nil { Spacer(minLength: 0) }
+                    }
+                    .padding(.horizontal, 10).padding(.vertical, 8)
+                } else {
+                    VStack(spacing: 4) {
+                        if let portrait { SeatFace(portrait: portrait, figure: figure, size: Theme.Table.tutorialPortraitSize) }
+                        words
+                        if let badge { badgeText(badge) }
+                    }
+                    .padding(.horizontal, 8).padding(.vertical, 10)
+                }
             }
             .lineLimit(1).minimumScaleFactor(0.7)
-            .padding(.horizontal, 8).padding(.vertical, 10)
-            .frame(maxWidth: .infinity, minHeight: 44)
+            .frame(maxWidth: .infinity, minHeight: compact ? 52 : 44, maxHeight: compact ? nil : .infinity)
             .background(Theme.Paper.tan.opacity(0.6), in: RoundedRectangle(cornerRadius: 12))
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(ring ?? Theme.Paper.rule.opacity(0.6), lineWidth: ring == nil ? 1 : 3))
+            .overlay(alignment: .topTrailing) { if compact, let badge { badgeText(badge).padding(.top, 5).padding(.trailing, 8) } }
         }.buttonStyle(.plain)
+    }
+
+    @ViewBuilder private var words: some View {
+        Text(name).font(.subheadline.weight(.semibold))
+        Text(detail).font(.caption).opacity(0.7)
+    }
+    private func badgeText(_ badge: String) -> some View {
+        Text(badge).font(.system(.caption2, design: .monospaced)).foregroundStyle(Color.suitRed)
     }
 }
 
