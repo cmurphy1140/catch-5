@@ -164,7 +164,7 @@ public struct RootView: View {
         _model = StateObject(wrappedValue: model)
         _tutorial = StateObject(wrappedValue: model.makeTutorial())
         let screen: Screen = switch stage {
-        case "picker", "stats", "settings", "howto", "rules", "signoff", "home", "note": .menu
+        case "picker", "stats", "settings", "howto", "rules", "signoff", "home", "note", "guest": .menu
         case "curtain", "seat", "pass-table", "draw", "bidding", "dealer-forced", "trump", "table", "table-rules", "table-rules-fold", "dealer-bidder", "pause", "result", "review", "review-tricks", "over",
              "home-tips", "home-whywe", "ninewin", "ninelose", "won", "confirm9", "bold", "five", "handline", "panel", "demo": .table
         default: Self.initialScreen(for: model.settings, matchInProgress: model.matchInProgress,

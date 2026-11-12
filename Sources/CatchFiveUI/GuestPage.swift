@@ -117,6 +117,12 @@ struct GuestPage: View {
                     .scaleEffect(breathing ? 1.012 : 1, anchor: .bottom)
                     .id(worn ?? "came").transition(.scale(scale: 0.9, anchor: .bottom).combined(with: .opacity))
                     .offset(y: beat >= 2 ? 0 : 70).opacity(beat >= 2 ? 1 : 0)
+                    // Her dog comes in last and lies down beside her (D178), when the build carries its pieces.
+                    .overlay(alignment: .bottomTrailing) {
+                        if beat >= Self.last, let dog = GuestDogFigure.Parts.carried {
+                            GuestDog(parts: dog, width: 150, distance: 260).offset(x: 46, y: 8)
+                        }
+                    }
             }
             Text(name).font(.custom("SnellRoundhand-Black", fixedSize: 56)).lineLimit(1).minimumScaleFactor(0.5)
                 .shadow(color: .black.opacity(0.45), radius: 1.5, y: 1.5)
@@ -186,5 +192,17 @@ struct GuestPage: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label).accessibilityAddTraits(isWorn ? .isSelected : [])
+    }
+}
+
+extension GuestDogFigure.Parts {
+    /// The dog's pieces, when the build carries every one: the git-ignored pictures `GuestDogBody`, `GuestDogHead`,
+    /// `GuestDogTail`, the four `GuestDogLeg…`, `GuestDogLying` and `GuestDogLyingTail`.
+    static var carried: GuestDogFigure.Parts? {
+        let legs = ["FrontNear", "FrontFar", "BackNear", "BackFar"].compactMap { SeatArt.named("GuestDogLeg\($0)") }
+        guard legs.count == 4, let body = SeatArt.named("GuestDogBody"), let head = SeatArt.named("GuestDogHead"),
+              let tail = SeatArt.named("GuestDogTail"), let lying = SeatArt.named("GuestDogLying"),
+              let lyingTail = SeatArt.named("GuestDogLyingTail") else { return nil }
+        return GuestDogFigure.Parts(body: body, head: head, tail: tail, legs: legs, lying: lying, lyingTail: lyingTail)
     }
 }

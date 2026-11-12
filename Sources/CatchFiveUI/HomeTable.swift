@@ -21,6 +21,23 @@ struct HomeTable: View {
     let onPlay: () -> Void
     let onAsk: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Counts the deals, so each tap on Play starts the cards again; `dealing` holds the tap until they have landed.
+    @State private var deal = 0
+    @State private var dealing = false
+
+    /// Play: the cards go round the blanket first (D179), then the play page opens.
+    private func play() {
+        guard !dealing else { return }
+        guard !reduceMotion else { onPlay(); return }
+        dealing = true; deal += 1
+        Task {
+            try? await Task.sleep(for: .seconds(HomeMotion.dealSeconds))
+            dealing = false
+            onPlay()
+        }
+    }
+
     /// The hero; without it, the older page is drawn.
     static var carried: Bool { SeatArt.named("GuestMenuHero") != nil }
 
@@ -45,21 +62,18 @@ struct HomeTable: View {
                     table.fill(.black.opacity(0.22))
                     // The rail's shadow on the wood just under it.
                     TableEdge(top: edge + 9, closed: false).stroke(.black.opacity(0.45), lineWidth: 12).blur(radius: 7).mask { table }
+                    HomeGlow(width: width, height: height)
                 }
                 .accessibilityHidden(true)
 
-                VStack(spacing: 4) {
-                    Text("Catch 5").font(.system(size: min(60, width * 0.15), weight: .bold, design: .serif))
-                    Text("A FAMILY CARD GAME").font(.system(.footnote, design: .serif).weight(.semibold)).tracking(3.5)
-                }
-                .shadow(color: .black.opacity(0.45), radius: 1.5, y: 1.5)
-                .frame(width: width).position(x: width / 2, y: height * 0.085)
-                .accessibilityElement(children: .combine).accessibilityAddTraits(.isHeader)
+                HomeTitle(width: width, guest: guest)
+                    .frame(width: width).position(x: width / 2, y: height * 0.085)
 
                 // Play, and beside it the helper: a smaller pill of the same ivory, whole on the screen (D176).
                 HStack(spacing: 12) {
-                    Button(action: onPlay) {
-                        Text("Play").font(.system(size: 30, weight: .bold, design: .serif)).foregroundStyle(Theme.Paper.greenDeep)
+                    Button(action: play) {
+                        Text(dealing ? "Dealing…" : "Play").font(.system(size: dealing ? 24 : 30, weight: .bold, design: .serif)).italic(dealing)
+                            .foregroundStyle(Theme.Paper.greenDeep)
                             .frame(width: min(218, width * 0.56), height: 54)
                             .background(Color.ivory, in: Capsule())
                             .shadow(color: .black.opacity(0.4), radius: 4, y: 3)
@@ -91,7 +105,7 @@ struct HomeTable: View {
                     // A little wider than the screen, and centred between the words and the family picture's heads, so the
                     // oak between them is filled (D166).
                     let picnicTop = height + geometry.safeAreaInsets.bottom - width * 856 / 1837 * 0.88
-                    Button(action: onPlay) { hero.resizable().scaledToFit().frame(width: width * 1.3) }
+                    Button(action: play) { HomeHero(picture: hero, width: width * 1.3) }
                         .buttonStyle(.plain).shadow(color: .black.opacity(0.4), radius: 5, y: 4)
                         .position(x: width / 2, y: (edge + 118 + picnicTop) / 2)
                         .accessibilityHidden(true) // a second way to Play (D133)
@@ -108,6 +122,12 @@ struct HomeTable: View {
                         }
                         .position(x: width / 2, y: height + geometry.safeAreaInsets.bottom - picnicHeight / 2)
                         .accessibilityHidden(true)
+                    GrassBreeze(width: width, height: height + geometry.safeAreaInsets.bottom)
+                    if deal > 0, dealing {
+                        DealLayer(origin: CGPoint(x: 0, y: height + geometry.safeAreaInsets.bottom - picnicHeight),
+                                  size: CGSize(width: width, height: picnicHeight))
+                            .id(deal)
+                    }
                 }
 
                 // On the oak just above the family, at the left: her open notebook with the way to her things written

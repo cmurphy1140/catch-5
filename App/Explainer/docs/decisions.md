@@ -1416,3 +1416,24 @@ looks appear. A tap skips it and Reduce Motion does not play it. Her looks are t
 a build with none. The choice is kept by name in the device's defaults (not in `Settings`, so no save format changes)
 and `SeatArt.image` gives seat 0 that picture wherever the table draws her. `GuestThings` is left in place, unused.
 Built from Connor's direction; no look pictures exist yet, and it awaits his look on the phone.
+
+## D178. Her dog is a paper puppet that walks in and lies down (2026-11-11, proposed)
+
+On the guest's page a golden retriever trots in after her name is written and lies down beside her. She is a puppet of
+separate cut-out pieces (`GuestDogFigure`): a body, a head, a tail and four legs, each drawn the size of one shared frame
+and turned about its joint, with a second pair of pictures for lying down that rises as the standing figure sinks.
+`GuestDogMotion.pose(at:)` gives every angle as plain numbers, so the walk, the settling, the breathing and the wag are
+tested without a screen. The pieces are git-ignored `GuestDog…` pictures; without all nine she is not drawn. The joints
+are stand-in values until Connor's pictures arrive, and the rig has only been seen with stand-in shapes on the Mac.
+
+## D179. The opening table moves (2026-11-11, proposed)
+
+Seven motions from Connor's Figma prototype, rebuilt in SwiftUI in `HomeMotion.swift`; its invented rules, room code and
+figures were left behind. A greeting by the hour stands over the title ("Evening at the Emma table"); "Catch 5" rises
+out of a blur and gold sweeps across it once; the five floats, leans as the phone leans with a glare that follows, and
+glints every few seconds, the light masked to the card and off the hands; warm light drifts over the cloth and the
+wood; grass tufts sway in the bottom corners; and Play deals a card from the blanket's deck to each of the five before
+the play page opens, the button reading "Dealing…" meanwhile. Reduce Motion plays none of it and Play opens at once.
+The greeting and the lean are plain functions with tests. Seen so far only as still renders on the Mac (the card's
+outline over the real picture, the grass); the motion awaits Connor's look on the phone.
+

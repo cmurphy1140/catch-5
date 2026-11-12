@@ -402,6 +402,7 @@ struct MainMenuView: View {
             switch ScreenshotStage.name {
             case "stats": openStatistics()
             case "settings": showSettings = true
+            case "guest": showThings = true // the guest's own page, for a headless look at it (D177)
             case "howto", "rules", "signoff": showTutorial = true
             default: break
             }
