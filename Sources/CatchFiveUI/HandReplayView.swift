@@ -26,6 +26,12 @@ struct LearningSeatLabels {
         return "\(name) · seat \(seat + 1)"
     }
 
+    /// The hand review keeps familiar names, adding the seat only when names repeat.
+    static func reviewName(_ seat: Int, in names: [String]) -> String {
+        let name = names.indices.contains(seat) ? names[seat] : "Player"
+        return names.filter { $0 == name }.count > 1 ? "\(name) · seat \(seat + 1)" : name
+    }
+
     func team(_ team: Int) -> String {
         if mode == .solo { return team == 0 ? "Us" : "Them" }
         return "Team \(team + 1) · seats \(team + 1) & \(team + 3)"
@@ -86,18 +92,24 @@ struct HandReplayView: View {
     let onClose: () -> Void
     let onPractice: (HandReplay) -> Void
     let onRule: (ReplayRule) -> Void
+    let onStepChange: (Int) -> Void
+    let bottomSeat: Int
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var playback: ReplayPlayback
     @State private var showsHands: Bool
 
     init(replay: HandReplay, names: [String], mode: PlayMode,
-         initialStepID: Int? = nil, initiallyShowsHands: Bool = false, onClose: @escaping () -> Void,
-         onPractice: @escaping (HandReplay) -> Void, onRule: @escaping (ReplayRule) -> Void) {
+         initialStepID: Int? = nil, initiallyShowsHands: Bool = false, bottomSeat: Int = 0,
+         onClose: @escaping () -> Void, onPractice: @escaping (HandReplay) -> Void,
+         onRule: @escaping (ReplayRule) -> Void, onStepChange: @escaping (Int) -> Void = { _ in }) {
         self.replay = replay
         self.names = names
         self.mode = mode
         self.onClose = onClose
         self.onPractice = onPractice
         self.onRule = onRule
+        self.onStepChange = onStepChange
+        self.bottomSeat = ReplayTrickPresentation.seat(at: 0, bottomSeat: bottomSeat)
         var playback = ReplayPlayback(replay: replay)
         if let initialStepID { playback.select(id: initialStepID) }
         _playback = State(initialValue: playback)
@@ -105,6 +117,14 @@ struct HandReplayView: View {
     }
 
     private var labels: LearningSeatLabels { LearningSeatLabels(names: names, mode: mode) }
+    private var trickExplanation: ReplayTrickPresentation? {
+        ReplayTrickPresentation.forStep(playback.current, in: replay)
+    }
+    private var remainingRules: [ReplayRule] {
+        playback.current.rules.filter {
+            trickExplanation == nil || ($0 != .trumpWins && $0 != .ledSuitWins)
+        }
+    }
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -113,7 +133,7 @@ struct HandReplayView: View {
                     contract
                     Divider().overlay(Theme.Paper.rule)
                     selectedEvent.id("selected-event")
-                    LearningRuleLinks(rules: playback.current.rules, onRule: onRule)
+                    LearningRuleLinks(rules: remainingRules, onRule: onRule)
                     allHands
                     timeline
                     Button("Practice this deal") { onPractice(replay) }.buttonStyle(PaperButtonStyle())
@@ -175,8 +195,6 @@ struct HandReplayView: View {
             trickCards(playback.current.currentTrick)
         case let .trick(_, plays, _):
             trickCards(plays)
-            Text("The winning seat takes these four cards. The hand's High and Low points are settled after play.")
-                .font(.subheadline)
         case let .score(before, after, result, _, _):
             ForEach(0..<2, id: \.self) { team in
                 VStack(alignment: .leading, spacing: 4) {
@@ -203,15 +221,123 @@ struct HandReplayView: View {
     }
 
     private func trickCards(_ plays: [Play]) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            ForEach(Array(plays.enumerated()), id: \.offset) { _, play in
-                HStack(alignment: .center, spacing: 12) {
-                    CardView(card: play.card, width: 48)
-                    Text(labels.name(play.seat)).font(.subheadline)
-                        .fixedSize(horizontal: false, vertical: true)
+        VStack(alignment: .leading, spacing: 16) {
+            if let lead = plays.first {
+                Text("\(lead.card.suit.rawValue.capitalized) led · \(replay.trump.rawValue.capitalized) trump")
+                    .font(.subheadline.weight(.medium))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if dynamicTypeSize.isAccessibilitySize {
+                orderedTrickCards(plays)
+            } else {
+                tableTrickCards(plays)
+            }
+            if let explanation = trickExplanation {
+                DisclosureGroup("Why did that win?") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(explanation.explanation)
+                            .font(.body).fixedSize(horizontal: false, vertical: true)
+                        Button { onRule(explanation.rule) } label: {
+                            Label("Read the house rule", systemImage: "book.closed")
+                                .font(.subheadline.weight(.semibold))
+                                .frame(minHeight: 44, alignment: .leading)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain).foregroundStyle(Theme.Paper.green)
+                        .accessibilityHint("Returns to these same four cards when you go back")
+                    }
+                    .padding(.top, 10)
                 }
+                .font(.headline).tint(Theme.Paper.green)
+                .frame(minHeight: 44)
             }
         }
+    }
+
+    /// A completed hand keeps the live table's seat orientation; order labels still tell
+    /// who led and who followed. Larger type uses the same four plays as a reading list.
+    private func tableTrickCards(_ plays: [Play]) -> some View {
+        VStack(spacing: 12) {
+            tableSeat(2, plays: plays)
+            HStack(alignment: .center, spacing: 12) {
+                tableSeat(1, plays: plays)
+                Spacer(minLength: 20)
+                tableSeat(3, plays: plays)
+            }
+            tableSeat(0, plays: plays)
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(plays.enumerated().map { index, play in
+            spokenPlay(play, order: index + 1)
+        }.joined(separator: ". "))
+    }
+
+    private func tableSeat(_ place: Int, plays: [Play]) -> some View {
+        let seat = ReplayTrickPresentation.seat(at: place, bottomSeat: bottomSeat)
+        let position = plays.firstIndex(where: { $0.seat == seat })
+        return VStack(spacing: 5) {
+            Text(labels.name(seat)).font(.caption.weight(.medium))
+                .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+            if let position {
+                let play = plays[position]
+                let won = trickExplanation?.winningPlay.seat == play.seat
+                CardView(card: play.card, width: 52, ring: won ? Theme.Paper.green : nil)
+                Text(position == 0 ? "1 · Led" : "\(position + 1) · Played")
+                    .font(.caption).foregroundStyle(Theme.Paper.ink.opacity(0.75))
+                if won { tookTrick }
+            } else {
+                Text("Waiting").font(.caption)
+                    .foregroundStyle(Theme.Paper.ink.opacity(0.55))
+                    .frame(width: 52, height: 73)
+            }
+        }
+        .frame(maxWidth: 124)
+    }
+
+    private func orderedTrickCards(_ plays: [Play]) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            ForEach(Array(plays.enumerated()), id: \.offset) { index, play in
+                HStack(alignment: .top, spacing: 12) {
+                    let won = trickExplanation?.winningPlay.seat == play.seat
+                    CardView(card: play.card, width: 48, ring: won ? Theme.Paper.green : nil)
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("\(index + 1) · \(labels.name(play.seat))").font(.subheadline.weight(.medium))
+                        Text(play.card.name.capitalized).font(.subheadline)
+                        if won { tookTrick }
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(spokenPlay(play, order: index + 1))
+            }
+        }
+    }
+
+    private var tookTrick: some View {
+        Text("Took trick").font(.caption.weight(.semibold))
+            .foregroundStyle(Theme.Paper.green)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func spokenPlay(_ play: Play, order: Int) -> String {
+        let result = trickExplanation?.winningPlay.seat == play.seat ? ", took the trick" : ""
+        return "\(order). \(labels.name(play.seat)), \(play.card.name)\(result)"
+    }
+
+    private func selectStep(id: Int) {
+        playback.select(id: id)
+        onStepChange(playback.current.id)
+    }
+
+    private func previousStep() {
+        playback.previous()
+        onStepChange(playback.current.id)
+    }
+
+    private func nextStep() {
+        playback.next()
+        onStepChange(playback.current.id)
     }
 
     private func scoringPoints(_ result: HandScore) -> some View {
@@ -240,7 +366,7 @@ struct HandReplayView: View {
         DisclosureGroup("Every bid, discard and trick") {
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(replay.steps) { step in
-                    Button { playback.select(id: step.id) } label: {
+                    Button { selectStep(id: step.id) } label: {
                         HStack(alignment: .firstTextBaseline, spacing: 10) {
                             Text("\(step.id + 1)").monospacedDigit().foregroundStyle(Theme.Paper.ink.opacity(0.6))
                             Text(ReplayWording.title(step.event, labels: labels)).multilineTextAlignment(.leading)
@@ -271,7 +397,7 @@ struct HandReplayView: View {
 
     private func controlRow(compact: Bool) -> some View {
         HStack(spacing: 8) {
-            Button { playback.previous() } label: {
+            Button(action: previousStep) {
                 Group {
                     if compact { Image(systemName: "chevron.left") }
                     else { Label("Previous", systemImage: "chevron.left").fixedSize() }
@@ -282,7 +408,7 @@ struct HandReplayView: View {
             Text("\(playback.index + 1) / \(replay.steps.count)").font(.caption).monospacedDigit()
                 .accessibilityLabel("Step \(playback.index + 1) of \(replay.steps.count)")
             Spacer(minLength: 0)
-            Button { playback.next() } label: {
+            Button(action: nextStep) {
                 Group {
                     if compact { Image(systemName: "chevron.right") }
                     else { Label("Next", systemImage: "chevron.right").fixedSize() }

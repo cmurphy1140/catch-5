@@ -34,7 +34,7 @@ struct TutorialView: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Full rules") { showRules = true } }
                 ToolbarItem(placement: .confirmationAction) { Button(isIntro ? "Skip" : "Done", action: onDismiss) }
             }
-            .sheet(isPresented: $showRules) { RulesView { showRules = false } }
+            .sheet(isPresented: $showRules) { RulebookView { showRules = false } }
             .onAppear { if ["rules", "signoff"].contains(ScreenshotStage.name ?? "") { showRules = true } }
         }
         .preferredColorScheme(.dark)

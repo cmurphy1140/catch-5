@@ -96,13 +96,13 @@ struct PracticeSetupView: View {
             Text(role).font(.subheadline).foregroundStyle(Theme.Paper.ink.opacity(0.75))
         }
         let choice = PaperSwitch(options: [("Easy", Difficulty.easy), ("Standard", Difficulty.standard)],
-                                 selection: selection, ticks: true)
+                                 selection: selection, ticks: true, compact: true)
             .accessibilityLabel("\(role) difficulty")
         return ViewThatFits(in: .horizontal) {
             HStack(spacing: 12) {
                 name
                 Spacer(minLength: 0)
-                choice.frame(width: 200)
+                choice.frame(width: 208)
             }
             VStack(alignment: .leading, spacing: 8) { name; choice }
         }

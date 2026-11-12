@@ -182,3 +182,32 @@ The task's ignored capture harness preserves an immutable pre-feature source sna
 per-image evidence. Simulator builds, captures and tests run one at a time under `sim_guard.sim_lock`; simulator boots
 retain the normal-pressure/20%-free gate and watchdog. Private artwork stays under ignored `work/`, and a fresh Guest-free
 catalog checks fallback rendering. The local task state records which device/text/motion captures actually ran.
+
+## Experience-plan regression checks (2026-11-12)
+
+The implementation checkpoint passed **396 Swift tests: 293 UI and 103 engine**, including the 13 focused additions
+below. A native iOS build also passed. These runs preceded the final notebook focus handoff correction; the final
+source snapshot/build and simulator interaction results are recorded separately under the ignored
+`work/experience-plan-task/` task record. No phone appearance, keyboard clearance, physical tap sequence or
+VoiceOver behavior is established by these unit results.
+
+| File | Test | What it checks |
+|---|---|---|
+| `TrickReplayTests.swift` | `trickExplanationNamesTheOnlyTrumpEvenWhenAnAceWasLed` | A lone low trump beats a led ace. |
+| Same | `trickExplanationComparesTheWinningTrumpWithTheHighestOtherTrump` | The explanation names the strongest competing trump. |
+| Same | `trickExplanationNamesTheLedSuitComparisonAndIgnoresOffSuitAces` | Without trump, only the led suit competes. |
+| Same | `trickExplanationCoversAWinningLeadThatNobodyCouldFollow` | A sole led-suit card receives the correct explanation. |
+| Same | `trickExplanationRejectsPartialInvalidOrContradictoryHistory` | Incomplete/duplicate plays and a false recorded winner produce no explanation. |
+| Same | `eachTrickDeepLinkStartsWithItsRecordedLead` | Every numbered trick resolves to its actual first play. |
+| Same | `theFourthCardAndItsRecordedAwardShowTheSameExplanation` | The answer appears with card four and survives the award step. |
+| Same | `trickCursorSurvivesRulesAndPracticeWithoutChangingTheRealMatch` | Cursor/orientation retention, invalid selections and unchanged real-match encoding. |
+| Same | `reviewNamesKeepRepeatedNamesDistinctWithoutAddingNoiseToUniqueNames` | Duplicate names retain seat identity; unique names stay plain. |
+| `SupportStarterDisclosureTests.swift` | `supportSuggestionsStayOpenWhenAPlayerReopensThemDuringADraft` | Suggestions fold once, then respect a player's reopening. |
+| `GuestExperienceTests.swift` | `approvedDogRunKeepsTheSeatedOpeningAndSnowyNoseHolds` | Nine approved holds include the opening and longer final pause. |
+| Same | `approvedDogRunMovesAtItsRecordedBoundariesAndKeepsTheLastStill` | Frame boundaries advance correctly and the final pose remains. |
+| Same | `partialDogArtUsesAvailableFramesWithoutInventingMorePictures` | Missing/partial sequences use only available frames. |
+
+The remaining platform checks cover first/repeat mailbox visits, long-letter scrolling and notebook focus, dog
+cancellation and missing art, Reduce Motion/Transparency, large text, chat keyboard placement, the production
+Review hand → Tricks → Replay route, chat-to-replay sheet dismissal, and house-rule Back returning to the same step.
+Those checks are pending at this documentation checkpoint.

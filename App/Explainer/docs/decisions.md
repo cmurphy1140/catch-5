@@ -1469,3 +1469,101 @@ the next, the last, her face close up, is held a second, and the scene fades int
 ends it early; Reduce Motion never plays it unasked, but the paw print still calls it. The pictures are git-ignored `GuestDogRun1…8`; a build without them opens
 on the swans as before. The timing is a plain function with a test. The puppet (D178) stays for a dog that lies down
 beside her, should its pieces come. Not yet seen moving; awaits Connor's look on the phone.
+
+## D183. How to play wears the cloth band, and its figures use the table's own cast (2026-11-12, proposed)
+
+From Connor's mocks of the rulebook. The dark title bar is gone: the page sits under the same burgundy band as
+Practice and Settings (D181), with the six chapter chips riding on the cloth. The two long chapters, Deal and bidding
+and Play, are one paragraph each in the rules; they are now read a thought at a time between hairlines
+(`Chapter.thoughts`), every word and its order the rules document's own, so the verbatim test still holds. The mocks'
+shorter wording was not taken: the rules are the family's and are checked against `docs/catch-five-rules.md`. Play's
+example is a paper switch and its trick lies on a strip of cloth; 9 and out opens on a place card; Reading the table
+puts each note beside a small drawing of the piece it is about (the score bar, three seat tiles, a dimmed and a ringed
+card), built from the app's parts where the mocks had paintings. The figures named the old cast (Hazel, Otto, Rue)
+while the Try it boxes named the table's (Marcus, Meg, Monica); both now use the table's, with its cut-out figures
+when the build carries them. The family's note is a slip of paper, a little askew, with the mail link in green. No
+teacher yet: Mike waits on who he is and how he talks. Seen as still renders on the Mac; awaits Connor's look.
+
+## D184. The chat and the explainer wear the band too, in two colours (2026-11-12, proposed)
+
+From Connor's mocks. The band now comes in two cloths (`ClothColours`): burgundy on the pages about playing
+(Practice, Settings, How to play, the chat) and green on the page about the app itself, How Catch 5 is built, whose
+lede rides on the cloth. The chat's system title bar is gone; its notebook and settings are symbols on the band before
+Done (`ClothTool`). Its greeting is larger, beside the two hands passing the five when the build carries that picture,
+and the suggestions are plain rows between hairlines under a "Suggested prompts" heading that folds, where there were
+glass chips (D146). The mock's scalloped wooden edge was not taken, so every page shares one header. Each chapter card
+in the explainer opens on three cards lifted apart (`LayeredCards`), the top one's suit turning with the chapter's
+number: a drawn stand-in until each chapter has a painted picture of its own. Seen as still renders on the Mac.
+
+## D185. How to play is an illustrated rulebook, a page at a time (2026-11-12, proposed)
+
+From Connor's thirteen-page mockup, which replaces the scrolling chapters as what How to play opens (D183's page is
+kept, see below). `Rulebook.pages` is the book as data: a contents page, then twelve short pages across the six
+chapters, each with a red chapter line, a large title, one sentence under it, a picture when the build carries one,
+and a few plain blocks between hairlines. The page is flat paper the colour of the pictures' own ground, with no card
+round it. The foot has Previous on the left and the next page's name on the right; a sideways flick turns the page;
+"Chapters" in the running head goes back to the contents. The band of the other pages stays on top, for the title
+and Done, where the mockup had a plain brown strip and no way out. The book is written in its own words, which are
+Connor's: the rules as the family wrote them are untouched in `RulesText`, still checked against the rules document,
+and the contents page's "House rules" opens them (the D183 page, with its search and its trials). Two pages ask a
+question the engine answers: the dealer's call (pass, 2, 3 or 4 against a bid of 3) and which card may follow a
+heart; a refusal is the engine's own sentence, an acceptance the book's. The book names its own cast, Hazel, Otto
+and Rue, because they are painted into its pictures; the D183 page keeps the table's. The eight pictures came out of
+the mockup PDF as git-ignored `GuestBook…` pictures; a build without them reads the same pages without pictures.
+The first figure of each point, the tricks and the Game values come from `RulesFigures`, so they cannot drift from
+the engine. Seen as still renders on the Mac, where the pictures do not draw; awaits Connor's look on the phone.
+
+## D186. The mailbox opens a letter that stays apart from notebook entries (2026-11-12)
+
+The guest's page and notebook share one mailbox and one opened state, `GuestNote.seenKey`. The flag changes when
+the letter actually appears, so opening one entrance updates the other. The letter uses scrolling pale-blue
+stationery, a small swan detail and a persistent “Keep it” dismissal; its body follows Dynamic Type without a cap.
+The bundled letter remains separate from editable `Notebook.notes`. Missing letter data omits the mailbox.
+Opening it from an entry clears writing focus, and the underlying notebook stops accepting taps and accessibility
+focus while the letter is presented. The guest page also keeps the letter reachable during the entrance and dog
+sequence. These are source changes; phone interaction and accessibility focus still need the checks in testing.md.
+
+## D187. Help has its own place on the rail, and suggestions belong to the draft (2026-11-12)
+
+The home “Ask anything” action is a smoked-amber tab on the walnut rail, above the ivory Play button. Its target is
+at least 44 points; Reduce Transparency supplies an opaque surface. The felt grain is softer towards the center,
+and accessibility text sizes use scrolling actions. Chat greets the known solo player; shared play keeps a general
+greeting. `SupportStarterDisclosure` folds suggestions on the first nonempty draft and preserves a manual reopening
+during later typing. The composer remains in the bottom safe-area inset above the keyboard. The disclosure about
+sending data comes from `SupportChatModel.transmissionDescription`: offline, conversation only, or conversation
+with cards and public play, according to the actual client and context policy.
+
+## D188. A finished trick explains the card that took it (2026-11-12)
+
+Review hand → Tricks → “Replay this trick” opens the selected trick at its recorded first play. The compact replay
+uses the live table's seat orientation, with lead, trump and play order labeled; accessibility text sizes use a
+chronological list. Repeated names receive a seat label. “Took trick” marks the winning card, and “Why did that win?”
+explains the decisive comparison locally: the only trump, the highest trump against the next highest, or the highest
+card of the led suit. `ReplayTrickPresentation` accepts the recorded winner only when the existing engine's
+`trickWinner` agrees. The fourth card and its following award share that explanation.
+
+“Read the house rule” opens the corresponding existing house-rule entry. `LearningFlowModel` retains the selected
+step across rules and independent practice, without changing the real match. Chat's local “Review a trick” actions
+use the same replay route; the support sheet invalidates and dismisses before replay opens, with revision and viewer
+checks on the handoff. Unavailable historical replay data produces no invented route or explanation. Ordinary nine,
+nine-and-out and exact-deal practice retain their existing engine behavior.
+
+## D189. The dog run includes its opening still and owns its cancellation (2026-11-12)
+
+When all approved pictures are carried, the seated opening and eight running pictures make a nine-still sequence.
+Each has its own hold, with longer pauses at the opening and final pose. Partial art uses only the available pictures;
+missing running art returns directly to the guest page. Reduce Motion keeps the final picture still until Back or
+the letter is chosen. The run's seen state is marked on appearance, so later visits can reach the settled page
+immediately; the dog can still be replayed. A view-owned task cancels when the run closes or the motion preference
+changes. Back and the letter remain accessible during the sequence. Timing and fallback behavior have focused
+regressions; rendering, physical taps and accessibility operation remain pending in the task's platform checks.
+
+## D190. The rulebook is sized on the phone, not on the Mac (2026-11-12, proposed)
+
+Seen in the simulator, the rulebook of D185 was too big: the cloth band took a fifth of the screen, the contents showed
+three chapters of six, and the table's two-step type boost made every page larger again. The book now has its own slim
+band (Chapters, the page count, a small Done), body text a step smaller, and it undoes the table's boost when opened
+from the table, so it reads the same from the menu and from a hand. The practice page's Easy and Standard switch was
+cutting off "Standard"; `PaperSwitch` gained a `compact` size for a switch that shares a row with a name. Three
+screenshot stages (`practice`, `chat`, `built`) open those pages headless, so they can be checked the same way.
+All thirteen pages, Practice, Chat, the explainer, Settings and the guest page were looked at in the simulator.

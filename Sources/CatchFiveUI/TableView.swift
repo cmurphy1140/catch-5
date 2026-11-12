@@ -26,6 +26,8 @@ public struct TableView: View {
     @State private var scorePanel = false
     @State private var showStatistics = false
     @State private var support: SupportPresentation?
+    /// A local trick request waits until chat's sheet has finished dismissing.
+    @State private var supportReplay: (number: Int, revision: Int, viewerSeat: Int?)?
     @State private var learning: LearningPresentation?
     @State private var advice: LiveAdvicePresentation?
     @StateObject private var savedStatistics = SavedHandStatisticsModel()
@@ -94,7 +96,7 @@ public struct TableView: View {
     private var pause: TablePause {
         TablePause(sceneActive: scenePhase == .active,
                    welcomeShown: covered,
-                   sheetShown: showSettings || showTutorial || showRules || scorePanel || showStatistics || support != nil || learning != nil || advice != nil,
+                   sheetShown: showSettings || showTutorial || showRules || scorePanel || showStatistics || support != nil || supportReplay != nil || learning != nil || advice != nil,
                    dialogShown: renaming != nil || carding != nil || contractSummary != nil || confirmNineAndOut || model.tallyDemo != nil || model.errorMessage != nil || model.saveError != nil,
                    inspectingTrick: reopenedTrick != nil,
                    drawShown: drawShown)
@@ -117,9 +119,19 @@ public struct TableView: View {
         if let advice, !advice.isValid(for: model, covered: adviceBlocked) { self.advice = nil }
     }
 
-    private func openReplay() {
+    private func openReplay() { openReplay(trick: nil) }
+
+    private func openReplay(trick number: Int?) {
         guard let replay = model.handReplay(), !covered else { return }
-        learning = LearningPresentation(start: .replay(replay, names: model.seatNames, mode: model.mode))
+        let initialStepID: Int?
+        if let number {
+            guard let stepID = ReplayTrickPresentation.firstPlayStepID(number: number, in: replay) else { return }
+            initialStepID = stepID
+        } else {
+            initialStepID = nil
+        }
+        learning = LearningPresentation(start: .replay(replay, names: model.seatNames, mode: model.mode,
+                                                       initialStepID: initialStepID, bottomSeat: model.bottomSeat))
     }
 
     /// The draw for dealer is showing: a fresh match, not yet covered, with its draw still on the table.
@@ -219,7 +231,9 @@ public struct TableView: View {
     /// The rules, swinging onto the screen like a book's page about its left edge and back when closed (D94).
     @ViewBuilder private var rulesBook: some View {
         if showRules {
-            RulesView { closeRules() }
+            RulebookView { closeRules() }
+                // The table's type is two steps larger (N-boost); the book is set in its own sizes, as from the menu.
+                .transformEnvironment(\.dynamicTypeSize) { $0 = $0.boosted(by: -Theme.textBoostSteps) }
                 .modifier(BookFold(progress: BookFold.heldProgress(stage: ScreenshotStage.name) ?? 1))
                 .transition(BookFold.transition(reduceMotion: reduceMotion))
                 .zIndex(1)
@@ -231,8 +245,17 @@ public struct TableView: View {
     }
 
     private func closeSupport() {
+        supportReplay = nil
         support?.invalidate()
         support = nil
+    }
+
+    private func supportDidDismiss() {
+        let pending = supportReplay
+        supportReplay = nil
+        guard let pending, pending.revision == model.revision,
+              pending.viewerSeat == model.viewerSeat else { return }
+        openReplay(trick: pending.number)
     }
 
     private func closeRules() {
@@ -254,7 +277,25 @@ public struct TableView: View {
 
     /// Support opens over the table with what the player can see, from the top row or from their own face (D115).
     private func openSupport() {
-        if !covered, let context = SupportContext.visible(in: model) { support = SupportPresentation(context: context) }
+        guard !covered, let context = SupportContext.visible(in: model) else { return }
+        let presentation = SupportPresentation(context: context)
+        if let replay = model.handReplay() {
+            presentation.completedTrickNumbers = replay.steps.compactMap { step in
+                if case let .trick(number, _, _) = step.event { return number }
+                return nil
+            }
+            let revision = model.revision
+            let viewerSeat = model.viewerSeat
+            let presentationID = presentation.id
+            presentation.onReplayTrick = { number in
+                guard support?.id == presentationID, model.revision == revision,
+                      model.viewerSeat == viewerSeat, !covered else { return }
+                supportReplay = (number, revision, viewerSeat)
+                support?.invalidate()
+                support = nil
+            }
+        }
+        support = presentation
     }
 
     /// Score bar, table and hand in one non-scrolling column.
@@ -291,7 +332,7 @@ public struct TableView: View {
                          onRename: rename,
                          onTableEdge: { tableEdge = $0 },
                          holdsResult: !celebrating.isEmpty || celebrationDue,
-                         onReplay: openReplay, onAdvice: openAdvice,
+                         onReplay: openReplay, onReplayTrick: { openReplay(trick: $0) }, onAdvice: openAdvice,
                          statusFocus: $statusFocused)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.horizontal, Theme.Table.horizontalInset)
@@ -494,7 +535,7 @@ public struct TableView: View {
             .onChange(of: model.viewerSeat) { _, _ in validateAdvice() }
             .onChange(of: model.curtainSeat) { _, _ in validateAdvice() }
             .onChange(of: adviceBlocked) { _, _ in validateAdvice() }
-            .sheet(item: $support) { presentation in
+            .sheet(item: $support, onDismiss: supportDidDismiss) { presentation in
                 SupportView(presentation: presentation).id(presentation.id)
             }
             .onChange(of: model.revision) { _, _ in closeSupport() }

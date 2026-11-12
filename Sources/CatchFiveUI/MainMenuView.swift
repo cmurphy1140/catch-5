@@ -22,7 +22,7 @@ struct MainMenuView: View {
     /// notebook.
     @State private var openNote = false
     @State private var shownCode: GuestPrompt?
-    @AppStorage("guestNote.seen") private var noteSeen = false
+    @AppStorage(GuestNote.seenKey) private var noteSeen = false
     @Environment(\.openURL) private var openURL
     @State private var showPlay = false
     @State private var showThings = false
@@ -111,7 +111,7 @@ struct MainMenuView: View {
         let presentation = SupportPresentation(context: context)
         presentation.front = true
         presentation.sendsContext = false
-        presentation.name = model.settings.playerName
+        presentation.name = model.mode == .solo ? model.settings.playerName : nil
         presentation.opening = question
         support = presentation
     }
@@ -372,7 +372,7 @@ struct MainMenuView: View {
         }
         .overlay {
             if openNote, let note = GuestNote.current {
-                GuestNoteCard(note: note) { withAnimation(Theme.Motion.overlay) { openNote = false; noteSeen = true } }.transition(.opacity)
+                GuestNoteCard(note: note) { withAnimation(Theme.Motion.overlay) { openNote = false } }.transition(.opacity)
             }
         }
         // The play page slides over the opening page, under the new-game question so that still shows above it (D133).
@@ -404,6 +404,9 @@ struct MainMenuView: View {
             case "settings": showSettings = true
             case "guest": showThings = true // the guest's own page, for a headless look at it (D177)
             case "howto", "rules", "signoff": showTutorial = true
+            case "practice": learning = LearningPresentation(start: .practice)
+            case "chat": openSupport()
+            case "built": showExplainer = true
             default: break
             }
         }

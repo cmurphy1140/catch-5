@@ -20,6 +20,13 @@ struct SupportTurn: Identifiable {
     /// Opened from the opening page (D120): general questions, and the game's context goes along only if one is saved.
     let front: Bool
     private let sendsContext: Bool
+
+    /// Describes the actual payload policy; the entry screen alone does not determine what is shared.
+    var transmissionDescription: String {
+        guard online else { return "Offline · Nothing leaves this device." }
+        return sendsContext ? "OpenAI · Your messages, cards and public play are sent."
+            : "OpenAI · Only this conversation is sent."
+    }
     private let client: SupportClient?
     private var task: Task<Void, Never>?
     private var generation = 0

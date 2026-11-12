@@ -380,3 +380,24 @@ The system-at-work trace (D104): test-only, nothing in `Sources/` knows it exist
 ## Sources/CatchFiveDemo
 
 `main.swift` plays a fixed, deterministic match (`swift run catch-five-demo`) and `ComputerDemo.swift` a shuffled computer match (`--computer`). Both call the real `Match`; they contain no rules of their own.
+
+## Experience-plan additions (D186–D189, 2026-11-12)
+
+All source paths below are under `Sources/CatchFiveUI`. The regression names and platform-check limits are in
+testing.md; a unit check of state or timing does not establish the rendered interaction.
+
+| Source and API | What it does | Verification |
+|---|---|---|
+| `ReplayTrickPresentation.swift`: `init?(plays:winner:trump:)`, `forStep(_:in:)` | Checks the recorded winner against `trickWinner`; explains the winning trump or led-suit comparison at the fourth card and award. | `TrickReplayTests`: comparisons, invalid history and matching fourth-card/award explanations. |
+| `ReplayTrickPresentation.firstPlayStepID(number:in:)`, `seat(at:bottomSeat:)` | Resolves a numbered award back to its actual lead; shares bottom/left/across/right orientation with the table. | Every recorded trick's lead and the retained bottom-seat mapping. |
+| `HandReplayView.swift`: `LearningSeatLabels.reviewName(_:in:)` | Adds seat identity only when display names repeat. | Unique and repeated-name regression. |
+| `HandSummaryView.onReplayTrick`, `TableSurface.onReplayTrick`, `TableView.openReplay(trick:)` | Carries the chosen trick number to the production learning sheet at its recorded first play. | Resolver/state regressions; actual tap route pending. |
+| `LearningStart.replay` with `initialStepID` and `bottomSeat`; `LearningFlowModel.replayStepID`, `replayBottomSeat`, `selectReplayStep(id:)` | Owns a valid replay cursor and orientation through rule and practice navigation. | Rules/back, practice/exit, invalid ID and unchanged real-match encoding. |
+| `HandReplayView.init` with `bottomSeat` and `onStepChange` | Reports selections synchronously to the flow; presents four seats or an accessible ordered list, winning-card wording and local rule explanation. | Cursor/explanation regressions; layout and focus pending. |
+| `SupportView.swift`: `SupportStarterDisclosure.draftChanged(to:)` | Folds suggestions once when drafting begins; later typing preserves manual reopening. | `SupportStarterDisclosureTests`. |
+| `SupportChatModel.transmissionDescription` | Describes offline, conversation-only or context-bearing requests from the model's actual policy. | Source review of client/context branches; displayed wording pending. |
+| `SupportPresentation.completedTrickNumbers`, `onReplayTrick`; matching defaulted `SupportConversation.init` arguments | Offers valid, unique, sorted completed-trick actions without sending a chat request. TableView dismisses support before presenting replay. | Source review of revision/viewer checks and pending-transition pause; sheet interaction pending. |
+| `GuestNote.swift`: `GuestNote.seenKey`, `GuestNoteCard`, `GuestMailboxButton` | Shares opened state between entrances; scrolls the private letter independently of saved notebook entries. | Source review; first/repeat visit, Dynamic Type and modal access pending. |
+| `Notebook.swift`: `NotebookView.init(notebook:guestNote:showLetter:)` | Allows an isolated notebook/letter fixture while production defaults to `Notebook.shared` and bundled data. | Source review of separate note storage and modal focus; interaction pending. |
+| `GuestDogRunMotion.holds(runningFrames:intro:)`, `frame(at:holds:)` | Uses the approved per-picture timing or available-frame fallback; clamps to the final still. | Three `GuestExperienceTests` timing/boundary/fallback regressions. |
+| `GuestDogRun.Frames`, `carried` | Carries optional pictures with their holds and total duration; requires at least two running pictures. | Timing tests and source review; missing-art and Reduce Motion rendering pending. |

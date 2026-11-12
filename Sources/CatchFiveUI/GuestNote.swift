@@ -1,13 +1,14 @@
 import SwiftUI
 
-/// A handwritten note to the guest of honour (D137), in the manner of the place cards she wrote for her own wedding:
-/// a scalloped pale-blue card with a flowered border, two swans whose necks make a heart, her name on their wings.
-/// The words live in the git-ignored data asset `GuestNote`, so no other build has one.
+/// The guest's letter stays in the git-ignored data asset, separate from editable Notebook entries.
 struct GuestNote: Decodable, Equatable {
     let name: String
     let greeting: String
     let body: String
     let signoff: String
+
+    /// Records that the letter was presented, not that its reader finished it.
+    static let seenKey = "guestNote.seen"
 
     static let current: GuestNote? = {
         #if canImport(UIKit)
@@ -18,10 +19,12 @@ struct GuestNote: Decodable, Equatable {
     }()
 }
 
-/// The note as a card on the table, with one way on.
+/// The wedding stationery is a reading surface: the whole letter scrolls, while its return stays within reach.
 struct GuestNoteCard: View {
     let note: GuestNote
     let onDone: () -> Void
+
+    @AppStorage(GuestNote.seenKey) private var wasOpened = false
 
     private static let blue = Color(red: 0.70, green: 0.79, blue: 0.90)
     private static let ink = Color(red: 0.13, green: 0.13, blue: 0.16)
@@ -29,57 +32,223 @@ struct GuestNoteCard: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.78).ignoresSafeArea().onTapGesture(perform: onDone)
-            VStack(spacing: 18) {
-                card
-                Button("Keep it", action: onDone).buttonStyle(WoodWritingButtonStyle(size: 26)).frame(width: 150)
+            Color.black.opacity(0.78).ignoresSafeArea()
+                .onTapGesture(perform: onDone).accessibilityHidden(true)
+            VStack(spacing: 12) {
+                ScrollView {
+                    card.padding(.horizontal, 16).padding(.top, 16).padding(.bottom, 8)
+                }
+                .scrollBounceBehavior(.basedOnSize)
+                Button("Keep it", action: onDone)
+                    .font(.system(.headline, design: .serif))
+                    .foregroundStyle(Color.ivory)
+                    .padding(.horizontal, 28).padding(.vertical, 12)
+                    .frame(minWidth: 120, minHeight: 48)
+                    .background(Theme.Paper.green, in: Capsule())
+                    .buttonStyle(.plain)
+                    .keyboardShortcut(.cancelAction)
+                    .accessibilityHint("Returns to where you opened the letter")
             }
-            .padding(20)
+            .frame(maxWidth: 580)
+            .padding(.vertical, 12)
         }
         .accessibilityAddTraits(.isModal)
+        .accessibilityAction(.escape, onDone)
+        .onAppear { wasOpened = true }
     }
 
     private var card: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Color.clear.frame(height: 44) // the swans come down into here
+        VStack(alignment: .leading, spacing: 20) {
+            swans.frame(maxWidth: .infinity).padding(.bottom, 2)
             Text(note.greeting)
-            Text(note.body).fixedSize(horizontal: false, vertical: true)
-            Text(note.signoff).frame(maxWidth: .infinity, alignment: .trailing).padding(.trailing, 18)
+                .font(.system(.title2, design: .serif).weight(.semibold))
+                .accessibilityAddTraits(.isHeader)
+            Text(note.body)
+                .font(.system(.title3, design: .serif))
+                .fixedSize(horizontal: false, vertical: true)
+                .textSelection(.enabled)
+            Text(note.signoff)
+                .font(.system(.title3, design: .serif).italic())
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(.top, 4)
         }
-        .font(.custom("BradleyHandITCTT-Bold", size: 19, relativeTo: .body))
-        .lineSpacing(5)
+        .lineSpacing(6)
         .foregroundStyle(Self.ink)
-        .padding(.horizontal, 30).padding(.vertical, 26)
-        .frame(maxWidth: 330)
+        .padding(.horizontal, 30).padding(.vertical, 24)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background {
             ZStack {
-                Scalloped(bump: 16).fill(Self.blue).shadow(color: .black.opacity(0.4), radius: 10, y: 6)
-                Flowers().padding(10).clipShape(Scalloped(bump: 13).inset(by: 10))
-                Scalloped(bump: 11).inset(by: 20).fill(Color(red: 0.99, green: 0.98, blue: 0.95))
+                Scalloped(bump: 14).fill(Self.blue).shadow(color: .black.opacity(0.32), radius: 8, y: 5)
+                Flowers().padding(8).clipShape(Scalloped(bump: 11).inset(by: 8))
+                Scalloped(bump: 9).inset(by: 17).fill(Color(red: 0.99, green: 0.98, blue: 0.95))
             }
         }
-        .overlay(alignment: .top) { swans.offset(y: -38) }
-        .dynamicTypeSize(...DynamicTypeSize.xLarge)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
     }
 
-    /// Two swans facing each other on the top edge of the card, beaks touching so their necks make a heart; her name
-    /// is on each one.
     private var swans: some View {
         HStack(spacing: 0) {
             ForEach([false, true], id: \.self) { mirrored in
                 SwanView()
                     .overlay {
-                        Text(note.name).font(.custom("SnellRoundhand-Black", fixedSize: 17)).foregroundStyle(Self.penBlue)
-                            .scaleEffect(x: mirrored ? -1 : 1) // the swan is flipped; the name is not
-                            .offset(x: -20, y: 26)
+                        Text(note.name).font(.custom("SnellRoundhand-Black", fixedSize: 12)).foregroundStyle(Self.penBlue)
+                            .scaleEffect(x: mirrored ? -1 : 1)
+                            .offset(x: -13, y: 18)
                     }
-                    .frame(width: 124, height: 96)
+                    .frame(width: 84, height: 66)
                     .scaleEffect(x: mirrored ? -1 : 1)
             }
         }
-        .shadow(color: .black.opacity(0.3), radius: 2, y: 2)
         .accessibilityHidden(true)
+    }
+}
+
+/// One entrance for the gift, with the opened state shared by the Notebook and the guest's page.
+struct GuestMailboxButton: View {
+    let name: String
+    var showsPortrait = true
+    var ink = Theme.Paper.ink
+    let action: () -> Void
+
+    @AppStorage(GuestNote.seenKey) private var wasOpened = false
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
+        Button(action: action) {
+            Group {
+                if typeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(alignment: .bottom) {
+                            GuestMailboxArt(opened: wasOpened).frame(width: 82, height: 112)
+                            Spacer(minLength: 16)
+                            if showsPortrait { portrait }
+                        }
+                        title
+                    }
+                } else {
+                    HStack(alignment: .center, spacing: 10) {
+                        GuestMailboxArt(opened: wasOpened).frame(width: 82, height: 112)
+                        title.layoutPriority(1)
+                        if showsPortrait {
+                            Spacer(minLength: 0)
+                            portrait
+                        }
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, minHeight: 112, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("For \(name)")
+        .accessibilityValue(wasOpened ? "Opened letter" : "Unopened letter")
+        .accessibilityHint("Opens your letter")
+    }
+
+    private var title: some View {
+        Text("For \(name)").font(.system(.title2, design: .serif).weight(.semibold))
+            .foregroundStyle(ink).multilineTextAlignment(.leading)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    @ViewBuilder private var portrait: some View {
+        if let picture = SeatArt.named("Guest") {
+            picture.resizable().scaledToFit()
+                .frame(width: typeSize.isAccessibilitySize ? 90 : 100, height: 138, alignment: .bottom)
+                .accessibilityHidden(true)
+        }
+    }
+}
+
+/// A little rural mailbox: curved green steel, a short walnut post, and a flag that folds after discovery.
+private struct GuestMailboxArt: View {
+    let opened: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        ZStack {
+            Canvas { context, size in
+                context.scaleBy(x: size.width / 130, y: size.height / 154)
+                func polygon(_ points: [CGPoint]) -> Path {
+                    var path = Path()
+                    guard let first = points.first else { return path }
+                    path.move(to: first)
+                    for point in points.dropFirst() { path.addLine(to: point) }
+                    path.closeSubpath()
+                    return path
+                }
+                let post = polygon([CGPoint(x: 56, y: 79), CGPoint(x: 76, y: 81), CGPoint(x: 76, y: 142), CGPoint(x: 56, y: 138)])
+                context.fill(post, with: .linearGradient(Gradient(colors: [
+                    Color(red: 0.46, green: 0.29, blue: 0.14), Color(red: 0.64, green: 0.43, blue: 0.22),
+                    Color(red: 0.38, green: 0.23, blue: 0.12)
+                ]), startPoint: CGPoint(x: 56, y: 0), endPoint: CGPoint(x: 76, y: 0)))
+                let postSide = polygon([CGPoint(x: 76, y: 81), CGPoint(x: 84, y: 77), CGPoint(x: 84, y: 138), CGPoint(x: 76, y: 142)])
+                context.fill(postSide, with: .color(Color(red: 0.34, green: 0.21, blue: 0.12)))
+                for x in [60.0, 66.0, 71.0] {
+                    var grain = Path()
+                    grain.move(to: CGPoint(x: x, y: 88)); grain.addLine(to: CGPoint(x: x - 1, y: 134))
+                    context.stroke(grain, with: .color(.black.opacity(0.12)), lineWidth: 0.7)
+                }
+
+                var side = Path()
+                side.move(to: CGPoint(x: 18, y: 81))
+                side.addLine(to: CGPoint(x: 18, y: 54))
+                side.addCurve(to: CGPoint(x: 46, y: 24), control1: CGPoint(x: 18, y: 32), control2: CGPoint(x: 28, y: 20))
+                side.addLine(to: CGPoint(x: 98, y: 31))
+                side.addCurve(to: CGPoint(x: 110, y: 56), control1: CGPoint(x: 109, y: 34), control2: CGPoint(x: 111, y: 43))
+                side.addLine(to: CGPoint(x: 92, y: 91)); side.closeSubpath()
+                context.fill(side, with: .linearGradient(Gradient(colors: [
+                    Color(red: 0.34, green: 0.45, blue: 0.30), Color(red: 0.16, green: 0.30, blue: 0.20),
+                    Color(red: 0.11, green: 0.24, blue: 0.16)
+                ]), startPoint: CGPoint(x: 28, y: 24), endPoint: CGPoint(x: 75, y: 91)))
+                context.stroke(side, with: .color(Color(red: 0.10, green: 0.20, blue: 0.13)), lineWidth: 1.5)
+
+                var door = Path()
+                door.move(to: CGPoint(x: 92, y: 91)); door.addLine(to: CGPoint(x: 92, y: 57))
+                door.addCurve(to: CGPoint(x: 119, y: 53), control1: CGPoint(x: 92, y: 31), control2: CGPoint(x: 119, y: 25))
+                door.addLine(to: CGPoint(x: 119, y: 83)); door.closeSubpath()
+                context.fill(door, with: .linearGradient(Gradient(colors: [
+                    Color(red: 0.28, green: 0.39, blue: 0.25), Color(red: 0.15, green: 0.28, blue: 0.18)
+                ]), startPoint: CGPoint(x: 99, y: 37), endPoint: CGPoint(x: 117, y: 85)))
+                context.stroke(door, with: .color(Color(red: 0.08, green: 0.18, blue: 0.12)), lineWidth: 1.5)
+
+                var seam = Path()
+                seam.move(to: CGPoint(x: 21, y: 56)); seam.addLine(to: CGPoint(x: 88, y: 64))
+                context.stroke(seam, with: .color(.black.opacity(0.24)), lineWidth: 1)
+                var highlight = Path()
+                highlight.move(to: CGPoint(x: 24, y: 42))
+                highlight.addQuadCurve(to: CGPoint(x: 47, y: 28), control: CGPoint(x: 31, y: 25))
+                highlight.addLine(to: CGPoint(x: 91, y: 34))
+                context.stroke(highlight, with: .color(Color.ivory.opacity(0.3)), style: StrokeStyle(lineWidth: 1.4, lineCap: .round))
+                let latch = Path(roundedRect: CGRect(x: 106, y: 46, width: 12, height: 5), cornerRadius: 1.5)
+                context.fill(latch, with: .color(Color(red: 0.74, green: 0.68, blue: 0.48)))
+                context.stroke(latch, with: .color(.black.opacity(0.3)), lineWidth: 0.7)
+            }
+            GuestMailboxFlag()
+                .fill(Color(red: 0.71, green: 0.20, blue: 0.13))
+                .overlay { GuestMailboxFlag().stroke(Color(red: 0.40, green: 0.10, blue: 0.07), lineWidth: 0.7) }
+                .rotationEffect(.degrees(opened ? 90 : 0), anchor: UnitPoint(x: 80.0 / 130, y: 62.0 / 154))
+                .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: opened)
+            Canvas { context, size in
+                let pin = CGRect(x: size.width * 76 / 130, y: size.height * 58 / 154, width: size.width * 8 / 130, height: size.height * 8 / 154)
+                context.fill(Path(ellipseIn: pin), with: .color(Color(red: 0.77, green: 0.69, blue: 0.47)))
+                context.stroke(Path(ellipseIn: pin.insetBy(dx: 1.1, dy: 1.1)), with: .color(.black.opacity(0.4)), lineWidth: 0.7)
+            }
+        }
+        .shadow(color: .black.opacity(0.12), radius: 1.5, y: 2)
+        .accessibilityHidden(true)
+    }
+}
+
+private struct GuestMailboxFlag: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: 78, y: 63)); path.addLine(to: CGPoint(x: 78, y: 13))
+        path.addLine(to: CGPoint(x: 99, y: 13)); path.addLine(to: CGPoint(x: 99, y: 29))
+        path.addLine(to: CGPoint(x: 82, y: 29)); path.addLine(to: CGPoint(x: 82, y: 63))
+        path.closeSubpath()
+        return path.applying(CGAffineTransform(scaleX: rect.width / 130, y: rect.height / 154))
     }
 }
 

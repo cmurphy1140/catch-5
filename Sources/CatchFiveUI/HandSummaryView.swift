@@ -15,6 +15,8 @@ struct HandSummaryView: View {
     let describe: (PlayReview) -> String
     let coaching: Bool
     var onReplay: (() -> Void)?
+    var onReplayTrick: ((Int) -> Void)?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var page = Page.summary
     /// The trick whose cards are laid out on the Tricks page.
     @State private var openTrick: Int? = 1
@@ -257,7 +259,7 @@ struct HandSummaryView: View {
                         .overlay(Circle().stroke(Theme.Paper.rule, lineWidth: 1.5))
                     Text("Trick \(trick.number)").font(.system(.title3, design: .serif).weight(.bold))
                     Spacer(minLength: 4)
-                    Text("\(names[trick.winner]) took it").font(.body)
+                    Text("\(LearningSeatLabels.reviewName(trick.winner, in: names)) took it").font(.body)
                     Image(systemName: open ? "chevron.up" : "chevron.right").font(.body.weight(.semibold))
                         .foregroundStyle(Theme.Paper.green).frame(width: 20)
                 }
@@ -267,27 +269,59 @@ struct HandSummaryView: View {
             .buttonStyle(.plain)
             .accessibilityHint(open ? "Hides the cards" : "Shows the cards")
             if open {
-                HStack(alignment: .top, spacing: 6) {
-                    ForEach(trick.plays, id: \.play.card) { reviewed in
-                        let won = reviewed.play.seat == trick.winner
-                        VStack(spacing: 5) {
-                            Text(names[reviewed.play.seat]).font(.subheadline.weight(.medium)).lineLimit(1).minimumScaleFactor(0.6)
-                            CardView(card: reviewed.play.card, width: 50, ring: won ? Theme.Paper.green : nil)
-                            Text("Took trick").font(.caption.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.6)
-                                .foregroundStyle(.ivory)
-                                .padding(.horizontal, 8).frame(minHeight: 22)
-                                .background(Theme.Paper.green, in: Capsule())
-                                .opacity(won ? 1 : 0)
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(Array(trick.plays.enumerated()), id: \.offset) { index, reviewed in
+                            HStack(alignment: .top, spacing: 12) {
+                                CardView(card: reviewed.play.card, width: 50,
+                                         ring: reviewed.play.seat == trick.winner ? Theme.Paper.green : nil)
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text("\(index + 1) · \(LearningSeatLabels.reviewName(reviewed.play.seat, in: names))")
+                                        .font(.subheadline.weight(.medium))
+                                    Text(reviewed.play.card.name.capitalized).font(.subheadline)
+                                    if reviewed.play.seat == trick.winner {
+                                        Text("Took trick").font(.caption.weight(.semibold)).foregroundStyle(Theme.Paper.green)
+                                    }
+                                }.fixedSize(horizontal: false, vertical: true)
+                            }
+                            .accessibilityElement(children: .combine)
                         }
-                        .frame(maxWidth: .infinity)
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityLabel("\(names[reviewed.play.seat]), \(reviewed.play.card.name)\(won ? ", took the trick" : "")")
                     }
+                } else {
+                    HStack(alignment: .top, spacing: 6) {
+                        ForEach(trick.plays, id: \.play.card) { reviewed in
+                            let won = reviewed.play.seat == trick.winner
+                            VStack(spacing: 5) {
+                                Text(LearningSeatLabels.reviewName(reviewed.play.seat, in: names))
+                                    .font(.subheadline.weight(.medium)).multilineTextAlignment(.center)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                CardView(card: reviewed.play.card, width: 50, ring: won ? Theme.Paper.green : nil)
+                                Text("Took trick").font(.caption.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.6)
+                                    .foregroundStyle(.ivory)
+                                    .padding(.horizontal, 8).frame(minHeight: 22)
+                                    .background(Theme.Paper.green, in: Capsule())
+                                    .opacity(won ? 1 : 0)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel("\(LearningSeatLabels.reviewName(reviewed.play.seat, in: names)), \(reviewed.play.card.name)\(won ? ", took the trick" : "")")
+                        }
+                    }
+                }
+                if let onReplayTrick {
+                    Button { onReplayTrick(trick.number) } label: {
+                        Label("Replay this trick", systemImage: "play.rectangle")
+                            .font(.body.weight(.medium))
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain).foregroundStyle(Theme.Paper.green)
+                    .accessibilityHint("Starts with the first card of trick \(trick.number)")
                 }
                 // Coaching keeps its say where the standard strategy would have played another card.
                 if coaching {
                     ForEach(trick.plays.filter { !$0.agreed }, id: \.play.card) { reviewed in
-                        Text("\(names[reviewed.play.seat]): \(describe(reviewed))").font(.footnote).opacity(0.7)
+                        Text("\(LearningSeatLabels.reviewName(reviewed.play.seat, in: names)): \(describe(reviewed))").font(.footnote).opacity(0.7)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .fixedSize(horizontal: false, vertical: true)
                     }

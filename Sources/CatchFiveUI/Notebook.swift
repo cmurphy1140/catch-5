@@ -37,26 +37,28 @@ final class Notebook: ObservableObject {
 /// The notebook's page: ruled ivory paper in the handwriting of the scores, every line editable, with delete and
 /// reorder under Edit and a new line at the foot.
 struct NotebookView: View {
-    @ObservedObject var notebook = Notebook.shared
+    @ObservedObject var notebook: Notebook
+    let guestNote: GuestNote?
     @Environment(\.dismiss) private var dismiss
     @FocusState private var writing: UUID?
     @State private var showNote = false
 
+    @MainActor init(notebook: Notebook? = nil, guestNote: GuestNote? = GuestNote.current, showLetter: Bool = false) {
+        self.notebook = notebook ?? .shared
+        self.guestNote = guestNote
+        _showNote = State(initialValue: showLetter)
+    }
+
     var body: some View {
         NavigationStack {
             List {
-                // The guest of honour's picture heads her notebook, when the build carries one (D122, D131). It is kept
-                // out of the repository, so most builds have none.
-                #if canImport(UIKit)
-                if UIImage(named: "Guest") != nil {
-                    Image("Guest").resizable().scaledToFit().frame(height: 190).frame(maxWidth: .infinity)
-                        .listRowBackground(Color.clear).listRowSeparator(.hidden).accessibilityHidden(true)
-                }
-                #endif
-                if GuestNote.current != nil {
-                    // The note she was given when she first opened the game (D137).
-                    Button("A note for you", systemImage: "envelope") { showNote = true }
-                        .frame(minHeight: 44).listRowBackground(Color.clear)
+                if let note = guestNote {
+                    VStack(spacing: 18) {
+                        GuestMailboxButton(name: note.name) { writing = nil; showNote = true }
+                        Rectangle().fill(Theme.Paper.rule).frame(height: 1)
+                    }
+                    .padding(.top, 10).padding(.bottom, 6)
+                    .listRowBackground(Color.clear).listRowSeparator(.hidden)
                 }
                 if notebook.notes.isEmpty {
                     Text("Nothing here yet. Tap the bookmark under any answer in the chat to keep it, or write a line of your own.")
@@ -96,7 +98,9 @@ struct NotebookView: View {
                 #endif
             }
         }
-        .overlay { if showNote, let note = GuestNote.current { GuestNoteCard(note: note) { showNote = false } } }
+        .allowsHitTesting(!showNote)
+        .accessibilityHidden(showNote)
+        .overlay { if showNote, let note = guestNote { GuestNoteCard(note: note) { showNote = false } } }
         // Paper is light whatever the device is set to.
         .environment(\.colorScheme, .light)
     }

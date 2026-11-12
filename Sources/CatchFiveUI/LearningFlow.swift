@@ -4,7 +4,7 @@ import SwiftUI
 /// Each entry opens the requested destination directly; the real table remains its owner throughout.
 enum LearningStart {
     case archive, practice
-    case replay(HandReplay, names: [String], mode: PlayMode)
+    case replay(HandReplay, names: [String], mode: PlayMode, initialStepID: Int? = nil, bottomSeat: Int = 0)
 }
 
 enum LearningRoute: Hashable {
@@ -22,6 +22,8 @@ struct LearningPresentation: Identifiable {
     @Published var path: [LearningRoute] = []
     @Published var query = ""
     @Published private(set) var selectedReplay: HandReplay?
+    @Published private(set) var replayStepID: Int?
+    private(set) var replayBottomSeat = 0
     @Published private(set) var practiceModel: GameModel?
     @Published private(set) var error: String?
     @Published private(set) var statistics = HandArchiveStatistics()
@@ -43,10 +45,13 @@ struct LearningPresentation: Identifiable {
         names = real.seatNames
         mode = real.mode
         context = real.archiveReadContext
-        if case let .replay(replay, names, mode) = start {
+        if case let .replay(replay, names, mode, initialStepID, bottomSeat) = start {
             selectedReplay = replay
             self.names = names
             self.mode = mode
+            replayBottomSeat = ReplayTrickPresentation.seat(at: 0, bottomSeat: bottomSeat)
+            replayStepID = replay.steps.first?.id
+            if let initialStepID { selectReplayStep(id: initialStepID) }
         }
     }
 
@@ -120,6 +125,8 @@ struct LearningPresentation: Identifiable {
         }
         archivedSelection = current
         selectedReplay = replay
+        replayStepID = replay.steps.first?.id
+        replayBottomSeat = 0
         names = current.names
         mode = current.mode
         path.append(.replay)
@@ -171,6 +178,12 @@ struct LearningPresentation: Identifiable {
         return true
     }
 
+    /// View reconstruction, rule reading and practice never move the historical cursor.
+    func selectReplayStep(id: Int) {
+        guard selectedReplay?.steps.contains(where: { $0.id == id }) == true else { return }
+        replayStepID = id
+    }
+
     func showRule(_ rule: ReplayRule) { path.append(.rule(HouseRuleGuide.entry(for: rule).id)) }
     func back() { if !path.isEmpty { path.removeLast() } }
 
@@ -178,6 +191,8 @@ struct LearningPresentation: Identifiable {
         guard case .archive = start else { return true }
         path = []
         selectedReplay = nil
+        replayStepID = nil
+        replayBottomSeat = 0
         archivedSelection = nil
         return false
     }
@@ -206,6 +221,8 @@ struct LearningPresentation: Identifiable {
 
     private func clearSelection() {
         selectedReplay = nil
+        replayStepID = nil
+        replayBottomSeat = 0
         archivedSelection = nil
         seed = nil
         practiceModel = nil
@@ -321,8 +338,10 @@ struct LearningFlowView: View {
     @ViewBuilder private var replay: some View {
         if let replay = flow.selectedReplay {
             HandReplayView(replay: replay, names: flow.names, mode: flow.mode,
+                           initialStepID: flow.replayStepID, bottomSeat: flow.replayBottomSeat,
                            onClose: { if flow.closeReplay() { onClose() } },
-                           onPractice: { _ in flow.beginPractice() }, onRule: flow.showRule)
+                           onPractice: { _ in flow.beginPractice() }, onRule: flow.showRule,
+                           onStepChange: flow.selectReplayStep)
         } else {
             VStack(spacing: 20) {
                 Text(flow.error ?? "This completed hand is no longer available.")

@@ -1,7 +1,7 @@
 import SwiftUI
 import CatchFive
 
-/// The opening page as one oak table (D159, D166): the title, Play and Help side by side (D176), the five held up over
+/// The opening page as one oak table (D159, D166): the title, Play below the rail and a labelled chat tab, the five held up over
 /// the wood, her notebook, and the family picture at the bottom. Her links and her note have a page of their own, `GuestThings`. Drawn only when the build carries the pictures;
 /// they stay out of the repository.
 struct HomeTable: View {
@@ -22,6 +22,7 @@ struct HomeTable: View {
     let onAsk: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// Counts the deals, so each tap on Play starts the cards again; `dealing` holds the tap until they have landed.
     @State private var deal = 0
     @State private var dealing = false
@@ -51,6 +52,50 @@ struct HomeTable: View {
     }
 
     var body: some View {
+        Group {
+            if dynamicTypeSize.isAccessibilitySize { accessibleTable }
+            else { illustratedTable }
+        }
+    }
+
+    /// The same table in reading order when text is enlarged: every action stays reachable by scrolling.
+    private var accessibleTable: some View {
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(spacing: 24) {
+                    HomeTitle(width: geometry.size.width - 40, guest: guest)
+                        .padding(.top, 64).padding(.bottom, 12)
+                    Button(action: play) {
+                        Text(dealing ? "Dealing…" : "Play")
+                            .font(.system(.title, design: .serif).weight(.bold))
+                            .foregroundStyle(Theme.Paper.greenDeep)
+                            .padding(.horizontal, 32).padding(.vertical, 12)
+                            .frame(minHeight: 54)
+                            .background(Color.ivory, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    HomeAskTab(action: onAsk)
+                    if let guest {
+                        Button(action: onGuest) { guestWords(guest).padding(.vertical, 10) }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("\(guest)'s things").accessibilityHint("Her links and her note")
+                    }
+                    if let hero = SeatArt.named("GuestMenuHero") {
+                        HomeHero(picture: hero, width: geometry.size.width - 32).accessibilityHidden(true)
+                    }
+                    if let picnic = SeatArt.named("GuestMenuPicnic") {
+                        picnic.resizable().scaledToFit().accessibilityHidden(true)
+                    }
+                }
+                .padding(.horizontal, 20).padding(.bottom, 30)
+                .frame(maxWidth: .infinity)
+            }
+            .foregroundStyle(.ivory)
+            .background { HomeFelt(colours: .green) }
+        }
+    }
+
+    private var illustratedTable: some View {
         GeometryReader { geometry in
             let width = geometry.size.width, height = geometry.size.height
             // A strip of green cloth behind the title, then the oak table from its edge down to the grass (D168).
@@ -69,30 +114,17 @@ struct HomeTable: View {
                 HomeTitle(width: width, guest: guest)
                     .frame(width: width).position(x: width / 2, y: height * 0.085)
 
-                // Play, and beside it the helper: a smaller pill of the same ivory, whole on the screen (D176).
-                HStack(spacing: 12) {
-                    Button(action: play) {
-                        Text(dealing ? "Dealing…" : "Play").font(.system(size: dealing ? 24 : 30, weight: .bold, design: .serif)).italic(dealing)
-                            .foregroundStyle(Theme.Paper.greenDeep)
-                            .frame(width: min(218, width * 0.56), height: 54)
-                            .background(Color.ivory, in: Capsule())
-                            .shadow(color: .black.opacity(0.4), radius: 4, y: 3)
-                            .contentShape(Capsule())
-                    }
-                    Button(action: onAsk) {
-                        HStack(spacing: 7) {
-                            Circle().fill(Theme.Paper.green).frame(width: 7, height: 7).accessibilityHidden(true)
-                            Text("Help").font(.system(.headline, design: .serif)).italic().foregroundStyle(Theme.Paper.ink)
-                        }
-                        .padding(.horizontal, 18).frame(height: 44)
+                // Play keeps the ivory silhouette. General chat has its own labelled place on the rail.
+                Button(action: play) {
+                    Text(dealing ? "Dealing…" : "Play").font(.system(size: dealing ? 24 : 30, weight: .bold, design: .serif)).italic(dealing)
+                        .foregroundStyle(Theme.Paper.greenDeep)
+                        .frame(width: min(218, width * 0.56), height: 54)
                         .background(Color.ivory, in: Capsule())
                         .shadow(color: .black.opacity(0.4), radius: 4, y: 3)
                         .contentShape(Capsule())
-                    }
-                    .accessibilityLabel("Help").accessibilityHint("Opens a chat with the game's helper")
                 }
                 .buttonStyle(.plain)
-                .position(x: width / 2, y: edge + 52)
+                .position(x: width / 2, y: edge + 58)
                 // Without the notebook's picture, the way to her things stays as words under Play.
                 if let guest, SeatArt.named("GuestMenuBook") == nil {
                     Button(action: onGuest) { guestWords(guest) }
@@ -156,6 +188,10 @@ struct HomeTable: View {
                 }
 
                 RoomRail(top: edge)
+                HomeAskTab(action: onAsk)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(width: min(210, width - 40), alignment: .trailing)
+                    .position(x: width - 20 - min(210, width - 40) / 2, y: edge + 2)
             }
         }
         .foregroundStyle(.ivory)
@@ -166,6 +202,41 @@ struct HomeTable: View {
             }
             .ignoresSafeArea().accessibilityHidden(true)
         }
+    }
+}
+
+/// A smoked-amber label on the rail, with a solid walnut treatment when transparency is reduced.
+private struct HomeAskTab: View {
+    let action: () -> Void
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 7) {
+                Image(systemName: "bubble.left").font(.callout.weight(.semibold)).accessibilityHidden(true)
+                Text("Ask anything").font(.system(.callout, design: .serif).weight(.semibold))
+                    .multilineTextAlignment(.leading).fixedSize(horizontal: false, vertical: true)
+            }
+            .foregroundStyle(.ivory)
+            .padding(.horizontal, 14).padding(.vertical, 9).frame(minHeight: 44)
+            .background {
+                let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
+                if reduceTransparency {
+                    shape.fill(Color(red: 0.25, green: 0.15, blue: 0.09))
+                } else {
+                    shape.fill(.ultraThinMaterial)
+                        .overlay { shape.fill(Color(red: 0.25, green: 0.15, blue: 0.09).opacity(0.88)) }
+                }
+            }
+            .overlay(alignment: .top) {
+                Capsule().fill(Color(red: 0.82, green: 0.69, blue: 0.43).opacity(0.6))
+                    .frame(height: 1).padding(.horizontal, 12).padding(.top, 1)
+            }
+            .shadow(color: .black.opacity(0.28), radius: 3, y: 2)
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Ask anything").accessibilityHint("Opens a conversation with the game's helper")
     }
 }
 
@@ -231,7 +302,16 @@ struct HomeFelt: View {
     var body: some View {
         ZStack {
             Rectangle().fill(RadialGradient(colors: Theme.Field.cloth(colours), center: .init(x: 0.5, y: 0.45), startRadius: 20, endRadius: 620)).saturation(0.7)
-            ClothNap().equatable()
+            ClothNap().equatable().opacity(0.24)
+                .mask {
+                    GeometryReader { geometry in
+                        RadialGradient(stops: [.init(color: .clear, location: 0),
+                                               .init(color: .black.opacity(0.12), location: 0.55),
+                                               .init(color: .black, location: 1)],
+                                       center: .init(x: 0.5, y: 0.35), startRadius: 0,
+                                       endRadius: max(geometry.size.width, geometry.size.height) * 0.6)
+                    }
+                }
             Color.black.opacity(0.24)
         }
         .ignoresSafeArea().accessibilityHidden(true)

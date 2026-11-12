@@ -270,13 +270,16 @@ struct ExplainerView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 12) {
-                header
-                if let contents {
-                    if case let .paragraph(lede)? = contents.blocks.dropFirst().first {
+                // Green cloth, where the pages about playing wear burgundy (D184); the lede rides on it.
+                ClothHeader(title: "How Catch 5 is built", onDone: onDismiss, colours: .green) {
+                    if case let .paragraph(lede)? = contents?.blocks.dropFirst().first {
                         // Its first sentence only: the page under it says the rest.
-                        MarkdownText(lede.components(separatedBy: ". ").first.map { $0.hasSuffix(".") ? $0 : $0 + "." } ?? lede).font(.subheadline).multilineTextAlignment(.center).opacity(0.85)
-                            .lineLimit(3).minimumScaleFactor(0.8).padding(.horizontal, 24)
+                        MarkdownText(lede.components(separatedBy: ". ").first.map { $0.hasSuffix(".") ? $0 : $0 + "." } ?? lede).font(.subheadline).opacity(0.9)
+                            .lineLimit(3).minimumScaleFactor(0.8)
+                            .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 20).padding(.bottom, 14)
                     }
+                }
+                if let contents {
                     notebook(contents)
                 } else {
                     Text("The explainer pages are not in this build.").opacity(0.7).padding()
@@ -297,22 +300,6 @@ struct ExplainerView: View {
     }
 
     private var chapters: [ExplainerLibrary.Chapter] { shelf.map(\.chapter) }
-
-    /// The title in ivory on the wood, with Done as a round stamp beside it.
-    private var header: some View {
-        HStack(spacing: 12) {
-            Text("How Catch 5 is built").font(.system(size: 30, weight: .bold, design: .serif))
-                .lineLimit(1).minimumScaleFactor(0.6).accessibilityAddTraits(.isHeader)
-            Spacer(minLength: 0)
-            Button(action: onDismiss) {
-                Text("Done").font(.system(.subheadline, design: .serif).weight(.bold)).foregroundStyle(Theme.Paper.ink)
-                    .frame(width: 54, height: 54).background(Color.ivory, in: Circle())
-            }
-            .buttonStyle(.plain)
-            .keyboardShortcut(.cancelAction)
-        }
-        .padding(.horizontal, 20).padding(.top, 8)
-    }
 
     private func notebook(_ contents: MarkdownDocument) -> some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -407,6 +394,9 @@ private struct ModuleCard: View {
                 Spacer()
                 Image(systemName: "arrow.right").font(.body.weight(.semibold)).opacity(0.55)
             }
+            // Three cards lifted apart, the top one in the chapter's suit: a stand-in until each chapter has its own
+            // painted picture (D184).
+            LayeredCards(number: facts.chapter.number).frame(maxWidth: .infinity).frame(height: 150).accessibilityHidden(true)
             Text(facts.title).font(.system(.title2, design: .serif).weight(.bold)).foregroundStyle(Theme.Paper.green)
                 .lineLimit(2).minimumScaleFactor(0.7).multilineTextAlignment(.leading)
             Rectangle().fill(Color.suitRed.opacity(0.45)).frame(height: 1)
@@ -447,6 +437,37 @@ private struct ModuleCard: View {
                 .font(.custom("Noteworthy-Bold", fixedSize: 13)).opacity(0.7)
         }
         .frame(maxWidth: .infinity, minHeight: 58, alignment: .bottom)
+    }
+}
+
+/// Three cards seen from above and to one side, lifted apart like layers: a back, a tan card and a face whose suit
+/// turns with the chapter's number.
+struct LayeredCards: View {
+    let number: Int
+
+    nonisolated static let suits = ["♥", "♣", "♦", "♠"]
+    /// The suit on the top card: hearts for chapter 1, then clubs, diamonds, spades, and round again.
+    nonisolated static func suit(for number: Int) -> String { suits[((number - 1) % 4 + 4) % 4] }
+
+    var body: some View {
+        let suit = Self.suit(for: number), red = suit == "♥" || suit == "♦"
+        ZStack {
+            layer(fill: Color.suitRed, ink: Color.gold, mark: nil).offset(y: 38)
+            layer(fill: Color(red: 0.90, green: 0.78, blue: 0.52), ink: Theme.Paper.green, mark: "♣").offset(y: 6)
+            layer(fill: .ivory, ink: red ? Color.suitRed : Theme.Paper.ink, mark: suit).offset(y: -26)
+        }
+        .dynamicTypeSize(.large)
+    }
+
+    private func layer(fill: Color, ink: Color, mark: String?) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
+        return shape.fill(fill)
+            .overlay(shape.stroke(ink.opacity(0.6), lineWidth: 1).padding(6))
+            .overlay { if let mark { Text(mark).font(.system(size: 54)).foregroundStyle(ink) } }
+            .frame(width: 124, height: 176)
+            .rotationEffect(.degrees(-58))
+            .scaleEffect(x: 1, y: 0.5)
+            .shadow(color: .black.opacity(0.3), radius: 4, y: 5)
     }
 }
 

@@ -9,6 +9,9 @@ import SwiftUI
     var sendsContext = true
     var name: String?
     var opening: String?
+    /// Local completed-hand navigation. No replay or other seats' cards enter the support transport.
+    var completedTrickNumbers: [Int] = []
+    var onReplayTrick: ((Int) -> Void)?
 
     init(context: SupportContext) { self.context = context }
     func invalidate() { session?.invalidate() }
@@ -25,37 +28,27 @@ struct SupportView: View {
     @State private var showNotebook = false
 
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            // The cloth band of the other pages (D184), carrying the notebook of kept answers (D131) and the settings.
+            ClothHeader(title: presentation.front ? "Chat" : "Ask anything", tools: [
+                ClothTool(label: "Notebook", symbol: "book.closed") { showNotebook = true },
+                ClothTool(label: "Support settings", symbol: "gearshape") { showSetup = true },
+            ]) { dismiss() }
+            .zIndex(1)
             Group {
                 if let session {
-                    SupportConversation(model: session, name: presentation.name).id(ObjectIdentifier(session))
-                } else { ProgressView() }
+                    SupportConversation(model: session, name: presentation.name,
+                                        completedTrickNumbers: presentation.completedTrickNumbers,
+                                        onReplayTrick: presentation.onReplayTrick)
+                        .id(ObjectIdentifier(session))
+                } else { ProgressView().frame(maxHeight: .infinity) }
             }
             // Ivory paper with green ink, as the other reading cards (D107).
             .foregroundStyle(Theme.Paper.ink)
             .background(Color.ivory.ignoresSafeArea())
             .tint(Theme.Paper.green)
-            .navigationTitle(presentation.front ? "Chat" : "Ask anything")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.frame(minHeight: 44) }
-                // The notebook of kept answers (D131), reachable wherever the chat is.
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Notebook", systemImage: "book.closed") { showNotebook = true }
-                        .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
-                }
-                ToolbarItem(placement: .automatic) {
-                    Button("Support settings", systemImage: "gearshape") { showSetup = true }
-                        .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
-                }
-            }
-            #if os(iOS)
-            .toolbarBackground(Color.ivory, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-            #endif
         }
+        .background(WoodGrainView().ignoresSafeArea())
         .preferredColorScheme(.light)
         .sheet(isPresented: $showNotebook) { NotebookView() }
             .sheet(isPresented: $showSetup) {
@@ -153,24 +146,52 @@ private struct SettingsCard: ViewModifier {
     }
 }
 
-private struct SupportConversation: View {
+/// Disclosure state belongs to the draft, not to keyboard focus. A manual reopening survives later typing.
+struct SupportStarterDisclosure {
+    var isExpanded = true
+    private(set) var hasBegunDraft = false
+
+    mutating func draftChanged(to text: String) {
+        guard !hasBegunDraft, !text.isEmpty else { return }
+        hasBegunDraft = true
+        isExpanded = false
+    }
+}
+
+struct SupportConversation: View {
     @ObservedObject private var notebook = Notebook.shared
     @ObservedObject var model: SupportChatModel
     var name: String?
+    let completedTrickNumbers: [Int]
+    let onReplayTrick: ((Int) -> Void)?
     @State private var draft = ""
     @State private var expanded: Set<UUID> = []
     /// Answers that have finished typing themselves out (D120).
     @State private var typed: Set<UUID> = []
+    @State private var starterDisclosure = SupportStarterDisclosure()
     @FocusState private var writing: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    init(model: SupportChatModel, name: String? = nil, initialDraft: String = "",
+         completedTrickNumbers: [Int] = [], onReplayTrick: ((Int) -> Void)? = nil) {
+        self.model = model
+        self.name = name
+        self.completedTrickNumbers = Array(Set(completedTrickNumbers.filter { (1...6).contains($0) })).sorted()
+        self.onReplayTrick = onReplayTrick
+        _draft = State(initialValue: initialDraft)
+        var disclosure = SupportStarterDisclosure()
+        disclosure.draftChanged(to: initialDraft)
+        _starterDisclosure = State(initialValue: disclosure)
+    }
 
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    Text(!model.online ? "Offline · Nothing leaves this device."
-                         : model.front ? "OpenAI · Only what you type is sent." : "OpenAI · Your cards and public play only.")
+                    Text(model.transmissionDescription)
                         .font(.caption).opacity(0.7)
+                    completedTrickReview
                     if model.messages.isEmpty { welcome }
                     ForEach(model.messages) { message in
                         turn(message).id(message.id)
@@ -195,6 +216,11 @@ private struct SupportConversation: View {
                 .padding(20)
             }
             .safeAreaInset(edge: .bottom, spacing: 0) { composer }
+            .onChange(of: draft) { _, text in
+                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) {
+                    starterDisclosure.draftChanged(to: text)
+                }
+            }
             .onChange(of: model.messages.last(where: { $0.role == "user" })?.id) { _, id in
                 // Reveal only an explicitly submitted question. New answers and More never force a scroll.
                 if let id { proxy.scrollTo(id, anchor: .top) }
@@ -202,27 +228,89 @@ private struct SupportConversation: View {
         }
     }
 
-    private var welcome: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(model.front ? "Hi Emma, or friends!" : "Ask about this hand, or just chat")
-                .font(.system(.title2, design: .serif).weight(.semibold))
-            // Small frosted-glass chips, each as wide as its words (D146). The row stays 44 points tall to the
-            // finger; only the glass is smaller.
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(starters, id: \.question) { starter in
-                    Button(action: starter.ask) {
-                        Text(starter.question)
-                            .font(.subheadline.weight(.medium)).foregroundStyle(Theme.Paper.green)
-                            .lineLimit(2).multilineTextAlignment(.leading)
-                            .padding(.horizontal, 12).padding(.vertical, 7)
-                            .modifier(FrostedChip())
-                            .frame(minHeight: 44, alignment: .leading)
+    /// This route stays available after a question, and invokes only the local presentation callback.
+    @ViewBuilder private var completedTrickReview: some View {
+        if let onReplayTrick, !completedTrickNumbers.isEmpty {
+            DisclosureGroup("Review a trick") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Play the four cards again and see why one won.")
+                        .font(.subheadline).fixedSize(horizontal: false, vertical: true)
+                    ForEach(completedTrickNumbers, id: \.self) { number in
+                        Button { onReplayTrick(number) } label: {
+                            HStack(spacing: 12) {
+                                Text("Trick \(number)").multilineTextAlignment(.leading)
+                                Spacer(minLength: 4)
+                                Image(systemName: "play.rectangle").accessibilityHidden(true)
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                             .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain).foregroundStyle(Theme.Paper.green)
+                        .accessibilityLabel("Replay trick \(number)")
+                        .accessibilityHint("Opens the recorded cards and the winning-card explanation")
                     }
-                    .buttonStyle(.plain)
+                }
+                .padding(.top, 10)
+            }
+            .font(.headline).tint(Theme.Paper.green)
+            .frame(minHeight: 44)
+        }
+    }
+
+    /// The greeting beside the two hands passing the five, when the build carries the picture, and under it the
+    /// suggestions as plain rows between hairlines (D184), where there were glass chips (D146).
+    private var welcome: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .center, spacing: 8) {
+                Text(greeting)
+                    .font(.system(model.front ? .largeTitle : .title2, design: .serif).weight(.bold))
+                    .foregroundStyle(Theme.Paper.greenDeep)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+                if model.front, !dynamicTypeSize.isAccessibilitySize, let hands = SeatArt.named("GuestMenuHero") {
+                    hands.resizable().scaledToFit().frame(width: dynamicTypeSize > .large ? 96 : 128)
+                        .accessibilityHidden(true)
+                }
+            }
+            VStack(alignment: .leading, spacing: 0) {
+                Button {
+                    withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { starterDisclosure.isExpanded.toggle() }
+                } label: {
+                    HStack(spacing: 8) {
+                        Text("Suggested prompts").font(.system(.title3, design: .serif).weight(.semibold))
+                        Image(systemName: "chevron.up").font(.footnote.weight(.bold)).rotationEffect(.degrees(starterDisclosure.isExpanded ? 0 : 180))
+                    }
+                    .foregroundStyle(Theme.Team.theirRim).frame(minHeight: 44).contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityValue(starterDisclosure.isExpanded ? "Shown" : "Hidden")
+                if starterDisclosure.isExpanded {
+                    ForEach(starters, id: \.question) { starter in
+                        Rectangle().fill(Theme.Paper.rule.opacity(0.6)).frame(height: 1).accessibilityHidden(true)
+                        Button(action: starter.ask) {
+                            HStack(spacing: 10) {
+                                Text(starter.question).font(.system(.title3, design: .serif).weight(.medium))
+                                    .foregroundStyle(Theme.Paper.greenDeep).multilineTextAlignment(.leading)
+                                Spacer(minLength: 0)
+                                Image(systemName: "chevron.right").font(.footnote.weight(.bold)).foregroundStyle(Theme.Paper.rule)
+                                    .accessibilityHidden(true)
+                            }
+                            .padding(.horizontal, 6).frame(minHeight: 48).contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    Rectangle().fill(Theme.Paper.rule.opacity(0.6)).frame(height: 1).accessibilityHidden(true)
                 }
             }
         }
+    }
+
+    private var greeting: String {
+        guard model.front else { return "Ask about this hand, or just chat" }
+        guard let name = name?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty else {
+            return "Pull up a chair."
+        }
+        return "Hi, \(name)!"
     }
 
     private var starters: [(question: String, ask: () -> Void)] {

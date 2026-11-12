@@ -42,6 +42,7 @@ struct TableSurface: View {
     /// A match-win celebration is playing; the hand-end card waits until it has finished (D69).
     var holdsResult = false
     var onReplay: (() -> Void)?
+    var onReplayTrick: ((Int) -> Void)?
     var onAdvice: (() -> Void)?
     /// VoiceOver focus lands on the status line when a cover lifts or the turn changes.
     let statusFocus: AccessibilityFocusState<Bool>.Binding
@@ -921,7 +922,7 @@ struct TableSurface: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 8) {
                     if let winner = model.match.winner { matchOver(winner) }
-                    HandSummaryView(match: model.match, names: model.seatNames, outcome: model.lastHandOutcome, review: model.handReview(), difficulty: model.settings.difficulty, describe: model.describe, coaching: coaching, onReplay: onReplay)
+                    HandSummaryView(match: model.match, names: model.seatNames, outcome: model.lastHandOutcome, review: model.handReview(), difficulty: model.settings.difficulty, describe: model.describe, coaching: coaching, onReplay: onReplay, onReplayTrick: onReplayTrick)
                     if let line = model.handEndLine { handEndWords(line) }
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)

@@ -31,8 +31,8 @@ enum GuestLook {
 }
 
 /// The guest's own page (D177), in place of `GuestThings`: her dog runs up through the snow (D182), two swans glide in and meet, she rises under them, her name
-/// writes itself, and then her note, her things and her looks are laid out below. A tap skips the opening; with Reduce
-/// Motion it is not played at all.
+/// writes itself, and then her things and her looks are laid out below. Her letter can be opened throughout.
+/// With Reduce Motion the snowy-nose still waits for Back, and the swans and portrait are already in place.
 struct GuestPage: View {
     let name: String
     let colours: Settings.TableColours
@@ -44,7 +44,7 @@ struct GuestPage: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(GuestLook.key) private var savedLook = ""
     /// How far the opening has got: the swans, her, her name, then everything else.
-    @State private var beat = 0
+    @State private var beat = UserDefaults.standard.bool(forKey: GuestDogRun.seenKey) ? GuestPage.last : 0
     @State private var breathing = false
     /// Her dog's run through the snow, played once before the swans (D182), when the build carries its pictures.
     @State private var dogRun = GuestDogRun.carried
@@ -59,17 +59,16 @@ struct GuestPage: View {
         ScrollView {
             VStack(spacing: 30) {
                 stage
+                // Her letter stays available without waiting for the entrance to finish.
+                if let onNote {
+                    GuestMailboxButton(name: name, showsPortrait: false, ink: .ivory, action: onNote)
+                }
                 Group {
-                    if let onNote {
-                        VStack(spacing: 6) {
-                            GuestPlaceCard(name: name, action: onNote)
-                            Text("A note for you").font(.system(.subheadline, design: .serif)).italic().opacity(0.85)
-                        }
-                    }
                     things
                     if !looks.isEmpty { wardrobe }
                 }
                 .opacity(beat >= Self.last ? 1 : 0).offset(y: beat >= Self.last ? 0 : 14)
+                .allowsHitTesting(beat >= Self.last).accessibilityHidden(beat < Self.last)
             }
             .padding(.horizontal, 28).padding(.top, 54).padding(.bottom, 30).frame(maxWidth: 480).frame(maxWidth: .infinity)
         }
@@ -84,31 +83,64 @@ struct GuestPage: View {
         .foregroundStyle(.ivory)
         .background { HomeFelt(colours: colours) }
         .overlay {
-            if running, let dogRun {
-                GuestDogRun(frames: dogRun)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background { HomeFelt(colours: colours) }
-                    .contentShape(Rectangle())
-                    .onTapGesture { withAnimation(Theme.Motion.overlay) { running = false } }
-                    .transition(.opacity)
-            }
+            if running, let dogRun { dogScene(dogRun).transition(.opacity) }
         }
-        .task { await open() }
+        // Changing presentation or leaving the page cancels its wait. A replay never owns a stray timer.
+        .task(id: running ? (reduceMotion ? 2 : 1) : 0) { await present() }
         .onChange(of: beat) { _, now in
             if now == Self.last, !reduceMotion { withAnimation(Theme.Motion.pulse) { breathing = true } }
         }
+        .onChange(of: reduceMotion) { _, reduced in
+            if reduced { breathing = false; beat = Self.last }
+        }
     }
 
-    /// The opening, one beat after another; it stops where a tap has already skipped ahead.
+    /// The still has an explicit way back; the letter can be opened even during the first run.
+    private func dogScene(_ frames: GuestDogRun.Frames) -> some View {
+        VStack(spacing: 12) {
+            HStack {
+                Button("Back", systemImage: "arrow.left", action: dismissDog)
+                    .font(.body.weight(.semibold)).frame(minWidth: 44, minHeight: 44)
+                    .keyboardShortcut(.cancelAction)
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            GuestDogRun(frames: frames).frame(maxWidth: .infinity, maxHeight: .infinity)
+            if let onNote {
+                Button {
+                    dismissDog()
+                    beat = Self.last
+                    onNote()
+                } label: {
+                    Text("For \(name)").font(.system(.title3, design: .serif).weight(.semibold))
+                        .padding(.horizontal, 24).frame(minHeight: 48).contentShape(Rectangle())
+                }
+                .buttonStyle(.plain).accessibilityHint("Opens your letter")
+                .padding(.bottom, 12)
+            }
+        }
+        .foregroundStyle(Color.ivory).buttonStyle(.plain)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background { HomeFelt(colours: colours) }
+        .accessibilityAddTraits(.isModal)
+        .accessibilityAction(.escape, dismissDog)
+        .onAppear { UserDefaults.standard.set(true, forKey: GuestDogRun.seenKey) }
+    }
+
+    private func present() async {
+        guard running else { await open(); return }
+        guard let dogRun else { running = false; return }
+        // A still is kept until Back or the letter is chosen, rather than timing out while it is being explored.
+        guard !reduceMotion else { beat = Self.last; return }
+        do { try await Task.sleep(for: .seconds(dogRun.duration)) } catch { return }
+        guard !Task.isCancelled else { return }
+        withAnimation(.easeInOut(duration: 0.6)) { running = false }
+    }
+
+    /// The swans' opening stops when the page leaves or a tap has already skipped ahead.
     private func open() async {
-        guard !reduceMotion else { running = false; beat = Self.last; return }
-        if running, let dogRun {
-            // The run first; a tap on it ends the wait early.
-            let ends = Date().addingTimeInterval(GuestDogRunMotion.duration(frames: dogRun.count))
-            while running, Date() < ends, !Task.isCancelled { try? await Task.sleep(for: .milliseconds(50)) }
-            withAnimation(.easeInOut(duration: 0.6)) { running = false }
-            UserDefaults.standard.set(true, forKey: GuestDogRun.seenKey)
-        } else { running = false }
+        guard !reduceMotion else { beat = Self.last; return }
+        guard beat < Self.last else { return }
         let beats: [(wait: Duration, motion: Animation)] = [
             (.milliseconds(150), .spring(duration: 0.9, bounce: 0.15)),
             (.milliseconds(550), .spring(duration: 0.7, bounce: 0.3)),
@@ -116,19 +148,29 @@ struct GuestPage: View {
             (.milliseconds(700), Theme.Motion.overlay),
         ]
         for (index, step) in beats.enumerated() {
-            try? await Task.sleep(for: step.wait)
+            do { try await Task.sleep(for: step.wait) } catch { return }
             guard !Task.isCancelled, beat == index else { return }
             withAnimation(step.motion) { beat = index + 1 }
         }
     }
 
-    /// Plays the run again, then lets it fade as it did the first time; a tap on it still ends it early.
-    private func callDog(_ frames: Int) {
-        withAnimation(Theme.Motion.overlay) { running = true }
-        Task {
-            try? await Task.sleep(for: .seconds(GuestDogRunMotion.duration(frames: frames)))
-            withAnimation(.easeInOut(duration: 0.6)) { running = false }
+    private func dismissDog() {
+        withAnimation(reduceMotion ? Theme.Motion.reduced : Theme.Motion.overlay) { running = false }
+    }
+
+    private func callDog() {
+        guard dogRun != nil else { return }
+        withAnimation(reduceMotion ? Theme.Motion.reduced : Theme.Motion.overlay) { running = true }
+    }
+
+    private var callDogButton: some View {
+        Button(action: callDog) {
+            Image(systemName: "pawprint.fill").font(.system(size: 24)).rotationEffect(.degrees(18))
+                .opacity(0.8).shadow(color: .black.opacity(0.4), radius: 1, y: 1)
+                .frame(width: 48, height: 48).contentShape(Rectangle())
         }
+        .buttonStyle(.plain).accessibilityLabel("Call the dog")
+        .accessibilityHint("Shows the dog in the snow")
     }
 
     /// The swans, her, and her name: the part that moves.
@@ -150,18 +192,22 @@ struct GuestPage: View {
                     // Her dog comes in last and lies down beside her (D178), when the build carries its pieces.
                     .overlay(alignment: .bottomTrailing) {
                         if beat >= Self.last, let dog = GuestDogFigure.Parts.carried {
-                            GuestDog(parts: dog, width: 150, distance: 260).offset(x: 46, y: 8)
-                        } else if beat >= Self.last, let dogRun {
-                            // One paw print beside her: tap it and the dog comes running again (D182).
-                            Button { callDog(dogRun.count) } label: {
-                                Image(systemName: "pawprint.fill").font(.system(size: 24)).rotationEffect(.degrees(18))
-                                    .opacity(0.8).shadow(color: .black.opacity(0.4), radius: 1, y: 1)
-                                    .frame(width: 48, height: 48).contentShape(Rectangle())
+                            if dogRun != nil {
+                                Button(action: callDog) {
+                                    GuestDogFigure(parts: dog, pose: GuestDogMotion.rest, width: 150).contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain).accessibilityLabel("Call the dog")
+                                .accessibilityHint("Shows the dog in the snow")
+                                .offset(x: 46, y: 8)
+                            } else {
+                                GuestDog(parts: dog, width: 150, distance: 260).offset(x: 46, y: 8)
                             }
-                            .buttonStyle(.plain).accessibilityLabel("Call the dog")
-                            .offset(x: 56, y: 6).transition(.opacity)
+                        } else if beat >= Self.last, dogRun != nil {
+                            callDogButton.offset(x: 56, y: 6).transition(.opacity)
                         }
                     }
+            } else if beat >= Self.last, dogRun != nil {
+                callDogButton
             }
             Text(name).font(.custom("SnellRoundhand-Black", fixedSize: 56)).lineLimit(1).minimumScaleFactor(0.5)
                 .shadow(color: .black.opacity(0.45), radius: 1.5, y: 1.5)

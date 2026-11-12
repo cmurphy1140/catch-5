@@ -133,3 +133,18 @@ Every announcement comes before its value is stored: that is `@Published`'s `wil
 ### UI audit preview (September 30, 2026)
 
 `TableSurface.bidChoices(_:lowest:)` shares the numeric bid controls between the wide row and compact four-column grid. `bidding` chooses the fitting layout with `ViewThatFits`; action validation remains in the existing `actionButton`. `HandSummaryView.score` now labels total and per-hand change. These branch changes require native build and play verification; see D96.
+
+## Following a finished trick (D188)
+
+`HandSummaryView` emits the chosen trick number through `TableSurface.onReplayTrick`.
+`TableView.openReplay(trick:)` obtains the completed `HandReplay` and asks
+`ReplayTrickPresentation.firstPlayStepID(number:in:)` for its recorded lead. It presents the ordinary
+`LearningFlowView` with that step and the table's bottom seat.
+
+`HandReplayView` reports cursor changes to `LearningFlowModel.selectReplayStep(id:)`, so reading a rule or entering
+independent practice can return to the same event. `ReplayTrickPresentation` supplies local winner wording only
+after the engine's `trickWinner` agrees with the recorded award; the UI adds no trick-ranking rules.
+
+Chat exposes the same completed-trick numbers through `SupportPresentation`. A choice invalidates the support
+session, dismisses its sheet and then rechecks the table revision and viewer before opening replay. The pending
+handoff keeps the scheduler paused. None of these review actions sends a chat request or advances the real match.

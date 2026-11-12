@@ -166,3 +166,43 @@ private func practiceTestDirectory() throws -> URL {
     #expect(points.allSatisfy { rect.insetBy(dx: -0.001, dy: -0.001).contains($0) })
     #expect(PinkedSquare.points(in: rect, teeth: 0).count == 8)
 }
+
+@Test func theLongRuleChaptersAreReadAThoughtAtATimeInTheRulesOwnWords() {
+    for chapter in [RulesView.Chapter.deal, .play] {
+        let pieces = chapter.sections.map(\.text)
+        #expect(pieces.count > 1)
+        #expect(pieces.joined(separator: " ") == chapter.paragraphs.joined(separator: " "))
+        #expect(pieces.allSatisfy { $0.hasSuffix(".") })
+    }
+    #expect(RulesView.Chapter.thoughts("One. Two.", sizes: [3]) == ["One. Two."])
+}
+
+@Test func aChaptersTopCardTurnsThroughTheFourSuitsWithItsNumber() {
+    #expect((1...5).map(LayeredCards.suit) == ["♥", "♣", "♦", "♠", "♥"])
+    #expect(LayeredCards.suit(for: 0) == "♠")
+}
+
+@Test func theRulebookHasThirteenPagesThatCoverAllSixChaptersInOrder() {
+    #expect(Rulebook.pages.count == 13)
+    #expect(Rulebook.pages.first?.chapter == nil)
+    #expect(Set(Rulebook.pages.map(\.title)).count == 13)
+    let chapters = Rulebook.pages.compactMap(\.chapter)
+    #expect(chapters == chapters.sorted { $0.rawValue < $1.rawValue })
+    #expect(Set(chapters) == Set(RulesView.Chapter.allCases))
+    for chapter in RulesView.Chapter.allCases {
+        #expect(Rulebook.pages[Rulebook.firstPage(of: chapter)].chapter == chapter)
+        #expect(!Rulebook.about(chapter).isEmpty)
+    }
+}
+
+@Test func theRulebookNamesItsOwnCastAndAnswersTheDealersCalls() {
+    #expect(Rulebook.names == ["You", "Hazel", "Otto", "Rue"])
+    #expect(Rulebook.verdict(forCall: .bid(3)).contains("may match"))
+    #expect(Rulebook.verdict(forCall: .bid(4)).contains("beats the 3"))
+    #expect(Rulebook.verdict(forCall: .bid(nil)).contains("Hazel"))
+    // The engine, not the book, refuses a dealer's bid below the high bid, and allows a heart when hearts are led.
+    var call = RuleTrial.make(.dealerMatch)
+    if case .accepted = call.attempt(.bid(2)) { Issue.record("a dealer cannot bid under the high bid") }
+    var hand = RuleTrial.make(.followSuit)
+    if case .refused = hand.attempt(.play(Card(.hearts, .five))) { Issue.record("a heart follows a heart") }
+}

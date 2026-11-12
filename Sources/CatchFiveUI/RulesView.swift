@@ -52,6 +52,14 @@ struct RulesView: View {
         /// The chapter's paragraphs under their headings. The first chapter's are split into the three things it
         /// says; the words stay the rules document's own.
         var sections: [(heading: String?, text: String)] {
+            // The two long chapters are one paragraph each in the rules; here they are read a thought at a time
+            // (D183), the words and their order untouched.
+            if self == .deal, let whole = paragraphs.first, paragraphs.count == 1 {
+                return Self.thoughts(whole, sizes: [2, 2, 3]).map { (nil, $0) }
+            }
+            if self == .play, let whole = paragraphs.first, paragraphs.count == 1 {
+                return Self.thoughts(whole, sizes: [2, 3]).map { (nil, $0) }
+            }
             guard self == .table, paragraphs.count == 2, let stop = paragraphs[0].range(of: ". ") else {
                 return paragraphs.map { (nil, $0) }
             }
@@ -59,6 +67,20 @@ struct RulesView: View {
                     ("Winning the game", String(paragraphs[0][stop.upperBound...])),
                     ("The first dealer", paragraphs[1])]
         }
+        /// A paragraph cut after so many sentences each time, every piece keeping its own words and full stop; a
+        /// paragraph with a different count of sentences comes back whole.
+        static func thoughts(_ paragraph: String, sizes: [Int]) -> [String] {
+            let sentences = paragraph.components(separatedBy: ". ")
+            guard sentences.count == sizes.reduce(0, +) else { return [paragraph] }
+            var pieces: [String] = [], start = 0
+            for size in sizes {
+                let piece = sentences[start..<start + size].joined(separator: ". ")
+                pieces.append(piece.hasSuffix(".") ? piece : piece + ".")
+                start += size
+            }
+            return pieces
+        }
+
         /// The rule you can try under this chapter, judged live by the engine.
         var trial: RuleTrial.Kind? {
             switch self {
@@ -87,10 +109,12 @@ struct RulesView: View {
                 ScrollView {
                     // Six panels, all realised, so a jump to any chapter always has a target.
                     VStack(spacing: 20) {
-                        TextField("Search house rules", text: $search)
-                            .font(.body).padding(12).background(.ivory, in: RoundedRectangle(cornerRadius: 8))
-                            .foregroundStyle(Theme.Paper.ink).environment(\.colorScheme, .light)
-                            .accessibilityLabel("Search house rules")
+                        HStack(spacing: 10) {
+                            Image(systemName: "magnifyingglass").opacity(0.6).accessibilityHidden(true)
+                            TextField("Search house rules", text: $search).accessibilityLabel("Search house rules")
+                        }
+                        .font(.body).padding(12).background(.ivory, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .foregroundStyle(Theme.Paper.ink).environment(\.colorScheme, .light)
                         if !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                             HouseRuleSearchResults(query: search, onSelect: { rulePath.append($0.id) })
                         }
@@ -98,7 +122,7 @@ struct RulesView: View {
                         Text(RulesText.origin)
                             .font(.system(.body, design: .serif).italic())
                             .multilineTextAlignment(.center)
-                            .opacity(0.9)
+                            .shadow(color: .black.opacity(0.5), radius: 1.5, y: 1)
                             .fixedSize(horizontal: false, vertical: true)
                             .padding(.horizontal, 8)
                         ForEach(Chapter.allCases) { chapter in
@@ -115,7 +139,10 @@ struct RulesView: View {
                 // Enough room below the last chapter for it to reach the top edge like the others.
                 .contentMargins(.bottom, 240, for: .scrollContent)
                 .scrollPosition(id: $current, anchor: .top)
-                .safeAreaInset(edge: .top, spacing: 0) { rail(proxy) }
+                // The cloth band of the other pages (D181), here with the chapters riding on it (D183).
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    ClothHeader(title: "How to play", onDone: onDismiss) { rail(proxy) }
+                }
                 // The jump waits one beat so every panel has laid out and the target exists.
                 .task {
                     if ScreenshotStage.name == "signoff" {
@@ -133,15 +160,16 @@ struct RulesView: View {
                 .simultaneousGesture(DragGesture(minimumDistance: 8).onChanged { _ in chosen = nil })
             }
             .foregroundStyle(.ivory)
-            .background(WoodGrainView().overlay(.black.opacity(0.5)).ignoresSafeArea())
+            .background(WoodGrainView().ignoresSafeArea())
             .navigationTitle("How to play")
-            .toolbar { Button("Done", action: onDismiss) }
+            #if os(iOS)
+            .toolbar(.hidden, for: .navigationBar)
+            #endif
             .navigationDestination(for: String.self) { id in
                 if let entry = HouseRuleGuide.entry(id: id) {
                     HouseRuleEntryView(entry: entry, onClose: { rulePath.removeLast() })
                 }
             }
-            .compactOpaqueBar()
         }
         .preferredColorScheme(.dark)
     }
@@ -152,16 +180,19 @@ struct RulesView: View {
             Text(RulesText.signOff)
                 .font(.system(.body, design: .serif).italic())
                 .multilineTextAlignment(.center)
-                .opacity(0.9)
                 .fixedSize(horizontal: false, vertical: true)
             Link(destination: RulesText.contactURL) {
                 Text(RulesText.contactEmail).font(.body.weight(.semibold)).underline()
             }
-            .foregroundStyle(.ivory)
-                .accessibilityHint("Opens a new email")
+            .foregroundStyle(Theme.Paper.green)
+            .accessibilityHint("Opens a new email")
         }
-        .padding(.horizontal, 8)
-        .padding(.top, 8)
+        // A note left on the table, a little askew, where the mock has one under a pencil.
+        .padding(.horizontal, 20).padding(.vertical, 18)
+        .foregroundStyle(Theme.Paper.ink)
+        .background(Color.ivory.shadow(.drop(color: .black.opacity(0.4), radius: 6, y: 4)), in: Rectangle())
+        .rotationEffect(.degrees(reduceMotion ? 0 : -1.5))
+        .padding(.horizontal, 6).padding(.top, 8)
         .id("signoff")
     }
 
@@ -190,8 +221,8 @@ struct RulesView: View {
                         }
                         .lineLimit(1).minimumScaleFactor(0.7)
                         .padding(.horizontal, 14).frame(minHeight: 44)
-                        .background(active ? .ivory : .clear, in: Capsule())
-                        .overlay(Capsule().stroke(.gold.opacity(active ? 1 : 0.55), lineWidth: active ? 2 : 1))
+                        .background(active ? Color.ivory : ClothColours.burgundy.deep.opacity(0.6), in: Capsule())
+                        .overlay(Capsule().stroke(.gold.opacity(active ? 1 : 0.7), lineWidth: active ? 2 : 1))
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(active ? Theme.Paper.green : .ivory)
@@ -201,9 +232,8 @@ struct RulesView: View {
                     .id("chip-\(chapter.rawValue)")
                 }
             }
-            .padding(.horizontal, 16).padding(.vertical, 8)
+            .padding(.horizontal, 16).padding(.top, 2).padding(.bottom, 12)
         }
-        .background(Theme.Wood.header)
     }
 
     // MARK: Panels
@@ -273,14 +303,14 @@ struct RulesView: View {
         HStack(alignment: .center, spacing: 16) {
             // Four seats around a small oval; partners face each other.
             ZStack {
-                Ellipse().fill(Theme.Paper.green).overlay(Ellipse().stroke(Theme.Paper.rule, lineWidth: 2)).frame(width: 120, height: 72)
-                Rectangle().fill(Theme.Paper.rule).frame(width: 1, height: 72)
-                seat(Cast.opponents[1].portrait, Cast.opponents[1].name).offset(y: -58)
-                seat(Cast.opponents[0].portrait, Cast.opponents[0].name).offset(x: -78)
-                seat(Cast.opponents[2].portrait, Cast.opponents[2].name).offset(x: 78)
-                seat(Cast.defaultPlayerPortrait, "You").offset(y: 58)
+                Ellipse().fill(Theme.Paper.green).overlay(Ellipse().stroke(Theme.Paper.rule, lineWidth: 2)).frame(width: 112, height: 68)
+                Rectangle().fill(Theme.Paper.rule).frame(width: 1, height: 68)
+                seat(2).offset(y: -64)
+                seat(1).offset(x: -80)
+                seat(3).offset(x: 80)
+                seat(0).offset(y: 64)
             }
-            .frame(width: 200, height: 150)
+            .frame(width: 210, height: 184)
             .dynamicTypeSize(...Theme.Card.maximumTypeSize)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Self.seatingLabel)
@@ -301,14 +331,23 @@ struct RulesView: View {
 
     /// Composed from the cast so a renamed or reordered cast reads the same to VoiceOver as to the eye.
     static var seatingLabel: String {
-        let names = Cast.opponents.map(\.name)
+        let names = Array(Self.names[1...3])
         return "Four seats around the table. You and \(names[1]) are partners, facing each other; \(names[0]) and \(names[2]) are the other team. First to \(RulesFigures.matchTarget) wins."
     }
 
-    private func seat(_ portrait: Portrait, _ name: String) -> some View {
+    /// The names the figures use: the table's own cast, the same three the Try it boxes name (D183); seat 0 is You.
+    static let names = ["You"] + Settings.defaultSeatNames.dropFirst()
+
+    /// A seat's face: its cut-out figure when the build carries one, the drawn portrait when not.
+    private func face(_ seat: Int, size: Double) -> some View {
+        SeatFace(portrait: seat == 0 ? Cast.defaultPlayerPortrait : Cast.opponents[seat - 1].portrait,
+                 figure: seat == 0 ? nil : SeatArt.image(seat: seat, opponents: .friends), size: size)
+    }
+
+    private func seat(_ seat: Int) -> some View {
         VStack(spacing: 2) {
-            PortraitView(portrait: portrait, size: 30)
-            Text(name).font(.caption2.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.7)
+            face(seat, size: 40)
+            Text(Self.names[seat]).font(.caption.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.7)
         }
     }
 
@@ -358,12 +397,9 @@ struct RulesView: View {
 
     private var playFigure: some View {
         VStack(spacing: 10) {
-            Picker("Example", selection: $trumped) {
-                Text("Following suit").tag(false)
-                Text("Trumped").tag(true)
-            }
-            .pickerStyle(.segmented)
-            Text(RulesFigures.setting).font(.caption).opacity(0.75).multilineTextAlignment(.center)
+            PaperSwitch(options: [("Following suit", false), ("Trumped", true)], selection: $trumped)
+                .accessibilityLabel("Example")
+            Text(RulesFigures.setting).font(.system(.footnote, design: .serif).italic()).opacity(0.8).multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
             let plays = trumped ? RulesFigures.trumpedTrick : RulesFigures.followedTrick
             let winner = trumped ? RulesFigures.trumpedWinner : RulesFigures.followedWinner
@@ -371,12 +407,16 @@ struct RulesView: View {
                 // Keyed by seat, so the one card that changes between the two tricks animates in place.
                 ForEach(plays, id: \.seat) { play in
                     VStack(spacing: 4) {
-                        CardView(card: play.card, width: 44, style: .rest, ring: play.seat == winner ? Theme.Paper.green : nil)
-                        Text(Cast.opponent(at: play.seat)?.name ?? "You").font(.caption2).opacity(0.75)
+                        CardView(card: play.card, width: 52, style: .rest, ring: play.seat == winner ? .gold : nil)
+                        Text(Self.names[play.seat]).font(.caption.weight(.semibold))
                             .lineLimit(1).minimumScaleFactor(0.7)
                     }
                 }
             }
+            // The trick lies on a strip of the table's cloth, the names in ivory under their cards.
+            .foregroundStyle(.ivory)
+            .padding(.vertical, 12).frame(maxWidth: .infinity)
+            .background(Theme.Paper.green, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .dynamicTypeSize(...Theme.Card.maximumTypeSize)
             .animation(motion, value: trumped)
             Text(RulesFigures.caption(trumped: trumped))
@@ -437,7 +477,21 @@ struct RulesView: View {
     // MARK: V. 9 and out
 
     private var nineAndOutFigure: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 10) {
+            // The bid as a place card on the cloth, where the mock has a painted one.
+            VStack(spacing: -6) {
+                Text("9").font(.system(size: 64, weight: .bold, design: .serif))
+                Text("and out").font(.system(size: 26, weight: .semibold, design: .serif)).italic()
+            }
+            .foregroundStyle(Theme.Paper.green)
+            .padding(.horizontal, 34).padding(.vertical, 8)
+            .background(Color.ivory.shadow(.drop(color: .black.opacity(0.35), radius: 4, y: 3)), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 5, style: .continuous).stroke(Theme.Paper.rule, lineWidth: 1).padding(5))
+            .rotationEffect(.degrees(-5))
+            .padding(.vertical, 16).frame(maxWidth: .infinity)
+            .background(Theme.Paper.green, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .dynamicTypeSize(.large)
+            .accessibilityHidden(true)
             HStack(spacing: 4) {
                 ForEach(0..<RulesFigures.nineAndOutPoints, id: \.self) { _ in
                     RoundedRectangle(cornerRadius: 3, style: .continuous).fill(Theme.Paper.green).frame(height: 14)
@@ -456,28 +510,65 @@ struct RulesView: View {
 
     // MARK: VI. Reading the table
 
+    /// Each note beside the piece of the screen it is about, drawn small from the table's own parts (D183).
     private var readingFigure: some View {
-        let symbols = ["number", "person.crop.rectangle.stack", "rectangle.on.rectangle.slash", "lightbulb", "gearshape"]
-        return VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
             ForEach(Array(RulesText.readingTheTable.enumerated()), id: \.offset) { index, note in
-                HStack(alignment: .top, spacing: 10) {
-                    Image(systemName: symbols[min(index, symbols.count - 1)]).font(.footnote).foregroundStyle(Theme.Paper.green).frame(width: 18)
-                    Text(note).font(.footnote).opacity(0.9).fixedSize(horizontal: false, vertical: true)
+                if index > 0 { Rectangle().fill(Theme.Paper.rule.opacity(0.6)).frame(height: 1).accessibilityHidden(true) }
+                HStack(alignment: .center, spacing: 14) {
+                    readingPicture(index).frame(width: 112).dynamicTypeSize(.large).accessibilityHidden(true)
+                    Text(note).font(.subheadline).fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
     }
-}
 
-private extension View {
-    /// A compact, opaque title bar so the chapters scroll under a solid edge; the modifiers are iOS-only.
-    func compactOpaqueBar() -> some View {
-        #if os(iOS)
-        return navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarBackground(Theme.Wood.header, for: .navigationBar)
-        #else
-        return self
-        #endif
+    @ViewBuilder private func readingPicture(_ index: Int) -> some View {
+        switch index {
+        case 0:
+            // The score bar: both teams, trump between them, the bid under it.
+            VStack(spacing: -6) {
+                HStack(spacing: 10) {
+                    Text("18"); Text("♣").font(.title3); Text("12")
+                }
+                .font(.system(.title3, design: .serif).weight(.bold)).foregroundStyle(.ivory)
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .background(Theme.Paper.green, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                tag("Bid 6")
+            }
+        case 1:
+            // Three seats: one that bid, one that passed, one counting its cards.
+            HStack(alignment: .bottom, spacing: 2) {
+                tile(1, "Pass")
+                tile(2, "Bid 6").offset(y: -10)
+                tile(3, "6 left")
+            }
+        case 2:
+            HStack(spacing: -10) {
+                CardView(card: Card(.spades, .nine), width: 36, style: .dimmed).rotationEffect(.degrees(-6))
+                CardView(card: Card(.clubs, .king), width: 40, style: .rest, ring: .gold).zIndex(1)
+                CardView(card: Card(.diamonds, .ace), width: 36, style: .rest).rotationEffect(.degrees(6))
+            }
+        case 3:
+            Image(systemName: "lightbulb.max.fill").font(.system(size: 40)).foregroundStyle(.gold, Theme.Paper.green)
+        default:
+            Image(systemName: "gearshape.fill").font(.system(size: 40)).foregroundStyle(Theme.Paper.green)
+        }
+    }
+
+    private func tile(_ seat: Int, _ words: String) -> some View {
+        VStack(spacing: -4) {
+            face(seat, size: 30)
+            tag(words)
+        }
+    }
+
+    private func tag(_ words: String) -> some View {
+        Text(words).font(.system(size: 10, weight: .bold, design: .serif)).foregroundStyle(Theme.Paper.ink)
+            .lineLimit(1).fixedSize()
+            .padding(.horizontal, 6).padding(.vertical, 2)
+            .background(.ivory, in: Capsule())
+            .overlay(Capsule().stroke(Theme.Paper.rule, lineWidth: 1))
     }
 }
+

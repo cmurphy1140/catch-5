@@ -2,19 +2,43 @@ import CatchFive
 import SwiftUI
 
 /// The burgundy cloth band over a page of paper (D181): the page's name in the display serif and a dark Done pill.
-struct ClothHeader: View {
+struct ClothHeader<Below: View>: View {
     let title: String
     let onDone: () -> Void
-
-    static let cloth = Color(red: 0.47, green: 0.07, blue: 0.12)
-    static let clothDeep = Color(red: 0.34, green: 0.04, blue: 0.08)
+    /// Burgundy for the pages about playing, green for the pages about the app itself (D184).
+    var colours = ClothColours.burgundy
+    /// Small symbols before Done: the chat's notebook and its settings.
+    var tools: [ClothTool] = []
+    /// What rides on the cloth under the title, edge to edge: the rulebook's chapter chips.
+    @ViewBuilder var below: Below
 
     var body: some View {
+        VStack(spacing: 0) {
+            bar
+            below
+        }
+        .foregroundStyle(.ivory)
+        .background {
+            let shape = UnevenRoundedRectangle(topLeadingRadius: 22, topTrailingRadius: 22, style: .continuous)
+            shape.fill(LinearGradient(colors: [colours.cloth, colours.deep], startPoint: .top, endPoint: .bottom))
+                .overlay(BandNap().clipShape(shape))
+                .shadow(color: .black.opacity(0.35), radius: 5, y: 3)
+        }
+        .padding(.top, 8)
+    }
+
+    private var bar: some View {
         HStack(spacing: 12) {
             Text(title).font(.system(.largeTitle, design: .serif).weight(.bold))
                 .lineLimit(1).minimumScaleFactor(0.6)
                 .accessibilityAddTraits(.isHeader)
             Spacer(minLength: 0)
+            ForEach(tools) { tool in
+                Button(action: tool.action) {
+                    Image(systemName: tool.symbol).font(.title3.weight(.semibold)).frame(width: 44, height: 44).contentShape(Rectangle())
+                }
+                .buttonStyle(.plain).accessibilityLabel(tool.label)
+            }
             Button(action: onDone) {
                 Text("Done").font(.system(.title3, design: .serif).weight(.bold))
                     .padding(.horizontal, 18).frame(minHeight: 44)
@@ -23,16 +47,30 @@ struct ClothHeader: View {
             .buttonStyle(.plain)
             .keyboardShortcut(.cancelAction)
         }
-        .foregroundStyle(.ivory)
         .padding(.horizontal, 20).padding(.vertical, 12)
-        .background {
-            let shape = UnevenRoundedRectangle(topLeadingRadius: 22, topTrailingRadius: 22, style: .continuous)
-            shape.fill(LinearGradient(colors: [Self.cloth, Self.clothDeep], startPoint: .top, endPoint: .bottom))
-                .overlay(BandNap().clipShape(shape))
-                .shadow(color: .black.opacity(0.35), radius: 5, y: 3)
-        }
-        .padding(.top, 8)
     }
+}
+
+extension ClothHeader where Below == EmptyView {
+    init(title: String, colours: ClothColours = .burgundy, tools: [ClothTool] = [], onDone: @escaping () -> Void) {
+        self.init(title: title, onDone: onDone, colours: colours, tools: tools) { EmptyView() }
+    }
+}
+
+/// A symbol on the band that opens something.
+struct ClothTool: Identifiable {
+    let label: String
+    let symbol: String
+    let action: () -> Void
+    var id: String { label }
+}
+
+/// The band's cloth, lit from above.
+struct ClothColours {
+    let cloth: Color
+    let deep: Color
+    static let burgundy = ClothColours(cloth: Color(red: 0.47, green: 0.07, blue: 0.12), deep: Color(red: 0.34, green: 0.04, blue: 0.08))
+    static let green = ClothColours(cloth: Color(red: 0.09, green: 0.29, blue: 0.19), deep: Color(red: 0.04, green: 0.17, blue: 0.11))
 }
 
 /// The nap of the cloth: faint seeded flecks, drawn once and still.

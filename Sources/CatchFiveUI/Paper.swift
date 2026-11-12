@@ -8,17 +8,20 @@ struct PaperSwitch<Value: Hashable>: View {
     @Binding var selection: Value
     /// A tick beside the chosen half, for a setting that stays chosen.
     var ticks = false
+    /// Smaller words for a switch that shares its row with a name, so both halves stay one size.
+    var compact = false
 
     var body: some View {
         HStack(spacing: 0) {
             ForEach(options, id: \.value) { option in
                 let chosen = selection == option.value
                 Button { selection = option.value } label: {
-                    HStack(spacing: 8) {
-                        if ticks, chosen { Image(systemName: "checkmark").font(.body.weight(.bold)) }
-                        Text(option.title).font(.system(.title3, design: .serif).weight(.semibold))
+                    HStack(spacing: 5) {
+                        if ticks, chosen { Image(systemName: "checkmark").font(.footnote.weight(.bold)) }
+                        Text(option.title).font(.system(compact ? .subheadline : .title3, design: .serif).weight(.semibold))
+                            .lineLimit(1).minimumScaleFactor(0.6)
                     }
-                    .lineLimit(1).minimumScaleFactor(0.6)
+                    .padding(.horizontal, compact ? 6 : 8)
                     .frame(maxWidth: .infinity, minHeight: 44)
                     .foregroundStyle(chosen ? .ivory : Theme.Paper.green)
                     .background(chosen ? Theme.Paper.green : .clear, in: Capsule())
