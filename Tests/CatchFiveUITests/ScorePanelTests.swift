@@ -13,7 +13,7 @@ import Testing
         let seat = try #require(match.hand.nextSeat)
         try match.play(seat: seat, card: try #require(match.hand.legalMoves(seat: seat).first))
     }
-    let names = ["Cheryl", "JC", "Connor", "Diane"]
+    let names = ["Cheryl", "Marcus", "Meg", "Monica"]
     for team in 0...1 {
         let panel = ScorePanel.content(team: team, history: match.history, seatNames: names)
         #expect(panel.total == match.scores[team])

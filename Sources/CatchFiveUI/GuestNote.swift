@@ -151,7 +151,7 @@ private struct Flowers: View {
 
 /// One swan in profile, facing right: white, edged in soft blue so it reads on pale paper, with an orange bill and a
 /// dark eye. Its bill ends at the right edge, so two of them, one flipped, touch bills and their necks make a heart.
-private struct SwanView: View {
+struct SwanView: View {
     var body: some View {
         ZStack {
             SwanOutline().fill(.white)

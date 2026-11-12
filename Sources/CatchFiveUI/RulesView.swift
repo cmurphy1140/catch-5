@@ -20,6 +20,8 @@ struct RulesView: View {
     }
     @State private var trumped = false
     @State private var openTile: String?
+    @State private var search = ""
+    @State private var rulePath: [String] = []
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     enum Chapter: Int, CaseIterable, Identifiable {
@@ -80,11 +82,18 @@ struct RulesView: View {
     private var shownChapter: Chapter { chosen ?? current ?? .table }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $rulePath) {
             ScrollViewReader { proxy in
                 ScrollView {
                     // Six panels, all realised, so a jump to any chapter always has a target.
                     VStack(spacing: 20) {
+                        TextField("Search house rules", text: $search)
+                            .font(.body).padding(12).background(.ivory, in: RoundedRectangle(cornerRadius: 8))
+                            .foregroundStyle(Theme.Paper.ink).environment(\.colorScheme, .light)
+                            .accessibilityLabel("Search house rules")
+                        if !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            HouseRuleSearchResults(query: search, onSelect: { rulePath.append($0.id) })
+                        }
                         // Where the game comes from, before any rule (D66).
                         Text(RulesText.origin)
                             .font(.system(.body, design: .serif).italic())
@@ -127,6 +136,11 @@ struct RulesView: View {
             .background(WoodGrainView().overlay(.black.opacity(0.5)).ignoresSafeArea())
             .navigationTitle("How to play")
             .toolbar { Button("Done", action: onDismiss) }
+            .navigationDestination(for: String.self) { id in
+                if let entry = HouseRuleGuide.entry(id: id) {
+                    HouseRuleEntryView(entry: entry, onClose: { rulePath.removeLast() })
+                }
+            }
             .compactOpaqueBar()
         }
         .preferredColorScheme(.dark)

@@ -1,8 +1,9 @@
 #!/bin/sh
-# Build Catch 5 for the simulator, boot a simulator, install the app and launch it.
+# Build Catch 5 for the simulator, boot a simulator, install the app, launch it and stream its output.
 # Usage: scripts/run-simulator.sh [device-name-or-udid]
 # IntelliJ runs this from the "Catch 5 Simulator" configuration in .run/.
-# CATCH5_HEADLESS=1 boots without opening the Simulator window, for checks run from a script.
+# CATCH5_HEADLESS=1 boots without opening the Simulator window and returns once the app launches,
+# for checks run from a script.
 set -e
 cd "$(dirname "$0")/.."
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
@@ -26,5 +27,11 @@ fi
 echo "Installing"
 xcrun simctl install "$udid" work/simulator-build/CatchFive.app
 echo "Launching"
-xcrun simctl launch --terminate-running-process "$udid" com.cardgame.catchfive >/dev/null
-echo "Catch 5 is running on $device."
+if [ -n "${CATCH5_HEADLESS:-}" ]; then
+  xcrun simctl launch --terminate-running-process "$udid" com.cardgame.catchfive >/dev/null
+  echo "Catch 5 is running on $device."
+  exit 0
+fi
+# Stay attached, so the app's print() output streams into IntelliJ's Run window.
+echo "Catch 5 is running on $device. Its print() output follows."
+exec xcrun simctl launch --console-pty --terminate-running-process "$udid" com.cardgame.catchfive

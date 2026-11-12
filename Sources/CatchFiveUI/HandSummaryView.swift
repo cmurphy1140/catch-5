@@ -14,6 +14,7 @@ struct HandSummaryView: View {
     let difficulty: Difficulty
     let describe: (PlayReview) -> String
     let coaching: Bool
+    var onReplay: (() -> Void)?
     @State private var page = Page.summary
     /// The trick whose cards are laid out on the Tricks page.
     @State private var openTrick: Int? = 1
@@ -73,6 +74,13 @@ struct HandSummaryView: View {
             }
             .buttonStyle(.plain)
             .accessibilityHint("Points and tricks for this hand")
+            if let onReplay {
+                Divider().overlay(Theme.Paper.ink.opacity(0.2))
+                Button("Replay hand", systemImage: "play.rectangle", action: onReplay)
+                    .font(.title3.weight(.medium)).foregroundStyle(Theme.Paper.green)
+                    .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading).buttonStyle(.plain)
+                    .accessibilityHint("Every bid, discard, trick and score change, with the house rules")
+            }
             Divider().overlay(Theme.Paper.ink.opacity(0.2))
         }
     }

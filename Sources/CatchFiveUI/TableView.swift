@@ -12,6 +12,8 @@ public struct TableView: View {
     @State private var renaming: Int?
     /// The seat whose player card is up (D151).
     @State private var carding: Int?
+    /// Where the room table's far edge lies down the screen (D158), once the seats have been measured.
+    @State private var tableEdge: Double?
     /// The hand whose contract card has been read and put down (D157), by its number in the match.
     @State private var contractRead: Int?
     @State private var nameDraft = ""
@@ -24,6 +26,9 @@ public struct TableView: View {
     @State private var scorePanel = false
     @State private var showStatistics = false
     @State private var support: SupportPresentation?
+    @State private var learning: LearningPresentation?
+    @State private var advice: LiveAdvicePresentation?
+    @StateObject private var savedStatistics = SavedHandStatisticsModel()
     /// Completed tricks whose cards have already collapsed toward the winner.
     @State private var collapsedTricks = 0
     @State private var reopenedTrick: Int?
@@ -89,10 +94,32 @@ public struct TableView: View {
     private var pause: TablePause {
         TablePause(sceneActive: scenePhase == .active,
                    welcomeShown: covered,
-                   sheetShown: showSettings || showTutorial || showRules || scorePanel || showStatistics || support != nil,
+                   sheetShown: showSettings || showTutorial || showRules || scorePanel || showStatistics || support != nil || learning != nil || advice != nil,
                    dialogShown: renaming != nil || carding != nil || contractSummary != nil || confirmNineAndOut || model.tallyDemo != nil || model.errorMessage != nil || model.saveError != nil,
                    inspectingTrick: reopenedTrick != nil,
                    drawShown: drawShown)
+    }
+
+    /// A different cover invalidates advice; its own sheet remains a reason to pause, not a reason to dismiss.
+    private var adviceBlocked: Bool {
+        covered || showSettings || showTutorial || showRules || scorePanel || showStatistics || support != nil || learning != nil
+            || renaming != nil || carding != nil || contractSummary != nil || confirmNineAndOut
+            || model.tallyDemo != nil || model.errorMessage != nil || model.saveError != nil || reopenedTrick != nil
+            || scenePhase != .active
+    }
+
+    private func openAdvice() {
+        guard !pause.isPaused else { return }
+        advice = model.liveAdvice()
+    }
+
+    private func validateAdvice() {
+        if let advice, !advice.isValid(for: model, covered: adviceBlocked) { self.advice = nil }
+    }
+
+    private func openReplay() {
+        guard let replay = model.handReplay(), !covered else { return }
+        learning = LearningPresentation(start: .replay(replay, names: model.seatNames, mode: model.mode))
     }
 
     /// The draw for dealer is showing: a fresh match, not yet covered, with its draw still on the table.
@@ -117,7 +144,7 @@ public struct TableView: View {
             .accessibilityHidden(model.curtainSeat != nil || showRules)
             .overlay {
                 if let seat = model.curtainSeat {
-                    PassCurtainView(name: model.seatNames[seat], portrait: portraits[seat]) {
+                    PassCurtainView(name: model.seatNames[seat], portrait: portraits[seat], figure: figures[seat]) {
                         withAnimation(motion(Theme.Motion.overlay)) { model.ready() }
                     }
                     .transition(.opacity)
@@ -125,7 +152,7 @@ public struct TableView: View {
             }
             .overlay {
                 if drawShown, let draw = model.dealerDraw {
-                    DealerDrawView(draw: draw, names: model.seatNames, portraits: portraits, saysYou: model.mode == .solo) {
+                    DealerDrawView(draw: draw, names: model.seatNames, portraits: portraits, figures: figures, saysYou: model.mode == .solo) {
                         withAnimation(motion(Theme.Motion.overlay)) { model.dismissDealerDraw() }
                     }
                     .transition(.opacity)
@@ -134,7 +161,7 @@ public struct TableView: View {
             // The one bid that can end the match on its own: the partner asks, then the engine judges it at that moment (D70).
             .overlay {
                 if confirmNineAndOut {
-                    NineAndOutConfirm(name: NineAndOutConfirm.partnerName(model), portrait: portraits[model.partnerSeat],
+                    NineAndOutConfirm(name: NineAndOutConfirm.partnerName(model), portrait: portraits[model.partnerSeat], figure: figures[model.partnerSeat],
                                       onSure: { confirmNineAndOut = false; model.send(.nineAndOut) },
                                       onCancel: { withAnimation(motion(Theme.Motion.overlay)) { confirmNineAndOut = false } })
                         .transition(.opacity)
@@ -218,6 +245,9 @@ public struct TableView: View {
         withAnimation(motion(Theme.Motion.overlay)) { _ = celebrating.removeFirst() }
     }
 
+    /// The four seats' cut-out figures for the chosen cast, nil where the build has none (D170).
+    private var figures: [Image?] { (0..<4).map { SeatArt.image(seat: $0, opponents: model.settings.opponents) } }
+
     private var portraits: [Portrait] {
         [model.settings.playerPortrait] + Cast.opponents.map(\.portrait)
     }
@@ -259,7 +289,9 @@ public struct TableView: View {
                          onSettings: { showSettings = true },
                          onDeck: { dealerDeck = $0 },
                          onRename: rename,
+                         onTableEdge: { tableEdge = $0 },
                          holdsResult: !celebrating.isEmpty || celebrationDue,
+                         onReplay: openReplay, onAdvice: openAdvice,
                          statusFocus: $statusFocused)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.horizontal, Theme.Table.horizontalInset)
@@ -291,7 +323,23 @@ public struct TableView: View {
         // which only takes the middle of the bottom edge, so the table gets that height back (N64).
         // Ivory on the oak; dark ink on the two paler woods (D118).
         .foregroundStyle(model.settings.tableColours.woodIsLight ? Theme.Wood.header : .ivory)
-        .background(WoodGrainView().modifier(WoodTone(colours: model.settings.tableColours)).ignoresSafeArea())
+        // The room table (D158): the players sit behind the rail, and the felt runs from it to the bottom of the screen.
+        .overlay {
+            if model.settings.tableArrangement == .rail, let tableEdge {
+                GeometryReader { geometry in RoomRail(top: tableEdge - geometry.frame(in: .global).minY) }.ignoresSafeArea().allowsHitTesting(false)
+            }
+        }
+        .background {
+            ZStack {
+                WoodGrainView().modifier(WoodTone(colours: model.settings.tableColours))
+                if model.settings.tableArrangement == .rail, let tableEdge {
+                    // The wall behind the players, in shadow, then the cloth.
+                    Color.black.opacity(0.28)
+                    GeometryReader { geometry in RoomFelt(top: tableEdge - geometry.frame(in: .global).minY, colours: model.settings.tableColours) }
+                }
+            }
+            .ignoresSafeArea()
+        }
         .preferredColorScheme(.dark)
     }
 
@@ -311,7 +359,9 @@ public struct TableView: View {
 
     @ViewBuilder private var contractCard: some View {
         if let summary = contractSummary {
-            ContractCard(summary: summary) { withAnimation(motion(Theme.Motion.overlay)) { contractRead = model.match.handNumber } }
+            ContractCard(summary: summary, portrait: portraits[summary.bidderSeat], figure: figures[summary.bidderSeat]) {
+                withAnimation(motion(Theme.Motion.overlay)) { contractRead = model.match.handNumber }
+            }
                 .transition(.opacity)
         }
     }
@@ -322,7 +372,7 @@ public struct TableView: View {
                 Color.black.opacity(0.6).ignoresSafeArea()
                     .onTapGesture { withAnimation(motion(Theme.Motion.overlay)) { carding = nil } }
                     .accessibilityLabel("Close the card").accessibilityAddTraits(.isButton)
-                PlayerCard(name: model.seatNames[seat], figure: SeatArt.image(seat: seat), item: SeatArt.named("GuestItem\(seat)"),
+                PlayerCard(name: model.seatNames[seat], figure: SeatArt.image(seat: seat, opponents: model.settings.opponents), item: SeatArt.named("GuestItem\(seat)"),
                            sheet: PlayerSheet(seat: seat, match: model.match)) {
                     nameDraft = model.seatNames[seat]
                     carding = nil
@@ -434,6 +484,16 @@ public struct TableView: View {
 
     private var withSheets: some View {
         withHaptics
+            .sheet(item: $learning) { presentation in
+                LearningFlowView(model: model, start: presentation.start) { learning = nil }.id(presentation.id)
+            }
+            .sheet(item: $advice) { presentation in
+                LearningAdviceView(presentation: presentation) { advice = nil }.id(presentation.id)
+            }
+            .onChange(of: model.revision) { _, _ in validateAdvice() }
+            .onChange(of: model.viewerSeat) { _, _ in validateAdvice() }
+            .onChange(of: model.curtainSeat) { _, _ in validateAdvice() }
+            .onChange(of: adviceBlocked) { _, _ in validateAdvice() }
             .sheet(item: $support) { presentation in
                 SupportView(presentation: presentation).id(presentation.id)
             }
@@ -443,7 +503,12 @@ public struct TableView: View {
             .onChange(of: covered) { _, covered in if covered { closeSupport() } }
             .sheet(isPresented: $showSettings) { SettingsView(settings: $model.settings) }
             .sheet(isPresented: $showTutorial, onDismiss: { model.markRulesSeen() }) { TutorialView(model: tutorial) { showTutorial = false } }
-            .sheet(isPresented: $showStatistics) { StatisticsView(stats: model.statistics, records: model.records) { showStatistics = false } }
+            .sheet(isPresented: $showStatistics) {
+                StatisticsView(stats: model.statistics, records: model.records, saved: savedStatistics.statistics,
+                               savedError: savedStatistics.error, isSavedLoading: savedStatistics.isLoading) { showStatistics = false }
+                    .task(id: model.archiveReadContext) { await savedStatistics.load(model) }
+                    .onDisappear { savedStatistics.prepareLoading() }
+            }
             .alert("Game notice", isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
                 Button("OK") { model.errorMessage = nil }
             } message: { Text(model.errorMessage ?? "") }
@@ -710,7 +775,7 @@ struct WoodTone: ViewModifier {
     let colours: Settings.TableColours
     func body(content: Content) -> some View {
         switch colours {
-        case .charcoal: content.saturation(1).brightness(0)
+        case .charcoal, .green: content.saturation(1).brightness(0)
         case .royal: content.saturation(0.7).brightness(0.2)
         case .casino: content.saturation(0.35).brightness(0.36)
         }

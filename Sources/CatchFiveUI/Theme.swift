@@ -233,6 +233,7 @@ public enum Theme {
         public static func cloth(_ colours: Settings.TableColours) -> [Color] {
             switch colours {
             case .charcoal: [clothLight, cloth, clothDark]
+            case .green: [Color(red: 0.16, green: 0.40, blue: 0.27), Color(red: 0.09, green: 0.29, blue: 0.19), Color(red: 0.04, green: 0.17, blue: 0.11)]
             case .royal: [Color(red: 0.22, green: 0.38, blue: 0.76), Color(red: 0.13, green: 0.26, blue: 0.60), Color(red: 0.07, green: 0.15, blue: 0.40)]
             case .casino: [Color(red: 0.74, green: 0.15, blue: 0.17), Color(red: 0.58, green: 0.09, blue: 0.12), Color(red: 0.36, green: 0.05, blue: 0.08)]
             }

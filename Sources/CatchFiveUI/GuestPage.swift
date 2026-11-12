@@ -1,0 +1,190 @@
+import SwiftUI
+
+/// The looks the guest can wear at her own seat (D177): the git-ignored image assets `GuestLook1`, `GuestLook2` and on,
+/// counted until the first one that is missing, so a new look is one more picture in the build. Her choice is kept by
+/// name, so adding a look never moves it.
+enum GuestLook {
+    static let key = "guestLook"
+
+    /// The run of look names a build carries, given a way to ask whether a picture exists.
+    nonisolated static func names(limit: Int = 60, carried: (String) -> Bool) -> [String] {
+        var found: [String] = []
+        for number in 1...max(1, limit) {
+            let name = "GuestLook\(number)"
+            guard carried(name) else { break }
+            found.append(name)
+        }
+        return found
+    }
+
+    /// The look to wear: the saved one while the build still carries it, else none, which is the figure she came in.
+    nonisolated static func worn(saved: String?, among names: [String]) -> String? {
+        saved.flatMap { names.contains($0) ? $0 : nil }
+    }
+
+    static var all: [String] { names { SeatArt.named($0) != nil } }
+
+    /// The chosen look's picture, for her seat at the table.
+    static var chosen: Image? {
+        UserDefaults.standard.string(forKey: key).flatMap { $0.hasPrefix("GuestLook") ? SeatArt.named($0) : nil }
+    }
+}
+
+/// The guest's own page (D177), in place of `GuestThings`: two swans glide in and meet, she rises under them, her name
+/// writes itself, and then her note, her things and her looks are laid out below. A tap skips the opening; with Reduce
+/// Motion it is not played at all.
+struct GuestPage: View {
+    let name: String
+    let colours: Settings.TableColours
+    let items: [HomeTable.Item]
+    /// Opens her note, when the build carries one.
+    var onNote: (() -> Void)?
+    let onClose: () -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage(GuestLook.key) private var savedLook = ""
+    /// How far the opening has got: the swans, her, her name, then everything else.
+    @State private var beat = 0
+    @State private var breathing = false
+    private let looks = GuestLook.all
+
+    private static let last = 4
+    private var worn: String? { GuestLook.worn(saved: savedLook.isEmpty ? nil : savedLook, among: looks) }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 30) {
+                stage
+                Group {
+                    if let onNote {
+                        VStack(spacing: 6) {
+                            GuestPlaceCard(name: name, action: onNote)
+                            Text("A note for you").font(.system(.subheadline, design: .serif)).italic().opacity(0.85)
+                        }
+                    }
+                    things
+                    if !looks.isEmpty { wardrobe }
+                }
+                .opacity(beat >= Self.last ? 1 : 0).offset(y: beat >= Self.last ? 0 : 14)
+            }
+            .padding(.horizontal, 28).padding(.top, 54).padding(.bottom, 30).frame(maxWidth: 480).frame(maxWidth: .infinity)
+        }
+        .overlay(alignment: .topLeading) {
+            Button(action: onClose) {
+                Image(systemName: "arrow.left").font(.system(size: 28, weight: .semibold))
+                    .frame(width: Theme.Table.statusButtonHitSize, height: Theme.Table.statusButtonHitSize).contentShape(Rectangle())
+            }
+            .buttonStyle(.plain).accessibilityLabel("Back").keyboardShortcut(.cancelAction)
+            .padding(.leading, 12).padding(.top, 4)
+        }
+        .foregroundStyle(.ivory)
+        .background { HomeFelt(colours: colours) }
+        .task { await open() }
+        .onChange(of: beat) { _, now in
+            if now == Self.last, !reduceMotion { withAnimation(Theme.Motion.pulse) { breathing = true } }
+        }
+    }
+
+    /// The opening, one beat after another; it stops where a tap has already skipped ahead.
+    private func open() async {
+        guard !reduceMotion else { beat = Self.last; return }
+        let beats: [(wait: Duration, motion: Animation)] = [
+            (.milliseconds(150), .spring(duration: 0.9, bounce: 0.15)),
+            (.milliseconds(550), .spring(duration: 0.7, bounce: 0.3)),
+            (.milliseconds(500), .easeOut(duration: 0.9)),
+            (.milliseconds(700), Theme.Motion.overlay),
+        ]
+        for (index, step) in beats.enumerated() {
+            try? await Task.sleep(for: step.wait)
+            guard !Task.isCancelled, beat == index else { return }
+            withAnimation(step.motion) { beat = index + 1 }
+        }
+    }
+
+    /// The swans, her, and her name: the part that moves.
+    private var stage: some View {
+        VStack(spacing: -4) {
+            HStack(spacing: 0) {
+                ForEach([false, true], id: \.self) { mirrored in
+                    SwanView().frame(width: 112, height: 86).scaleEffect(x: mirrored ? -1 : 1)
+                        .offset(x: beat >= 1 ? 0 : (mirrored ? 170 : -170)).opacity(beat >= 1 ? 1 : 0)
+                }
+            }
+            .shadow(color: .black.opacity(0.3), radius: 2, y: 2)
+            if let figure = worn.flatMap(SeatArt.named) ?? SeatArt.named("Guest") ?? SeatArt.named("GuestSeat0") {
+                figure.resizable().scaledToFit().frame(height: 220)
+                    .shadow(color: .black.opacity(0.4), radius: 5, y: 4)
+                    .scaleEffect(breathing ? 1.012 : 1, anchor: .bottom)
+                    .id(worn ?? "came").transition(.scale(scale: 0.9, anchor: .bottom).combined(with: .opacity))
+                    .offset(y: beat >= 2 ? 0 : 70).opacity(beat >= 2 ? 1 : 0)
+            }
+            Text(name).font(.custom("SnellRoundhand-Black", fixedSize: 56)).lineLimit(1).minimumScaleFactor(0.5)
+                .shadow(color: .black.opacity(0.45), radius: 1.5, y: 1.5)
+                .padding(.horizontal, 10)
+                // Written from left to right, as a pen would.
+                .mask { Rectangle().scaleEffect(x: beat >= 3 ? 1 : 0, anchor: .leading) }
+                .accessibilityAddTraits(.isHeader)
+        }
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
+        .onTapGesture { if beat < Self.last { withAnimation(Theme.Motion.overlay) { beat = Self.last } } }
+    }
+
+    /// Her links, as things left on the felt.
+    private var things: some View {
+        VStack(spacing: 26) {
+            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                Button(action: item.action) {
+                    HStack(spacing: 18) {
+                        if index % 2 == 1 { Spacer(minLength: 0) }
+                        if let art = SeatArt.named(item.art) {
+                            art.resizable().scaledToFit().frame(width: 132, height: 96).shadow(color: .black.opacity(0.4), radius: 4, y: 3)
+                        }
+                        Text(item.title).font(.system(.title3, design: .serif).weight(.semibold)).multilineTextAlignment(.leading)
+                            .shadow(color: .black.opacity(0.4), radius: 1, y: 1)
+                        if index % 2 == 0 { Spacer(minLength: 0) }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain).accessibilityLabel(item.title).accessibilityHint(item.hint)
+            }
+        }
+    }
+
+    /// Her looks in a row: the one she came in, then each the build carries. The one she wears stands a little taller
+    /// with a stroke under it; nothing is boxed.
+    private var wardrobe: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Your look").font(.system(.title3, design: .serif).weight(.semibold))
+                .shadow(color: .black.opacity(0.4), radius: 1, y: 1).accessibilityAddTraits(.isHeader)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .bottom, spacing: 16) {
+                    look(nil, label: "As you came")
+                    ForEach(Array(looks.enumerated()), id: \.element) { index, name in look(name, label: "Look \(index + 1)") }
+                }
+                .padding(.vertical, 6)
+            }
+            .padding(.horizontal, -28) // the row runs to both edges of the screen
+            .contentMargins(.horizontal, 28, for: .scrollContent)
+        }
+    }
+
+    private func look(_ look: String?, label: String) -> some View {
+        let isWorn = look == worn
+        return Button {
+            withAnimation(reduceMotion ? Theme.Motion.reduced : .spring(duration: 0.4, bounce: 0.35)) { savedLook = look ?? "" }
+        } label: {
+            VStack(spacing: 6) {
+                if let picture = SeatArt.named(look ?? "GuestSeat0") ?? SeatArt.named("Guest") {
+                    picture.resizable().scaledToFit().frame(width: 96, height: 104, alignment: .bottom)
+                        .shadow(color: .black.opacity(0.35), radius: 3, y: 2)
+                }
+                Capsule().fill(.ivory.opacity(isWorn ? 0.9 : 0)).frame(width: 36, height: 2)
+            }
+            .scaleEffect(isWorn ? 1 : 0.86, anchor: .bottom).opacity(isWorn ? 1 : 0.7)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label).accessibilityAddTraits(isWorn ? .isSelected : [])
+    }
+}

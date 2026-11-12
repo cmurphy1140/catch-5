@@ -16,6 +16,8 @@ struct ContractPlaque: View {
         let portrait: Portrait
         /// Trump, once the bidder has named it.
         var trump: Suit? = nil
+        /// Seat identity survives player renames and selects the current roster's cutout (D171).
+        var bidderSeat: Int? = nil
 
         /// The big figure: the bid, or 9 for 9 and out.
         var number: String { isNineAndOut ? "9" : String(bid) }
@@ -30,12 +32,13 @@ struct ContractPlaque: View {
         guard auction.nextSeat == nil, let bidder = auction.winner, let bid = auction.highestBid else { return nil }
         return Contract(bid: bid, isNineAndOut: auction.isNineAndOut, bidder: model.seatNames[bidder],
                         portrait: Cast.opponent(at: bidder)?.portrait ?? model.settings.playerPortrait,
-                        trump: model.match.hand.trump)
+                        trump: model.match.hand.trump, bidderSeat: bidder)
     }
 
     /// The box as the table shows it: the player's tally on the suit, and the demo's pulse on it (N61).
     static func onTable(_ model: GameModel, contract: Contract, width: Double) -> ContractPlaque {
         ContractPlaque(contract: contract, width: width, tally: model.trumpTally, demo: model.tallyDemo == .trump,
+                       figure: contract.bidderSeat.flatMap { SeatArt.image(seat: $0, opponents: model.settings.opponents) },
                        onAdd: model.tallyTrump, onTakeBack: model.untallyTrump)
     }
 
@@ -45,6 +48,7 @@ struct ContractPlaque: View {
     var tally = 0
     /// The tally demo is pointing at the suit.
     var demo = false
+    var figure: Image?
     var onAdd: () -> Void = {}
     var onTakeBack: () -> Void = {}
 
@@ -70,7 +74,7 @@ struct ContractPlaque: View {
         VStack(spacing: 0) {
             HStack(alignment: .bottom, spacing: 4) {
                 // The bidder's face lies on the table like a chip, its shadow on the wood.
-                PortraitView(portrait: contract.portrait, size: Theme.Table.plaquePortraitSize, popsOut: true)
+                SeatFace(portrait: contract.portrait, figure: figure, size: Theme.Table.plaquePortraitSize)
                     .shadow(color: .black.opacity(0.5), radius: 3, x: 1, y: 3)
                     .padding(.top, Theme.Table.plaquePortraitSize * Theme.Table.portraitHeadroom)
                 VStack(spacing: -6) {

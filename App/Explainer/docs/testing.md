@@ -144,3 +144,41 @@ The left side is what the code did, the right side what the test expected. Open 
 `Tests/CatchFiveUITests/SupportTests.swift` checks projected payload privacy by changing opponent cards, canonical legal/advice output, finished scoring, pass-and-play curtains, local fallback, HTTPS validation, authenticated request/response errors, redirect refusal and cancellation/duplicate sends. `node --test help/support.test.mjs` checks the real backend core with controlled fetch: missing config/access code, allowlist and size validation, malicious fields, Responses contract and explicit refusal/incomplete/empty/network fallback. These tests make no paid API requests. Run backend tests, the full `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test`, and simulator SDK build sequentially; instructions and live-service limits are in `help/README.md`.
 
 Refinement regressions additionally verify online starters reach real client transport, local answers stay concise and consistent, bounded previews preserve short text/whole words, failed questions remain visible with one explicit retry, and sixth-and-later turns use alternating histories of at most nine messages. The backend contract test observes the 240-token limit without paid requests. Native keyboard, Dynamic Type, More/less positioning and actual phone acceptance remain visual checks rather than source-text tests.
+
+## Replay, archive, practice and advice checks
+
+`HandReplayTests` compares chronological snapshots with real accepted actions, separates a fourth-card event from
+the trick award and final score change, rejects unfinished replay and excludes later hands. It covers ordinary nine,
+nine-and-out and exact-deal practice. `HandArchiveTests` covers idempotent completion identity, active-deal branches,
+reload, retained corrupt bytes, partial listings, provenance, write failures and atomic new-player scope changes.
+Its retry regressions reproduce a cold archive failure followed by New game and a reset with pending unsaved hands.
+
+`PracticeTests` completes and restarts real practice games while comparing the real model's save/settings/history/mode
+files and archive. Practice has no real URLs or records. Per-seat Easy/Standard selection is checked for moves and labels.
+`HouseRuleGuideTests` exercises normalized search and engine-backed close-call examples. `LiveAdviceTests` changes a
+real opponent's hidden refill card and stock while keeping the viewer's hand and public play identical, then compares
+both the recommended action and full reason. It also rejects covered/curtained/stale/nonhuman states and unfinished
+opponent explanations, while preserving completed-hand review.
+
+Learning-flow tests exercise the production routing methods, exact-deal practice and safe exit/restart, real-data
+fingerprints, whole-archive search beyond one page, active-deal refusal and reset/retry failures. Playback tests traverse
+every production replay step and check direct selection and both navigation bounds. These establish state behavior;
+they do not establish physical taps, scrolling, VoiceOver focus or phone appearance.
+
+`AsyncArchiveTests` holds an injected Sendable reader at deterministic gates while the main actor runs a probe and
+query. It checks detached execution, stale player/deal rejection, overlapping loads, close/cancellation cleanup and
+clear-before-await behavior. An already-cancelled delayed caller must leave a valid in-flight read intact. These are
+behavior checks without hardware timing thresholds. The ignored performance harness separately measures100 legal
+hands and100 cumulative archive entries, total validation time and main-actor heartbeat progress; its optimization,
+platform, source hashes and cache limits are recorded with each result.
+
+The 2026-11-11 optimized local Mac followup loaded the same100 cumulative entries (19.53MB) in2.060 seconds while
+166 main-actor probes also queried the cache. With a requested10ms interval, the largest observed gap was12.645 ms.
+All 410 workload assertions passed. This establishes progress during that measured background load, not phone latency
+or physical input behavior. The final functional suite passed367 tests (264 UI and 103 engine); its source review accepted
+the already-cancelled-caller rework after three regressions first failed with five behavioral issues.
+
+The task's ignored capture harness preserves an immutable pre-feature source snapshot, build IDs, launch tokens and
+per-image evidence. Simulator builds, captures and tests run one at a time under `sim_guard.sim_lock`; simulator boots
+retain the normal-pressure/20%-free gate and watchdog. Private artwork stays under ignored `work/`, and a fresh Guest-free
+catalog checks fallback rendering. The local task state records which device/text/motion captures actually ran.

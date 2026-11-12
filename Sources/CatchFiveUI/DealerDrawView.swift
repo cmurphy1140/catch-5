@@ -8,6 +8,8 @@ struct DealerDrawView: View {
     let draw: DealerDraw
     let names: [String]
     let portraits: [Portrait]
+    /// The seats' cut-out figures, where the build carries them (D170).
+    var figures: [Image?] = []
     /// Seat 0 is "You" in solo; pass and play names it like every other seat.
     var saysYou = true
     let onDismiss: () -> Void
@@ -51,7 +53,7 @@ struct DealerDrawView: View {
     /// A seat's portrait and its drawn card; the dealer's card wears the gold ring.
     private func seat(_ index: Int) -> some View {
         HStack(spacing: 10) {
-            PortraitView(portrait: portraits[index], size: 30)
+            SeatFace(portrait: portraits[index], figure: figures.indices.contains(index) ? figures[index] : nil, size: 30)
             CardView(card: draw.cards[index], width: 40, style: .rest, ring: index == draw.dealer ? .gold : nil)
             Text(label(index)).font(.subheadline.weight(.semibold)).lineLimit(1).fixedSize()
         }

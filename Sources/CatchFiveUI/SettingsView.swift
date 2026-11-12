@@ -33,12 +33,22 @@ struct SettingsView: View {
                     .font(.subheadline).fixedSize(horizontal: false, vertical: true)
                 rule
                 heading("♥", "Table")
-                PaperSwitch(options: [("Now", Settings.TableArrangement.classic), ("Around", .around), ("Rail", .rail)], selection: $settings.tableArrangement)
-                Text("A trial: today's table, the seats around a full field, or the seats on a rail above it.")
-                    .font(.subheadline).fixedSize(horizontal: false, vertical: true)
-                PaperSwitch(options: [("Charcoal", Settings.TableColours.charcoal), ("Royal", .royal), ("Casino", .casino)], selection: $settings.tableColours)
-                Text("Charcoal cloth on oak, royal blue on light tan, or casino red on birch.")
-                    .font(.subheadline).fixedSize(horizontal: false, vertical: true)
+                // One table now (D158); the only choice is the cloth, one of two.
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach([("Charcoal felt", Settings.TableColours.charcoal), ("Green felt", .green)], id: \.1) { title, cloth in
+                        let chosen = settings.tableColours == cloth
+                        Button { settings.tableColours = cloth } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: chosen ? "largecircle.fill.circle" : "circle").font(.title3)
+                                Text(title).font(.title3.weight(chosen ? .semibold : .regular))
+                                Spacer(minLength: 0)
+                            }
+                            .frame(minHeight: 44).contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityAddTraits(chosen ? .isSelected : [])
+                    }
+                }
                 rule
                 heading("♦", "You")
                 // A draft, so spaces and clearing work while typing; each non-blank edit is committed.
@@ -73,13 +83,19 @@ struct SettingsView: View {
                 .font(.title3.weight(.medium)).tint(Theme.Paper.green)
                 rule
                 heading("♣", "Opponents")
+                PaperSwitch(options: [("Friends", Settings.Opponents.friends), ("Family", Settings.Opponents.family)],
+                            selection: Binding(get: { settings.opponents }, set: { settings.seat($0) }), ticks: true)
                 VStack(spacing: 0) {
                     ForEach(1..<4, id: \.self) { seat in
                         HStack(spacing: 14) {
-                            if let character = Cast.opponent(at: seat) { PortraitView(portrait: character.portrait, size: 44) }
-                            field(TextField(Settings.defaultSeatNames[seat], text: Binding(
+                            if let art = SeatArt.image(seat: seat, opponents: settings.opponents) {
+                                art.resizable().scaledToFit().frame(width: 44, height: 44)
+                            } else if let character = Cast.opponent(at: seat) {
+                                PortraitView(portrait: character.portrait, size: 44)
+                            }
+                            field(TextField(settings.opponents.names[seat], text: Binding(
                                 get: { settings.seatNames[seat] },
-                                set: { settings.seatNames[seat] = $0.trimmingCharacters(in: .whitespaces).isEmpty ? Settings.defaultSeatNames[seat] : $0 })))
+                                set: { settings.seatNames[seat] = $0.trimmingCharacters(in: .whitespaces).isEmpty ? settings.opponents.names[seat] : $0 })))
                         }
                         .padding(.horizontal, 12).padding(.vertical, 6)
                         if seat < 3 { Rectangle().fill(Theme.Paper.rule.opacity(0.7)).frame(height: 1).padding(.horizontal, 8) }

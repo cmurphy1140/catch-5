@@ -28,16 +28,19 @@ public struct Settings: Codable, Equatable, Sendable {
     /// The table has shown, once, how the trump tally and the out-of-trump marks are tapped (N61).
     public var hasSeenTallyDemo: Bool
     /// How the play table is arranged (D113): a trial switch between today's table and two reworks, until one is chosen.
-    public var tableArrangement: TableArrangement = .around
+    public var tableArrangement: TableArrangement = .rail
 
     /// The table's colours (D118): the cloth and the wood round it, changed from Settings at any time.
     public var tableColours: TableColours = .charcoal
 
     public enum TableColours: String, Codable, CaseIterable, Sendable {
-        /// Charcoal cloth on oak; royal blue cloth on light tan wood; casino red cloth on birch.
-        case charcoal, royal, casino
+        /// Charcoal or green cloth on oak, the two the table offers (D158). Royal and casino are no longer offered;
+        /// they stay so an old save still reads, and a save that holds one opens on charcoal.
+        case charcoal, green, royal, casino
+        /// The cloths the settings page offers.
+        public static let offered: [TableColours] = [.charcoal, .green]
         /// The two paler woods take dark ink where the oak takes ivory.
-        public var woodIsLight: Bool { self != .charcoal }
+        public var woodIsLight: Bool { self == .royal || self == .casino }
     }
 
     public enum TableArrangement: String, Codable, CaseIterable, Sendable {
@@ -46,7 +49,25 @@ public struct Settings: Codable, Equatable, Sendable {
         case classic, around, rail
     }
 
-    public static let defaultSeatNames = ["Cheryl", "JC", "Connor", "Diane"]
+    /// Who sits in the three other seats (D160): the new cast, or the family table it replaced, still offered in Settings.
+    public enum Opponents: String, Codable, CaseIterable, Sendable {
+        case friends, family
+        /// All four seat names; seat 0 is the same either way.
+        public var names: [String] { self == .friends ? Settings.defaultSeatNames : Settings.familySeatNames }
+        /// "Marcus, Meg, Monica".
+        public var label: String { names[1...3].joined(separator: ", ") }
+    }
+    public var opponents: Opponents = .friends
+
+    public static let defaultSeatNames = ["Cheryl", "Marcus", "Meg", "Monica"]
+    /// The family table (T09), the default until D160.
+    public static let familySeatNames = ["Cheryl", "JC", "Doug", "Diane"]
+
+    /// Seats the chosen three; the player's own seat is left alone.
+    public mutating func seat(_ chosen: Opponents) {
+        opponents = chosen
+        for seat in 1...3 { seatNames[seat] = chosen.names[seat] }
+    }
     /// The defaults before the cast existed; files still carrying them migrate on load.
     public static let legacySeatNames = ["You", "West", "Partner", "East"]
     /// The cast's names before the family table (T09); files still carrying them migrate on load.
@@ -111,11 +132,15 @@ public struct Settings: Codable, Equatable, Sendable {
         beginnerMode = (try? container.decodeIfPresent(Bool.self, forKey: .beginnerMode)) ?? nil ?? true
         nextTip = (try? container.decodeIfPresent(Int.self, forKey: .nextTip)) ?? nil ?? 0
         hasSeenTallyDemo = (try? container.decodeIfPresent(Bool.self, forKey: .hasSeenTallyDemo)) ?? nil ?? false
-        tableColours = (try? container.decodeIfPresent(TableColours.self, forKey: .tableColours)) ?? nil ?? .charcoal
-        tableArrangement = (try? container.decodeIfPresent(TableArrangement.self, forKey: .tableArrangement)) ?? nil ?? .around
+        let cloth = (try? container.decodeIfPresent(TableColours.self, forKey: .tableColours)) ?? nil ?? .charcoal
+        tableColours = TableColours.offered.contains(cloth) ? cloth : .charcoal
+        // One table (D158): the seats in a row across the top. A save from the trial of three opens on it too.
+        tableArrangement = .rail
         let decoded = (try? container.decodeIfPresent([String].self, forKey: .seatNames)) ?? nil ?? Settings.defaultSeatNames
         // A short or long list is damaged: it takes the defaults before anything indexes into it.
-        let names = decoded.count == 4 ? decoded : Settings.defaultSeatNames
+        var names = decoded.count == 4 ? decoded : Settings.defaultSeatNames
+        // The man across the table was renamed (D159); a save still carrying his old default takes the new one.
+        if names[2] == "Connor" { names[2] = Settings.familySeatNames[2] }
         // Only a file from before the cast (no player name yet) still carries the direction defaults by
         // accident; after sign-in a typed "West" is a choice and stays.
         let migrated = playerName == nil ? Settings.migrated(names) : names
@@ -126,6 +151,13 @@ public struct Settings: Codable, Equatable, Sendable {
             let own = seatNames[0]
             seatNames = Settings.defaultSeatNames
             if own == playerName, !seatNames[1...3].contains(own) { seatNames[0] = own }
+        }
+        // A save from before the new cast (D160) that still seats the family as it was dealt takes the new three;
+        // once the choice has been saved it is the player's, and names typed by hand never match and stay.
+        if let saved = (try? container.decodeIfPresent(Opponents.self, forKey: .opponents)) ?? nil {
+            opponents = saved
+        } else if Array(seatNames[1...3]) == Array(Settings.familySeatNames[1...3]) {
+            seat(.friends)
         }
     }
 

@@ -26,7 +26,7 @@ Check the actual host and available files when Connor is on his phone; controlli
 
 ## Session coordination
 
-Codex is no longer used; mentions of it in historical documents describe their own time. Connor runs a separate planning chat as the **coordinator** and Claude Code sessions as **writers**: one writer session by default, and a second on the engine side whenever Connor opens one. The working rules, the copy-ready prompts and the session log live in vault `Projects/active/catch-5/record/repo-docs/working-together.md`; edit that file freely, this one rarely.
+Codex reviews real moves (see `~/.claude/CLAUDE.md`); older Codex mentions in historical documents describe their own time. Connor runs a separate planning chat as the **coordinator** and Claude Code sessions as **writers**: one writer session by default, and a second on the engine side whenever Connor opens one. The working rules, the copy-ready prompts and the session log live in vault `Projects/active/catch-5/record/repo-docs/working-together.md`; edit that file freely, this one rarely.
 
 1. **The coordinator owns the plans and these instructions.** Writers implement one bounded task each. A writer edits the plan only to record its own task's status in the progress table, and does not rewrite `AGENTS.md`.
 2. **Two tracks, split by module, used when a second session exists.** The **UI writer** owns `Sources/CatchFiveUI/`, `App/` and `Tests/CatchFiveUITests/`. The **game-logic writer** owns `Sources/CatchFive/`, `Sources/CatchFiveDemo/` and `Tests/CatchFiveTests/`. Neither edits the other's files. A change that needs both sides is split into two tasks, the engine side lands first, and the interface between them (a type or function signature) is agreed through the coordinator before either starts. The UI writer uses the main checkout `~/Code/catch-5`; the game-logic writer uses a worktree under `~/Developer/active/catch-5-worktrees/<track>/` (Desktop is iCloud-synced, verified September 13, so worktrees stay out of it). Each works on its own branch off `main`. Shared files (`docs/`, `Package.swift`, `project.yml`, the plan, this file) are coordinator-owned; a writer touches a docs page only in the section that describes its own module, and PRs merge one at a time. Worktrees do not isolate the simulator, saves or the Mac's CPU.
@@ -57,7 +57,7 @@ compare the same states afterwards.
 `App/Explainer/docs/learning-path.md` indexes the explainer pages (build-and-run, architecture, game-flow, types-and-functions, testing, decisions, code-map, roadmap, tutorial-spec, device-install) with Mermaid diagrams. Any commit that adds, renames or removes a type, function, phase or test must update the matching page in the same commit, and new design choices get a numbered entry in `App/Explainer/docs/decisions.md`. `scripts/export-docs.py` renders the pages to PDF and PNG in `work/docs-export/` for Claude Design.
 
 ## Verification
-Run `scripts/check.sh` (it runs `swift test` for the engine and view-model suites and prints the counts). Set `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` first if needed.
+Run `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test`.
 
 ## Local resource coordination
 Before running builds, tests, simulator launches, screenshots, or Xcode previews, check whether the other writer is already performing a resource-heavy operation, and take the verification turn described above. Pause Xcode previews when they are not needed, and stop simulator or build processes started for the task when they are no longer required.

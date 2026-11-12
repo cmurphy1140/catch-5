@@ -65,6 +65,9 @@ struct ReviewUnavailableView: View {
 struct StatisticsView: View {
     let stats: Statistics
     let records: [MatchRecord]
+    var saved = HandArchiveStatistics()
+    var savedError: String?
+    var isSavedLoading = false
     let onDismiss: () -> Void
 
     var body: some View {
@@ -85,7 +88,7 @@ struct StatisticsView: View {
                 HStack(alignment: .top, spacing: 8) {
                     figure("\(stats.matches)", "Matches")
                     figure(stats.matches == 0 ? "–" : percent(Double(stats.wins) / Double(stats.matches)), "Won")
-                    figure(stats.contractRate.map(percent) ?? "–", "Bids made")
+                    figure(stats.contractRate.map(percent) ?? "–", "Contracts made")
                 }
                 rule
                 if stats.matches == 0 {
@@ -93,6 +96,19 @@ struct StatisticsView: View {
                 } else {
                     line("Won", "\(stats.wins)")
                     line("Lost", "\(stats.matches - stats.wins)")
+                }
+                rule
+                if isSavedLoading {
+                    ProgressView("Loading saved hands…").frame(maxWidth: .infinity, minHeight: 44)
+                } else if savedError == nil || saved.hands > 0 {
+                    line(savedError == nil ? "Saved hands" : "Available saved hands", "\(saved.hands)")
+                    line("Your tricks", "\(saved.yourTricks)")
+                    Text("Your tricks counts your captured tricks in \(saved.soloHands) available saved solo hands. Older match totals contain no replay details. Practice is kept separate.")
+                        .font(.footnote).opacity(0.7).fixedSize(horizontal: false, vertical: true)
+                }
+                if !isSavedLoading, let savedError {
+                    Text(savedError).font(.body).foregroundStyle(Theme.Paper.green)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             .padding(20)

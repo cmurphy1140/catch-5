@@ -200,11 +200,33 @@ flowchart TD
     S --> P["play the best score;<br/>ties → least control, lowest rank"]
 ```
 
-The Hint button runs exactly this from your seat and shows the branch it took in words, ringing the suggested card. Tapping a card on the table or in the last trick rebuilds the view that seat had before playing it and shows the same explanation for that play. `stake` is the card's own point value if the other side captures it (a five is 5, a certain Low is 1, a ten is 0.6). `control` is what a trump is worth for later tricks, highest for an unbeatable one and zero on the last trick. `p` is 1 for an unbeatable card, otherwise 0.8 or 0.6 depending on how many seats still play, and when partner is winning it is the chance partner's card holds.
+Why this move? runs the standard strategy from the current revealed human's `PlayerView` and explains its suggestion.
+It neither plays the move nor reads another hand. Advice expires when the source model, revision, viewer, curtain or
+external cover changes. Historical explanations during unfinished play are limited to the revealed player's own
+plays; opponent comparisons become available after completion. `stake` is the card's own point value if the other side
+captures it (a five is 5, a certain Low is 1, a ten is 0.6). `control` is what a trump is worth for later tricks, highest
+for an unbeatable one and zero on the last trick. `p` is 1 for an unbeatable card, otherwise 0.8 or 0.6 depending on how
+many seats still play, and when partner is winning it is the chance partner's card holds.
 
 ## After a hand, and after a match
 
 "Review hand" rebuilds every play of the finished hand next to what the standard strategy would have done (the same reconstruction as tap-to-explain), with the plays that differ marked by a branch icon. Tapping the score bar lists every hand so far. When a team reaches 25, a match-over card shows the final score and the human's record, and one `MatchRecord` is appended to `history.json`; the chart button shows totals across all recorded matches.
+
+The completed-hand replay is chronological rather than a strategy comparison. `HandReplay` walks the accepted action
+log once, emits deal/bid/trump/discard/refill/play/trick/settlement events and preserves the original score before and
+after each event. The fourth card is visible before the trick is awarded; the final trick award precedes the score
+change. All four historical hands may be revealed after completion. A selected older hand never includes a later deal.
+Contextual rule links use the same canonical paragraphs as the searchable rules book, with labeled checked examples.
+
+New real completions are saved in a per-player local archive. Existing aggregate match records keep their existing
+meaning and cannot supply missing old deals. Recovered hands say when they were saved and that current names were used.
+The archive hides every saved branch of a deal while that deal is active. Unreadable files remain intact and do not
+hide other readable hands. Retry retains pending snapshots, including across New game; player reset refuses to change
+scope while an old player's completion remains unsaved. Saved-hand and solo-trick statistics describe this archive only.
+
+Practice owns another `GameModel` with no real persistence URLs or records. Each of its three computers can use Easy or
+Standard. It can deal afresh, use a curated hand or restart a completed replay's exact deal with a fresh score. New deal
+and Leave practice discard only this in-memory game; the root's family match, settings and history remain intact.
 
 ## Undo
 

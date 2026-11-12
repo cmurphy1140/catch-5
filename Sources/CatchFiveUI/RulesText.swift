@@ -44,7 +44,7 @@ public enum RulesText {
         "Scores for both partnerships sit at the top, with the trump suit and the current bid between them.",
         "During the auction each seat's tile shows its bid or pass. After trump is named, the bidder's tile says so and the others show cards left.",
         "Cards you cannot legally play are dimmed. The last hand stays on the table, with the winning card ringed, until the next lead.",
-        "Tap Hint on your turn to see what the computer strategy would do and why. Tap any played card to see why that seat played it.",
+        "Choose Why this move? on your turn for a standard-strategy suggestion using only your hand and public play. After a hand ends, Replay hand shows every bid, discard, trick and score change; all four completed hands can be revealed.",
         "The gear opens settings: difficulty, play speed, seat names and haptics.",
     ]
 

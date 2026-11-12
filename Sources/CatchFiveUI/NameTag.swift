@@ -11,6 +11,8 @@ struct NameTag: View {
     var trump: Suit? = nil
     /// The name lies on the dark field, so it is inlaid in maple instead of cut dark into the oak (D113).
     var inlaid = false
+    /// Whose side the seat is on, said small after the name: "US" or "THEM" (D158).
+    var side: String? = nil
 
     /// The rename button's height: a full thumb (D93).
     nonisolated static let hitHeight = Theme.Table.statusButtonHitSize
@@ -22,11 +24,15 @@ struct NameTag: View {
     }
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(alignment: .firstTextBaseline, spacing: 5) {
             Text(name).font(.system(size: nameSize, weight: .heavy, design: .serif))
                 .modifier(NameInk(inlaid: inlaid))
                 // One line, shrinking to fit: a name broken in two ("Dian", "e") makes its seat taller and reads as two words.
                 .lineLimit(1).minimumScaleFactor(0.55)
+            if let side {
+                Text("(\(side))").font(.system(size: nameSize * 0.42, weight: .bold, design: .serif))
+                    .modifier(NameInk(inlaid: inlaid)).lineLimit(1).fixedSize()
+            }
             if let trump {
                 if inlaid {
                     Text(trump.glyph).font(.system(size: Theme.Table.carvedNameSize + 4)).foregroundStyle(TrumpInlay.wood(for: trump))
@@ -40,7 +46,10 @@ struct NameTag: View {
     }
 
     /// "Diane, hearts are trump" for the bidder once trump is named; the name alone otherwise.
-    var spoken: String { trump.map { "\(name), \($0.rawValue) are trump" } ?? name }
+    var spoken: String {
+        let who = side.map { "\(name), \($0 == "US" ? "your side" : "the other side")" } ?? name
+        return trump.map { "\(who), \($0.rawValue) are trump" } ?? who
+    }
 }
 
 extension NameTag {

@@ -37,8 +37,12 @@ struct TableSurface: View {
     var onDeck: (CGPoint) -> Void = { _ in }
     /// A seat's name tag was tapped: rename that seat (D93).
     var onRename: (Int) -> Void = { _ in }
+    /// The room table says where its far edge is, down the screen: where the seated players' figures end (D158).
+    var onTableEdge: (Double) -> Void = { _ in }
     /// A match-win celebration is playing; the hand-end card waits until it has finished (D69).
     var holdsResult = false
+    var onReplay: (() -> Void)?
+    var onAdvice: (() -> Void)?
     /// VoiceOver focus lands on the status line when a cover lifts or the turn changes.
     let statusFocus: AccessibilityFocusState<Bool>.Binding
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -127,6 +131,8 @@ struct TableSurface: View {
                     if arrangement == .rail {
                         railRow(available: geometry.size.width)
                             .onGeometryChange(for: Double.self) { $0.frame(in: .named(Self.column)).maxY } action: { fieldEdges.top = $0 }
+                            // The figures end a name's height above the row's foot; that line is the table's far edge (D158).
+                            .onGeometryChange(for: Double.self) { $0.frame(in: .global).maxY } action: { onTableEdge($0 - NameTag.hitHeight - 4) }
                         // The contract lies on the field's corner, since the rail has no room beside the partner.
                         Color.clear.frame(height: 0).overlay(alignment: .topLeading) {
                             if let contract = ContractPlaque.contract(in: model) {
@@ -259,7 +265,9 @@ struct TableSurface: View {
                             // The auction's controls come up in `auctionPanel`, over the table, so they never need room here.
                             EmptyView()
                         }
-                    } }
+                    }
+                    if !showsAuctionPanel { adviceButton }
+                    }
                     .onGeometryChange(for: Double.self) { $0.size.height } action: { lowerHeight = $0 }
                     .onGeometryChange(for: Double.self) { $0.frame(in: .named(Self.column)).minY } action: { lowerTop = $0 }
                     .opacity(dim)
@@ -267,7 +275,8 @@ struct TableSurface: View {
                 .coordinateSpace(.named(Self.column))
                 .background(alignment: .topLeading) {
                     if let rect = drawnEdges.rect {
-                        TableField(rect: rect, trump: hand.trump, lamp: lampPlace, cloth: reworked, colours: model.settings.tableColours).opacity(dim)
+                        TableField(rect: rect, trump: hand.trump, lamp: lampPlace, cloth: reworked, colours: model.settings.tableColours,
+                                   bare: arrangement == .rail).opacity(dim)
                     }
                 }
                 .padding(.top, Theme.Table.seatInset)
@@ -369,13 +378,15 @@ struct TableSurface: View {
     private func railRow(available: Double) -> some View {
         HStack(alignment: .top, spacing: 0) {
             ForEach([1, 2, 3], id: \.self) { place in
-                SeatView(model: model, seat: model.seat(at: place), width: available / 3, puckOnRim: true, onDeck: onDeck, onRename: onRename,
+                SeatView(model: model, seat: model.seat(at: place), width: available / 3, puckOnRim: true, onField: true, onDeck: onDeck, onRename: onRename,
                          onAnchor: { onAnchor(place, $0) }, bump: bumps[place, default: 0])
                     .accessibilitySortPriority(place == 1 ? 30 : place == 2 ? 20 : 10)
-                    .overlay(alignment: .bottom) {
+                    // Each call is a bubble by the speaker's head (D158), clear of the bid numbers on the felt below.
+                    .overlay(alignment: place == 3 ? .topLeading : .topTrailing) {
                         if hand.phase == .bidding {
-                            bidBox(at: place, from: CGSize(width: 0, height: -Theme.Table.bidBoxHeight))
-                                .offset(y: Theme.Table.bidBoxHeight + 4)
+                            bidBox(at: place, from: CGSize(width: 0, height: Theme.Table.bidBoxHeight))
+                                // The right-hand seat's bubble sits lower and further in, clear of the Rules book.
+                                .offset(x: place == 3 ? -24 : -6, y: place == 3 ? 18 : -Theme.Table.bidBoxHeight * 0.5)
                         }
                     }
             }
@@ -444,7 +455,7 @@ struct TableSurface: View {
                         let size = width * Self.peekShare
                         Group {
                             // The player's own figure (D148) when the build has it, else the drawn face.
-                            if let art = SeatArt.image(seat: play.seat) {
+                            if let art = SeatArt.image(seat: play.seat, opponents: model.settings.opponents) {
                                 art.resizable().scaledToFit().frame(width: size * 1.3, height: size)
                             } else {
                                 PortraitView(portrait: Cast.opponent(at: play.seat)?.portrait ?? model.settings.playerPortrait, size: size, cutOut: true)
@@ -582,6 +593,15 @@ struct TableSurface: View {
         }
     }
 
+    @ViewBuilder private var adviceButton: some View {
+        if let onAdvice, model.isHumanTurn, hand.phase != .finished, model.curtainSeat == nil {
+            Button("Why this move?", systemImage: "lightbulb", action: onAdvice)
+                .font(.subheadline.weight(.medium)).buttonStyle(.plain)
+                .frame(minHeight: 44).contentShape(Rectangle())
+                .accessibilityHint("Explains a standard-strategy suggestion without playing it")
+        }
+    }
+
     /// A tertiary control: a 28pt circle inside a 44pt hit area.
     /// A bare glyph with a soft shadow for contrast, no plate (spec R19); the hit area stays 48 pt.
     private func smallButton(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {
@@ -601,8 +621,14 @@ struct TableSurface: View {
             // A scrap off the score pad with the pencil across it, not a pill (D150).
             TurnSlip(prompt: prompt, hint: selected == nil ? "Tap a card" : "Now tap your spot")
         } else {
+            if onFelt, inAuction, let prompt = promptWords {
+                // Written large on the felt in ivory (D158).
+                Text(prompt).font(.system(size: 34, weight: .heavy, design: .serif)).foregroundStyle(.ivory)
+                    .shadow(color: .black.opacity(0.5), radius: 2, y: 2).lineLimit(1).minimumScaleFactor(0.7)
+            } else {
             statusText.font(model.isHumanTurn ? .title2.weight(.bold) : .title3.weight(.medium))
                 .multilineTextAlignment(.center).lineLimit(1).minimumScaleFactor(0.7)
+            }
         }
     }
 
@@ -732,6 +758,9 @@ struct TableSurface: View {
         nineAndOut ? [.numbers, .passWithNineAndOut] : [.numbers, .pass]
     }
 
+    /// The auction's controls lie on the cloth itself, with no panel under them (D158).
+    private var onFelt: Bool { arrangement == .rail }
+
     /// Your turn to bid or to name trump, and the hand's result is not up.
     private var showsAuctionPanel: Bool { model.isHumanTurn && inAuction && !showsResult }
 
@@ -742,16 +771,19 @@ struct TableSurface: View {
         let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
         return VStack(spacing: Theme.Table.auctionButtonSpacing) {
             statusLine.accessibilitySortPriority(4)
+            adviceButton
             if hand.phase == .bidding {
-                Text(Self.callsSoFar(model)).font(.footnote.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.7).opacity(0.85)
+                // On the one table the seats' bubbles are in view above, so the calls are not repeated in words (D158).
+                if !onFelt { Text(Self.callsSoFar(model)).font(.footnote.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.7).opacity(0.85) }
                 bidding.allowsHitTesting(handLanded)
             } else {
                 trumpChoice
             }
         }
-        .padding(8)
-        .background(shape.fill(Theme.Wood.header.opacity(0.95)).shadow(color: .black.opacity(0.5), radius: 10, y: 4))
-        .overlay(shape.stroke(.ivory.opacity(0.18), lineWidth: 1))
+        .padding(.horizontal, onFelt ? 26 : 8).padding(.top, 8).padding(.bottom, onFelt ? 24 : 8)
+        // The numbers lie straight on the felt (D158); the older tables keep the dark panel that hid their side seats.
+        .background { if !onFelt { shape.fill(Theme.Wood.header.opacity(0.95)).shadow(color: .black.opacity(0.5), radius: 10, y: 4) } }
+        .overlay { if !onFelt { shape.stroke(.ivory.opacity(0.18), lineWidth: 1) } }
         .accessibilitySortPriority(35)
     }
 
@@ -805,17 +837,26 @@ struct TableSurface: View {
     }
 
     private var passButton: some View {
-        actionButton("Pass", action: .bid(nil), fill: .ivory,
-                     font: .system(.title3, design: .serif).weight(.bold), labelColor: Theme.Paper.green, height: Theme.Table.auctionButtonCompactHeight)
+        actionButton("Pass", action: .bid(nil), fill: onFelt ? Theme.Paper.green : .ivory,
+                     font: .system(.title3, design: .serif).weight(.bold), labelColor: onFelt ? .ivory : Theme.Paper.green, height: Theme.Table.auctionButtonCompactHeight)
+            .overlay { if onFelt { RoundedRectangle(cornerRadius: Theme.Table.auctionButtonRadius, style: .continuous).stroke(.ivory.opacity(0.85), lineWidth: 1.5).allowsHitTesting(false) } }
     }
 
     /// Shared controls keep bid order, validation and the lowest-bid outline identical in both layouts.
     private func bidChoices(_ row: [BidPill], lowest: Int?, height: Double = Theme.Table.auctionButtonHeight) -> some View {
         ForEach(row, id: \.bid) { pill in
             // Green numerals on ivory tiles; the lowest bid you may make is the tile turned over, ivory on green.
-            actionButton(String(pill.bid), action: .bid(pill.bid), fill: pill.bid == lowest ? Theme.Paper.green : .ivory,
+            let turned = pill.bid == lowest && !onFelt
+            actionButton(String(pill.bid), action: .bid(pill.bid), fill: turned ? Theme.Paper.green : .ivory,
                          font: .system(.title, design: .serif).weight(.bold),
-                         labelColor: pill.bid == lowest ? .ivory : Theme.Paper.green, height: height)
+                         labelColor: turned ? .ivory : Theme.Paper.green, height: height)
+                // On the felt the lowest bid you may make wears a gold ring (D158).
+                .overlay {
+                    if onFelt, pill.bid == lowest {
+                        RoundedRectangle(cornerRadius: Theme.Table.auctionButtonRadius, style: .continuous).stroke(Color.gold, lineWidth: 3)
+                            .shadow(color: .gold.opacity(0.6), radius: 4).allowsHitTesting(false)
+                    }
+                }
                 .frame(minWidth: 44)
         }
     }
@@ -880,7 +921,7 @@ struct TableSurface: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 8) {
                     if let winner = model.match.winner { matchOver(winner) }
-                    HandSummaryView(match: model.match, names: model.seatNames, outcome: model.lastHandOutcome, review: model.handReview(), difficulty: model.settings.difficulty, describe: model.describe, coaching: coaching)
+                    HandSummaryView(match: model.match, names: model.seatNames, outcome: model.lastHandOutcome, review: model.handReview(), difficulty: model.settings.difficulty, describe: model.describe, coaching: coaching, onReplay: onReplay)
                     if let line = model.handEndLine { handEndWords(line) }
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)
@@ -898,7 +939,8 @@ struct TableSurface: View {
     /// One seat's line about the hand, under its portrait and name (N36).
     private func handEndWords(_ line: HandEndLine) -> some View {
         HStack(spacing: 10) {
-            PortraitView(portrait: Cast.opponent(at: line.seat)?.portrait ?? model.settings.playerPortrait, size: 40)
+            SeatFace(portrait: Cast.opponent(at: line.seat)?.portrait ?? model.settings.playerPortrait,
+                     figure: SeatArt.image(seat: line.seat, opponents: model.settings.opponents), size: 40)
             VStack(alignment: .leading, spacing: 1) {
                 Text(model.seatNames[line.seat]).font(.caption.weight(.semibold)).foregroundStyle(Theme.Wood.dark)
                 Text("\u{201C}\(line.text)\u{201D}").font(.system(.title3, design: .serif).italic()).foregroundStyle(Theme.Wood.header)
@@ -971,6 +1013,8 @@ struct SeatView: View {
     var onDeck: (CGPoint) -> Void = { _ in }
     /// The name tag was tapped: rename this seat (D93).
     var onRename: (Int) -> Void = { _ in }
+    /// The room table says where its far edge is, down the screen: where the seated players' figures end (D158).
+    var onTableEdge: (Double) -> Void = { _ in }
     /// Where the face sits in the table's space, so a card can fly from it and a trick can fly to it (D97).
     var onAnchor: (CGPoint) -> Void = { _ in }
     /// Goes up each time a trick this seat took arrives at its face, which nods once (D97).
@@ -990,7 +1034,7 @@ struct SeatView: View {
     /// The player has marked this seat as out of trump (D65).
     private var markedOut: Bool { hand.trump != nil && model.outOfTrump.contains(seat) }
 
-    private var art: Image? { SeatArt.image(seat: seat) }
+    private var art: Image? { SeatArt.image(seat: seat, opponents: model.settings.opponents) }
 
     /// The seat's figure. With a cut-out picture (D148) it stands in the disc's place with no disc, rim or ring: the
     /// seat to act glows gold round its own outline. Without one it is the drawn portrait, whose rim says the side.
@@ -1081,7 +1125,8 @@ struct SeatView: View {
             // The name carved into the wood under the face, trump carved beside it for the bidder (D94); a tap renames
             // the seat (D93). Its thumb-tall hit area reaches a little into the face above.
             // A side seat on the field has no width for the suit beside its name; the field's own inlay shows trump there.
-            NameTag(name: model.seatNames[seat], trump: puckOnRim ? nil : Self.carvedTrump(seat: seat, bidder: hand.auction.winner, trump: hand.trump), inlaid: onField)
+            NameTag(name: model.seatNames[seat], trump: puckOnRim ? nil : Self.carvedTrump(seat: seat, bidder: hand.auction.winner, trump: hand.trump), inlaid: onField,
+                    side: seat % 2 == model.ourTeam ? "US" : "THEM")
                 .renames { onRename(seat) }
                 .padding(.top, -8)
             // The partner's tile ends at the name, so the row stays short.

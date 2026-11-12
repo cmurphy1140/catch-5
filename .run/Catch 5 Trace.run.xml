@@ -1,0 +1,19 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Catch 5 Trace" type="ShConfigurationType">
+    <option name="SCRIPT_TEXT" value="stamp=&quot;${TMPDIR:-/tmp}/catch5-trace-start&quot;; touch &quot;${stamp}&quot; &amp;&amp; swift test --filter systemAtWork &amp;&amp; ls -la work/trace &amp;&amp; if [ -z &quot;$(find work/trace -maxdepth 1 -name one-tap.md -newer &quot;${stamp}&quot;)&quot; ]; then echo &quot;No new trail: the test passed without writing work/trace/one-tap.md, so nothing was copied&quot;; elif [ -z &quot;${CATCH5_VAULT}&quot; ]; then echo &quot;CATCH5_VAULT is not set: the trail stays in work/trace&quot;; elif [ -d &quot;${CATCH5_VAULT}/Projects/catch-5/learning/answers&quot; ]; then cp work/trace/one-tap.md work/trace/one-tap-before.png work/trace/one-tap-after.png &quot;${CATCH5_VAULT}/Projects/catch-5/learning/answers/&quot; &amp;&amp; echo &quot;Copied to the vault: learning/answers/one-tap.md and two frames&quot;; else echo &quot;CATCH5_VAULT points at ${CATCH5_VAULT}, which has no Projects/catch-5/learning/answers folder: nothing copied&quot;; exit 1; fi" />
+    <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
+    <option name="SCRIPT_PATH" value="" />
+    <option name="SCRIPT_OPTIONS" value="" />
+    <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="true" />
+    <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <option name="INDEPENDENT_INTERPRETER_PATH" value="true" />
+    <option name="INTERPRETER_PATH" value="/bin/zsh" />
+    <option name="INTERPRETER_OPTIONS" value="" />
+    <option name="EXECUTE_IN_TERMINAL" value="false" />
+    <option name="EXECUTE_SCRIPT_FILE" value="false" />
+    <envs>
+      <env name="DEVELOPER_DIR" value="/Applications/Xcode.app/Contents/Developer" />
+    </envs>
+    <method v="2" />
+  </configuration>
+</component>

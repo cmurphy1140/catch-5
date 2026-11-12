@@ -11,6 +11,7 @@ struct NineAndOutConfirm: View {
 
     let name: String
     let portrait: Portrait
+    var figure: Image?
     let onSure: () -> Void
     let onCancel: () -> Void
 
@@ -19,7 +20,7 @@ struct NineAndOutConfirm: View {
             Color.black.opacity(0.55).ignoresSafeArea()
                 .onTapGesture(perform: onCancel)
             VStack(spacing: 16) {
-                PortraitView(portrait: portrait, size: 80)
+                SeatFace(portrait: portrait, figure: figure, size: 80)
                 Text(name)
                     .font(.system(.title2, design: .serif).weight(.bold)).lineLimit(1).minimumScaleFactor(0.6)
                 Text(Self.line)

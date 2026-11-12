@@ -77,14 +77,13 @@ import Testing
     model.send(.play(other ?? model.humanCards[0]))
     for _ in 0..<3 { model.stepComputer() }
     let trick = try #require(model.match.hand.completedTricks.last)
-    let west = try #require(model.explanation(for: trick.plays[1], inLastTrick: true))
-    #expect(west.hasPrefix("\(Settings.defaultSeatNames[1]) played the \(trick.plays[1].card.name)"))
+    #expect(model.explanation(for: trick.plays[1], inLastTrick: true) == nil)
     let you = try #require(model.explanation(for: trick.plays[0], inLastTrick: true))
     #expect(you.hasPrefix("You played the"))
     if other != nil { #expect(you.contains("strategy would have")) }
-    model.explain(trick.plays[1], inLastTrick: true)
-    #expect(model.explanation == west)
-    model.explain(trick.plays[1], inLastTrick: true)
+    model.explain(trick.plays[0], inLastTrick: true)
+    #expect(model.explanation == you)
+    model.explain(trick.plays[0], inLastTrick: true)
     #expect(model.explanation == nil)   // second tap dismisses
 }
 
@@ -114,8 +113,8 @@ import Testing
 }
 
 @Test func familySeatNamesAreTheDefaults() {
-    #expect(Settings.defaultSeatNames == ["Cheryl", "JC", "Connor", "Diane"])
-    #expect(Settings().seatNames == ["Cheryl", "JC", "Connor", "Diane"])
+    #expect(Settings.defaultSeatNames == ["Cheryl", "Marcus", "Meg", "Monica"])
+    #expect(Settings().seatNames == ["Cheryl", "Marcus", "Meg", "Monica"])
 }
 
 @Test func settingsRoundTripThroughDiskAndTolerateMissingKeys() throws {
@@ -191,7 +190,12 @@ import Testing
     model.stepComputer()
     let played = try #require(model.match.hand.currentTrick.last)
     #expect(.play(played.card) == EasyPlayer.decide(try PlayerView(match: before, seat: 1)))
-    let text = try #require(model.explanation(for: played, inLastTrick: false))
+    #expect(model.explanation(for: played, inLastTrick: false) == nil)
+    while model.match.hand.phase == .playing {
+        if model.isHumanTurn { model.send(.play(try #require(model.match.hand.legalMoves(seat: 0).first))) }
+        else { model.stepComputer() }
+    }
+    let text = try #require(model.explanation(for: played, inLastTrick: false, trickIndex: 0))
     #expect(text.hasPrefix("\(Settings.defaultSeatNames[1]) (easy) played the \(played.card.name)"))
     #expect(text.contains("Standard"))
 }
@@ -488,7 +492,7 @@ import Testing
     let settings = try SettingsStore.read(from: url)
     #expect(settings.playerName == nil && !settings.hasSignedIn)
     #expect(settings.playerPortrait == Cast.defaultPlayerPortrait)
-    #expect(settings.seatNames == ["Cheryl", "JC", "Connor", "Diane"])
+    #expect(settings.seatNames == ["Cheryl", "Marcus", "Meg", "Monica"])
 }
 
 @Test func oldSettingsFileMigratesDefaultSeatNamesToCast() throws {
@@ -496,7 +500,7 @@ import Testing
     defer { try? FileManager.default.removeItem(at: url) }
     try Data("{\"seatNames\":[\"You\",\"West\",\"Mum\",\"East\"]}".utf8).write(to: url)
     let settings = try SettingsStore.read(from: url)
-    #expect(settings.seatNames == ["You", "JC", "Mum", "Diane"])
+    #expect(settings.seatNames == ["You", "Marcus", "Mum", "Monica"])
 }
 
 @MainActor @Test func matchInProgressIsFalseForFreshAndFinishedMatches() throws {
@@ -524,7 +528,7 @@ import Testing
 
 @MainActor @Test func seatSummaryIncludesSeatWord() throws {
     let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3))
-    #expect(model.seatSummary(for: 1).hasPrefix("JC, West, "))
+    #expect(model.seatSummary(for: 1).hasPrefix("Marcus, West, "))
     #expect(model.seatSummary(for: 3).hasSuffix("dealer"))
     #expect(model.seatSummary(for: 0).hasPrefix("Cheryl, "))
     #expect(model.seatSummary(for: 0).hasSuffix("to act"))
@@ -740,9 +744,9 @@ import Testing
     model.send(.bid(nil))
     let count = model.match.actionCount
     // Hazel is bidding now: anything you try waits for her, and nothing is recorded.
-    #expect(model.validationMessage(for: .bid(3)) == "Wait for JC.")
+    #expect(model.validationMessage(for: .bid(3)) == "Wait for Marcus.")
     model.refuse(.bid(3))
-    #expect(model.refusal == "Wait for JC.")
+    #expect(model.refusal == "Wait for Marcus.")
     #expect(model.match.actionCount == count)
     // Play until it is your turn to follow a computer's lead.
     var followed = false
@@ -961,7 +965,7 @@ import Testing
     try Data(#"{"playerName":"Connor","seatNames":["Connor","West","Otto","Rue"]}"#.utf8).write(to: url)
     #expect(try SettingsStore.read(from: url).seatNames == ["Connor", "West", "Otto", "Rue"])
     try Data(#"{"seatNames":["You","West","Partner","East"]}"#.utf8).write(to: url)
-    #expect(try SettingsStore.read(from: url).seatNames == ["You", "JC", "Connor", "Diane"])
+    #expect(try SettingsStore.read(from: url).seatNames == ["You", "Marcus", "Meg", "Monica"])
     // One place writes the player's name, with one trim rule.
     var settings = Settings()
     settings.setPlayerName("  Mum ")
@@ -1192,7 +1196,7 @@ import Testing
     #expect(matched.contains("match"))
     dealer.reset()
     guard case let .accepted(passed) = dealer.attempt(.bid(nil)) else { Issue.record("passing is legal"); return }
-    #expect(passed.contains("JC"))
+    #expect(passed.contains("Marcus"))
 
     // 9 and out below zero: a failed 9 last hand left you at -9.
     var nine = RuleTrial.make(.nineAndOutBelowZero)
@@ -1334,18 +1338,18 @@ import Testing
 
 @MainActor @Test func signingInAsAFamilyNameKeepsTheSeats() throws {
     let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3))
-    model.signIn(name: "Connor", portrait: Cast.playerChoices[0], difficulty: .standard)
-    #expect(model.settings.playerName == "Connor")
-    #expect(model.seatNames == ["Cheryl", "JC", "Connor", "Diane"])
+    model.signIn(name: "Meg", portrait: Cast.playerChoices[0], difficulty: .standard)
+    #expect(model.settings.playerName == "Meg")
+    #expect(model.seatNames == ["Cheryl", "Marcus", "Meg", "Monica"])
     // A name nobody else has becomes the phone holder's seat in solo play; pass and play keeps the family.
     var settings = Settings()
     settings.setPlayerName("Mum")
-    #expect(settings.seatNames == ["Mum", "JC", "Connor", "Diane"])
+    #expect(settings.seatNames == ["Mum", "Marcus", "Meg", "Monica"])
     let passed = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3), mode: .passAndPlay, settings: settings)
     #expect(passed.seatNames == Settings.defaultSeatNames)
     // Typing on into a family name puts seat 0 back rather than leaving the half-typed name there.
-    settings.setPlayerName("Conno")
-    settings.setPlayerName("Connor")
+    settings.setPlayerName("Me")
+    settings.setPlayerName("Meg")
     #expect(settings.seatNames == Settings.defaultSeatNames)
 }
 
@@ -1353,9 +1357,9 @@ import Testing
     let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: url) }
     try Data(#"{"playerName":"Connor","seatNames":["Connor","Hazel","Otto","Rue"]}"#.utf8).write(to: url)
-    #expect(try SettingsStore.read(from: url).seatNames == ["Cheryl", "JC", "Connor", "Diane"])
+    #expect(try SettingsStore.read(from: url).seatNames == ["Connor", "Marcus", "Meg", "Monica"])
     try Data(#"{"playerName":"Mum","seatNames":["Mum","Rue","Hazel","Otto"]}"#.utf8).write(to: url)
-    #expect(try SettingsStore.read(from: url).seatNames == ["Mum", "JC", "Connor", "Diane"])
+    #expect(try SettingsStore.read(from: url).seatNames == ["Mum", "Marcus", "Meg", "Monica"])
     // Names the player typed stay.
     try Data(#"{"playerName":"Mum","seatNames":["Mum","Hazel","Dad","Rue"]}"#.utf8).write(to: url)
     #expect(try SettingsStore.read(from: url).seatNames == ["Mum", "Hazel", "Dad", "Rue"])
@@ -1410,7 +1414,7 @@ import Testing
     // Solo speaks to you; pass and play has no single "you", so the score bar leads with the phone holder's
     // team, and the menu line and the match's winner are named.
     let solo = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3))
-    #expect(solo.ourTeam == 0 && solo.teamNames(1) == "JC + Diane")
+    #expect(solo.ourTeam == 0 && solo.teamNames(1) == "Marcus + Monica")
     let model = GameModel(match: try Match(deck: GameModel.deck(), dealer: 3), mode: .passAndPlay)
     model.ready()
     model.send(.bid(nil))
@@ -1418,11 +1422,11 @@ import Testing
     model.ready()
     #expect(model.ourTeam == 1)
     let context = try #require(model.resumeContext)
-    #expect(!context.contains("Your team") && context.contains("Cheryl + Connor 0") && context.contains("JC + Diane 0"))
+    #expect(!context.contains("Your team") && context.contains("Cheryl + Meg 0") && context.contains("Marcus + Monica 0"))
     solo.send(.bid(nil))
     #expect(try #require(solo.resumeContext).contains("Your team 0, their team 0"))
-    #expect(model.winnerHeadline(0) == "Cheryl + Connor win the match" && model.winnerHeadline(1) == "JC + Diane win the match")
-    #expect(solo.winnerHeadline(0) == "Your team wins the match" && solo.winnerHeadline(1) == "JC + Diane win the match")
+    #expect(model.winnerHeadline(0) == "Cheryl + Meg win the match" && model.winnerHeadline(1) == "Marcus + Monica win the match")
+    #expect(solo.winnerHeadline(0) == "Your team wins the match" && solo.winnerHeadline(1) == "Marcus + Monica win the match")
     // The draw for dealer names seat 0 too.
     let draw = DealerDraw(cards: [Card(.spades, .ace), Card(.clubs, .two), Card(.clubs, .three), Card(.clubs, .four)], dealer: 0)
     #expect(draw.sentence(names: Settings.defaultSeatNames) == "You draw the ace of spades and deal.")
@@ -1536,11 +1540,11 @@ private func matchWithTeamOneDownTen() throws -> Match {
     let match = try matchWithTeamOneDownTen()
     let down = match.scores[0] - match.scores[1]
     let model = GameModel(match: match)
-    #expect(model.boldNote(for: 1) == "JC and Diane are down \(down), bidding bolder.")
+    #expect(model.boldNote(for: 1) == "Marcus and Monica are down \(down), bidding bolder.")
     #expect(model.boldNote(for: 0) == nil)   // the leading team, and a person
     #expect(model.boldNote(for: 2) == nil)
     model.stepComputer()
-    #expect(model.boldNote == "JC and Diane are down \(down), bidding bolder.")
+    #expect(model.boldNote == "Marcus and Monica are down \(down), bidding bolder.")
     model.clearBoldNote()
     model.stepComputer()   // seat 2, the leading side: nothing to say
     #expect(model.boldNote == nil)
@@ -1560,9 +1564,9 @@ private func matchWithTeamOneDownTen() throws -> Match {
     let flipped = try PlayerView(match: match, seat: 0)
     #expect(!ComputerPlayer.isTrailingBadly(flipped))
     #expect(GameModel.boldNoteText(team: [0, 2], deficit: 11, names: Settings.defaultSeatNames, solo: true)
-                == "You and Connor are down 11; Connor is bidding bolder.")
+                == "You and Meg are down 11; Meg is bidding bolder.")
     #expect(GameModel.boldNoteText(team: [1, 3], deficit: 12, names: Settings.defaultSeatNames, solo: true)
-                == "JC and Diane are down 12, bidding bolder.")
+                == "Marcus and Monica are down 12, bidding bolder.")
 }
 
 @Test func reviewBarSaysItIsTheLastTrick() {
@@ -1583,6 +1587,6 @@ private func matchWithTeamOneDownTen() throws -> Match {
     #expect(Theme.Table.trumpLineSuitSize > Theme.Table.trumpWordSize)
     // The bid corner carries the bidder's own face (N52).
     let face = try #require(Cast.opponent(at: 1)?.portrait)
-    let contract = ContractPlaque.Contract(bid: 4, isNineAndOut: false, bidder: "JC", portrait: face)
+    let contract = ContractPlaque.Contract(bid: 4, isNineAndOut: false, bidder: "Marcus", portrait: face)
     #expect(contract.portrait == face)
 }

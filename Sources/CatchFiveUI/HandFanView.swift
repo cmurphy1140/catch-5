@@ -115,7 +115,7 @@ struct HandFanView: View {
                     Button(action: onSupport) {
                         Group {
                             // Your own figure as a cut-out (D148) when the build has one, else the drawn face.
-                            if let art = SeatArt.image(seat: seat) {
+                            if let art = SeatArt.image(seat: seat, opponents: model.settings.opponents) {
                                 art.resizable().scaledToFit().frame(width: Self.faceSize * 1.25, height: Self.faceSize)
                                     // Drawn half as big again without moving the row (D157): it grows up and away from the name.
                                     .scaleEffect(1.5, anchor: .bottomTrailing)
@@ -124,19 +124,13 @@ struct HandFanView: View {
                                              rim: SeatView.rim(seat: seat, ourTeam: model.ourTeam), rimWidth: Theme.Team.rimWidth)
                             }
                         }
-                            .overlay(alignment: .topTrailing) {
-                                Image(systemName: "questionmark.bubble.fill").font(.system(size: 20, weight: .bold))
-                                    .foregroundStyle(Theme.Paper.ink, .ivory)
-                                    .shadow(color: .black.opacity(0.45), radius: 1.5, y: 1)
-                                    .offset(x: 9, y: -7)
-                            }
                             .padding(.trailing, 6)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Support")
                     .accessibilityHint("Rules, scoring and advice; pauses play")
-                    NameTag(name: model.seatNames[seat], trump: SeatView.carvedTrump(seat: seat, bidder: hand.auction.winner, trump: hand.trump), inlaid: plate)
+                    NameTag(name: model.seatNames[seat], trump: SeatView.carvedTrump(seat: seat, bidder: hand.auction.winner, trump: hand.trump), inlaid: plate, side: "US")
                         .renames { onRename(seat) }
                         .onGeometryChange(for: CGPoint.self) { proxy in
                             let frame = proxy.frame(in: .named(TableLayout.space))
@@ -145,6 +139,8 @@ struct HandFanView: View {
                     }
                     // On the cloth tables the face and name share a dark nameplate, centred under the hand (D117).
                     .padding(.trailing, plate ? 22 : 0)
+                    // The name keeps its width; the help bubble beside it shortens first (D158).
+                    .layoutPriority(1)
                     .background {
                         if plate {
                             Capsule().fill(Theme.Wood.header.opacity(0.8))
@@ -152,6 +148,17 @@ struct HandFanView: View {
                                 .padding(.leading, Self.faceSize / 2).padding(.vertical, 5)
                         }
                     }
+                    // Help is a speech bubble beside your name (D158), not a badge on your face.
+                    Button(action: onSupport) {
+                        ViewThatFits(in: .horizontal) {
+                            HelpBubbleLabel(words: "ChatGPT help")
+                            HelpBubbleLabel(words: "Help")
+                            HelpBubbleLabel(words: "")
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("ChatGPT help")
+                    .accessibilityHint("Rules, scoring and advice; pauses play")
                 }
                 Spacer(minLength: 0)
                 if !cards.isEmpty, model.match.hand.auction.dealer == model.viewerSeat {
@@ -378,5 +385,27 @@ struct ShakeEffect: ViewModifier {
                 CubicKeyframe(0, duration: 0.05)
             }
         }
+    }
+}
+
+/// The help button's face (D158): three dots and a word or two in a green speech bubble whose tail points back at you.
+struct HelpBubbleLabel: View {
+    let words: String
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "ellipsis").font(.system(size: 15, weight: .heavy))
+            if !words.isEmpty { Text(words).font(.system(size: 17, weight: .bold, design: .serif)).lineLimit(1).fixedSize() }
+        }
+        .foregroundStyle(.ivory)
+        .padding(.leading, 20).padding(.trailing, 14)
+        .frame(height: 44)
+        .background {
+            SpeechBubble(tail: .leading).fill(Theme.Paper.green)
+                .overlay(SpeechBubble(tail: .leading).stroke(.ivory.opacity(0.35), lineWidth: 1))
+                .shadow(color: .black.opacity(0.4), radius: 3, y: 2)
+                .padding(.vertical, 3)
+        }
+        .contentShape(Rectangle())
     }
 }

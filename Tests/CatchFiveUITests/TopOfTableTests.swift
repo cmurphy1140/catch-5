@@ -18,7 +18,7 @@ import Testing
     var settings = Settings(playerName: "Connor")
     settings.seatNames[0] = "Connor"
     settings.renameSeat(2, to: "  Grandpa ")
-    #expect(settings.seatNames == ["Connor", "JC", "Grandpa", "Diane"])
+    #expect(settings.seatNames == ["Connor", "Marcus", "Grandpa", "Monica"])
     settings.renameSeat(2, to: "   ")
     #expect(settings.seatNames[2] == "Grandpa")
     settings.renameSeat(0, to: "Mom")
@@ -100,8 +100,8 @@ private func playHand(_ match: inout Match) throws {
             == [.init(total: first[team], struck: true), .init(total: match.scores[team], struck: false)])
     }
     #expect(Scorecard.handwriting == "Marker Felt")
-    #expect(Scorecard.label(us: false, mode: .passAndPlay, teamNames: "JC + Diane") == "JC + DIANE")
-    #expect(Scorecard.label(us: true, mode: .solo, teamNames: "Cheryl + Connor") == "US")
+    #expect(Scorecard.label(us: false, mode: .passAndPlay, teamNames: "Marcus + Monica") == "MARCUS + MONICA")
+    #expect(Scorecard.label(us: true, mode: .solo, teamNames: "Cheryl + Meg") == "US")
 }
 
 @MainActor @Test func everySeatWearsANameTagWithItsName() throws {
@@ -128,4 +128,20 @@ private func playHand(_ match: inout Match) throws {
     }
     // Much larger than the 24 pt deck it replaces.
     #expect(Theme.Table.dealerMarkDeckWidth >= 1.25 * 24)
+}
+
+@Test func theNewCastReplacesTheFamilyAndTheFamilyStaysAChoice() throws {
+    #expect(Settings().opponents == .friends && Settings().seatNames == ["Cheryl", "Marcus", "Meg", "Monica"])
+    // A save from before the choice existed, still seating the family as dealt, takes the new three.
+    let old = Data(#"{"playerName":"Emma","seatNames":["Emma","JC","Doug","Diane"]}"#.utf8)
+    #expect(try JSONDecoder().decode(Settings.self, from: old).seatNames == ["Emma", "Marcus", "Meg", "Monica"])
+    // A name typed by hand is a choice and stays.
+    let typed = Data(#"{"playerName":"Emma","seatNames":["Emma","JC","Grandpa","Diane"]}"#.utf8)
+    #expect(try JSONDecoder().decode(Settings.self, from: typed).seatNames == ["Emma", "JC", "Grandpa", "Diane"])
+    // Choosing the family in Settings seats them, keeps the player's seat, and survives a save.
+    var settings = try JSONDecoder().decode(Settings.self, from: old)
+    settings.seat(.family)
+    #expect(settings.seatNames == ["Emma", "JC", "Doug", "Diane"])
+    let again = try JSONDecoder().decode(Settings.self, from: JSONEncoder().encode(settings))
+    #expect(again.opponents == .family && again.seatNames == ["Emma", "JC", "Doug", "Diane"])
 }

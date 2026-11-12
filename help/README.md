@@ -1,6 +1,6 @@
 # Catch 5 support server
 
-`api/support.ts` is the optional native-app route. It is separate from the existing browser help chat. `support-core.mjs` validates requests and calls the OpenAI Responses API using server-side credentials. An earlier version of this route is deployed on the `catch-5-help` project and answered one live test question on 2026-11-10; the code in this folder is newer and not yet deployed.
+`api/support.ts` is the optional native-app route. It is separate from the existing browser help chat. `support-core.mjs` validates requests and calls the OpenAI Responses API using server-side credentials. No deployment or live API test has been performed.
 
 ## Local app behavior
 

@@ -313,8 +313,8 @@ private func playNext(_ match: inout Match) throws {
 @Test func theTableSpeaksOnlyToYouButVoiceOverHearsEverything() {
     // D98: the white lines announcing each hand and play are gone; the status line's VoiceOver words keep them.
     #expect(TableSurface.spokenStatus(prompt: "Your turn", actor: nil, notice: nil) == "Your turn")
-    #expect(TableSurface.spokenStatus(prompt: nil, actor: "Diane is bidding", notice: nil) == "Diane is bidding")
-    #expect(TableSurface.spokenStatus(prompt: nil, actor: nil, notice: "Discarded: You 3 · JC 4") == "Discarded: You 3 · JC 4")
+    #expect(TableSurface.spokenStatus(prompt: nil, actor: "Monica is bidding", notice: nil) == "Monica is bidding")
+    #expect(TableSurface.spokenStatus(prompt: nil, actor: nil, notice: "Discarded: You 3 · Marcus 4") == "Discarded: You 3 · Marcus 4")
     #expect(TableSurface.spokenStatus(prompt: "Your turn", actor: "ignored", notice: "Discarded: You none") == "Your turn. Discarded: You none")
 }
 

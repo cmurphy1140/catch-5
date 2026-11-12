@@ -25,10 +25,14 @@ struct MainMenuView: View {
     @AppStorage("guestNote.seen") private var noteSeen = false
     @Environment(\.openURL) private var openURL
     @State private var showPlay = false
+    @State private var showThings = false
     @State private var showNotebook = false
     @State private var showTutorial = false
     @State private var showStatistics = false
     @State private var showExplainer = false
+    @State private var learning: LearningPresentation?
+    @StateObject private var savedStatistics = SavedHandStatisticsModel()
+    @State private var resetError: String?
     @State private var support: SupportPresentation?
 
     /// One of a guest build's own suggestions under the Ask anything bar (D136).
@@ -44,6 +48,9 @@ struct MainMenuView: View {
         var caption: String?
         /// Other links kept on the same slip, each a plain line under the code (D140).
         var also: [Also]?
+        /// The picture this one lies under on the opening table (D159), and the line written beneath it.
+        var menu: String?
+        var title: String?
 
         struct Also: Decodable, Equatable {
             let label: String
@@ -91,6 +98,11 @@ struct MainMenuView: View {
         .buttonStyle(.plain)
     }
 
+    private func openStatistics() {
+        savedStatistics.prepareLoading()
+        showStatistics = true
+    }
+
     private func openPlay() { menuOpen = false; withAnimation(Theme.Motion.overlay) { showPlay = true } }
 
     /// Opens the helper from the opening page (D120). No game goes along: out here it is company, not a coach.
@@ -104,7 +116,30 @@ struct MainMenuView: View {
         support = presentation
     }
 
-    var body: some View {
+    /// The opening page: the table seen from above when the build carries its pictures (D159), the older page otherwise.
+    /// The guest's links that have a picture to lie under (D159).
+    private var guestThings: [HomeTable.Item] {
+        Self.guestPrompts.compactMap { prompt in
+            guard let art = prompt.menu else { return nil }
+            return HomeTable.Item(art: art, title: prompt.title ?? prompt.label ?? prompt.text,
+                                  hint: prompt.code == true ? "Shows a code to scan" : "Opens a web page") {
+                if prompt.code == true, prompt.url != nil { withAnimation(Theme.Motion.overlay) { shownCode = prompt } }
+                else if let url = prompt.url { openURL(url) }
+            }
+        }
+    }
+
+    @ViewBuilder private var page: some View {
+        if HomeTable.carried {
+            HomeTable(colours: model.settings.tableColours, guest: guestThings.isEmpty ? nil : GuestNote.current?.name,
+                      onGuest: { withAnimation(Theme.Motion.overlay) { showThings = true } },
+                      onPlay: { openPlay() }, onAsk: { openSupport() })
+        } else {
+            classicPage
+        }
+    }
+
+    private var classicPage: some View {
         ScrollView {
             VStack(spacing: 12) {
                 VStack(spacing: 6) {
@@ -257,6 +292,10 @@ struct MainMenuView: View {
             }
             .padding(24).frame(maxWidth: 480).frame(maxWidth: .infinity)
         }
+    }
+
+    var body: some View {
+        page
         // Settings have their own gear at the top left, out of the menu (D129).
         .overlay(alignment: .topLeading) {
             Button { showSettings = true } label: {
@@ -282,7 +321,7 @@ struct MainMenuView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Menu").accessibilityValue(menuOpen ? "Open" : "Closed")
                 if menuOpen {
-                    InlaidMenu(rows: [("Notebook", "book.closed", { showNotebook = true }), ("Statistics", "chart.bar", { showStatistics = true }),
+                    InlaidMenu(rows: [("Notebook", "book.closed", { showNotebook = true }), ("Statistics", "chart.bar", { openStatistics() }),
                                       ("How Catch 5 is built", "map", { showExplainer = true })]) { menuOpen = false }
                         .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .topTrailing)))
                 }
@@ -294,16 +333,36 @@ struct MainMenuView: View {
         .preferredColorScheme(.dark)
         .sheet(isPresented: $showSettings) {
             SettingsView(settings: $model.settings, onNewPlayer: {
-                showSettings = false
-                model.resetPlayer()
-                onNewPlayer()
+                if !LearningFlowModel.resetPlayer(model, onSuccess: {
+                    showSettings = false
+                    onNewPlayer()
+                }) { resetError = model.archiveError ?? "Your player and game have been kept. Try again." }
             })
+            .alert("Player kept", isPresented: Binding(get: { resetError != nil }, set: { if !$0 { resetError = nil } })) {
+                Button("OK") { resetError = nil }
+            } message: { Text(resetError ?? "") }
         }
         .sheet(isPresented: $showTutorial, onDismiss: { model.markRulesSeen() }) { TutorialView(model: tutorial) { showTutorial = false } }
         .sheet(item: $support) { SupportView(presentation: $0).id($0.id) }
+        .sheet(item: $learning) { presentation in
+            LearningFlowView(model: model, start: presentation.start) { learning = nil }.id(presentation.id)
+        }
         .sheet(isPresented: $showNotebook) { NotebookView() }
-        .sheet(isPresented: $showStatistics) { StatisticsView(stats: model.statistics, records: model.records) { showStatistics = false } }
+        .sheet(isPresented: $showStatistics) {
+            StatisticsView(stats: model.statistics, records: model.records, saved: savedStatistics.statistics,
+                           savedError: savedStatistics.error, isSavedLoading: savedStatistics.isLoading) { showStatistics = false }
+                .task(id: model.archiveReadContext) { await savedStatistics.load(model) }
+                .onDisappear { savedStatistics.cancelLoad() }
+        }
         .fullScreenCoverOrSheet(isPresented: $showExplainer) { ExplainerView { showExplainer = false } }
+        .overlay {
+            if showThings, let name = GuestNote.current?.name {
+                GuestPage(name: name, colours: model.settings.tableColours, items: guestThings,
+                            onNote: { withAnimation(Theme.Motion.overlay) { openNote = true } },
+                            onClose: { withAnimation(Theme.Motion.overlay) { showThings = false } })
+                    .transition(.move(edge: .trailing))
+            }
+        }
         .overlay {
             if let prompt = shownCode, let url = prompt.url {
                 GuestCodeCard(title: prompt.caption ?? prompt.label ?? prompt.text, url: url, also: prompt.also ?? [], open: { openURL($0) }) {
@@ -320,7 +379,10 @@ struct MainMenuView: View {
         .overlay {
             if showPlay {
                 PlayPage(buttons: Self.homeButtons(matchInProgress: model.matchInProgress), tutorial: tutorial,
-                         perform: { perform($0) }, onClose: { model.markRulesSeen(); withAnimation(Theme.Motion.overlay) { showPlay = false } })
+                         perform: { perform($0) }, onClose: { model.markRulesSeen(); withAnimation(Theme.Motion.overlay) { showPlay = false } },
+                         colours: model.settings.tableColours, onAsk: { openSupport() },
+                         onPractice: { learning = LearningPresentation(start: .practice) },
+                         onSavedHands: { learning = LearningPresentation(start: .archive) })
                     .transition(.move(edge: .trailing))
             }
         }
@@ -338,7 +400,7 @@ struct MainMenuView: View {
         .onAppear {
             if choosingMode { confirmNewMatch = true }
             switch ScreenshotStage.name {
-            case "stats": showStatistics = true
+            case "stats": openStatistics()
             case "settings": showSettings = true
             case "howto", "rules", "signoff": showTutorial = true
             default: break

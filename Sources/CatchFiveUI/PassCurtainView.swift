@@ -5,12 +5,13 @@ import SwiftUI
 struct PassCurtainView: View {
     let name: String
     let portrait: Portrait
+    var figure: Image?
     let onReady: () -> Void
 
     var body: some View {
         VStack(spacing: 20) {
             Spacer()
-            PortraitView(portrait: portrait, size: 96)
+            SeatFace(portrait: portrait, figure: figure, size: 96)
             VStack(spacing: 6) {
                 Text("PASS THE PHONE TO")
                     .font(.system(.caption, design: .monospaced).weight(.semibold)).tracking(2).opacity(0.82)

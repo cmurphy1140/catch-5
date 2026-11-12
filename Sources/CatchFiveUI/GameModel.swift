@@ -22,6 +22,8 @@ public final class GameModel: ObservableObject {
     /// A failed write of the game, settings or history. The move it followed was accepted and stands;
     /// `retrySave()` writes the same state again and never replays anything.
     @Published public var saveError: String?
+    /// Hand-history failures never make an accepted move fail or replace the real game's save.
+    @Published public private(set) var archiveError: String?
     /// The computer strategy's advice for the human seat, shown on request and cleared by the next action.
     @Published public private(set) var hint: Advice?
     /// Why a card on the table or in the last trick was played; toggled by tapping it.
@@ -52,25 +54,171 @@ public final class GameModel: ObservableObject {
     private let saveURL: URL?
     private let settingsURL: URL?
     private let historyURL: URL?
+    private let practice: PracticeConfiguration?
+    private let archiveDirectory: URL?
+    private var archiveStore: HandArchiveStore?
+    private var archiveReadGeneration = 0
+    private var archivedIDs: Set<String> = []
+    private struct PendingArchive {
+        let match: Match
+        let date: Date
+        let names: [String]
+        let opponents: Settings.Opponents
+        let mode: PlayMode
+        let difficulty: Difficulty
+        let recovered: Bool
+    }
+    private var pendingArchives: [String: PendingArchive] = [:]
     /// Set once the current match has been recorded, and when a match is restored already finished.
     private var recordedCurrentMatch: Bool
     /// Supplies the date of a record; injectable for tests.
     public var now: () -> Date = Date.init
 
     public init(match: Match, mode: PlayMode = .solo, saveURL: URL? = nil, settings: Settings = Settings(), settingsURL: URL? = nil,
-                records: [MatchRecord] = [], historyURL: URL? = nil) {
+                records: [MatchRecord] = [], historyURL: URL? = nil,
+                practice: PracticeConfiguration? = nil, archiveDirectory: URL? = nil) {
         self.match = match
-        self.mode = mode
-        self.saveURL = saveURL
+        self.mode = practice == nil ? mode : .solo
+        self.saveURL = practice == nil ? saveURL : nil
         self.settings = settings
-        self.settingsURL = settingsURL
-        self.records = records
-        self.historyURL = historyURL
+        self.settingsURL = practice == nil ? settingsURL : nil
+        self.records = practice == nil ? records : []
+        self.historyURL = practice == nil ? historyURL : nil
+        self.practice = practice
+        self.archiveDirectory = practice == nil ? archiveDirectory : nil
         recordedCurrentMatch = match.winner != nil
-        if match.winner != nil, mode == .solo { finalPerformance = try? match.performance(forSeat: 0) }
+        if practice == nil, match.winner != nil, mode == .solo { finalPerformance = try? match.performance(forSeat: 0) }
+        if self.archiveDirectory != nil { retryArchive() }
     }
 
     public var statistics: Statistics { Statistics(records) }
+    public var isPractice: Bool { practice != nil }
+
+    /// One source for a seat's moves and the words describing its strategy.
+    public func effectiveDifficulty(forSeat seat: Int) -> Difficulty {
+        practice?.difficulty(forSeat: seat) ?? settings.difficulty
+    }
+
+    public func makePractice(configuration: PracticeConfiguration, replay: HandReplay? = nil) throws -> GameModel {
+        let deal = try replay?.practiceMatch() ?? Match(deck: configuration.deal.deck(), dealer: 3)
+        return GameModel(match: deal, settings: settings, practice: configuration)
+    }
+
+    public func handReplay(number: Int? = nil) -> HandReplay? {
+        try? HandReplay(match: match, handNumber: number)
+    }
+
+    public func savedHands(limit: Int = 50) -> HandArchiveListing {
+        guard let archiveStore else { return HandArchiveListing() }
+        do {
+            let listing = try archiveStore.entries(limit: limit, excludingDealID: activeArchiveDealID())
+            if !listing.unreadableFiles.isEmpty {
+                archiveError = "Some saved hands could not be read. Other hands are still available."
+            }
+            return listing
+        } catch {
+            archiveError = "Saved hands could not be opened. Your current game is still safe."
+            return HandArchiveListing()
+        }
+    }
+
+    struct ArchiveReadContext: Hashable, Sendable {
+        let store: ObjectIdentifier?
+        let scope: UUID?
+        let activeDeal: String?
+        let playerName: String?
+    }
+
+    var archiveReadContext: ArchiveReadContext {
+        ArchiveReadContext(store: archiveStore.map(ObjectIdentifier.init), scope: archiveStore?.scopeID,
+                           activeDeal: try? activeArchiveDealID(), playerName: settings.playerName)
+    }
+
+    public func savedHandsAsync(limit: Int = 50) async -> HandArchiveListing? {
+        await savedHandsAsync(limit: limit, reader: { try $0.read() })
+    }
+
+    /// The detached worker owns only an immutable request; all state/error publication stays on this actor.
+    func savedHandsAsync(limit: Int = 50,
+                         reader: @escaping @Sendable (HandArchiveReadRequest) throws -> HandArchiveListing) async -> HandArchiveListing? {
+        guard !Task.isCancelled else { return nil }
+        archiveReadGeneration += 1
+        let generation = archiveReadGeneration
+        let context = archiveReadContext
+        guard let archiveStore else { return HandArchiveListing() }
+        let request = archiveStore.readRequest(limit: limit, excludingDealID: context.activeDeal)
+        let worker = Task.detached(priority: .userInitiated) { try reader(request) }
+        let result = await withTaskCancellationHandler {
+            await worker.result
+        } onCancel: { worker.cancel() }
+        guard !Task.isCancelled, generation == archiveReadGeneration, context == archiveReadContext else { return nil }
+        switch result {
+        case let .success(listing):
+            if !listing.unreadableFiles.isEmpty {
+                archiveError = "Some saved hands could not be read. Other hands are still available."
+            }
+            return listing
+        case .failure(is CancellationError): return nil
+        case .failure:
+            archiveError = "Saved hands could not be opened. Your current game is still safe."
+            return HandArchiveListing()
+        }
+    }
+
+    public var archiveStatistics: HandArchiveStatistics {
+        guard let archiveStore, let listing = try? archiveStore.entries(limit: .max, excludingDealID: activeArchiveDealID()) else {
+            return HandArchiveStatistics()
+        }
+        return HandArchiveStatistics(listing.entries)
+    }
+
+    private func activeArchiveDealID() throws -> String? {
+        match.hand.phase == .finished ? nil : try HandArchiveStore.dealIdentity(for: match)
+    }
+
+    public func retryArchive() {
+        guard let archiveDirectory, !isPractice else { return }
+        archiveError = nil
+        do {
+            // Keep recoverable snapshots even when opening the store fails. A later new game must not
+            // discard the only in-memory copy or replace its recovery date and names on the next retry.
+            for summary in match.history {
+                let replay = try HandReplay(match: match, handNumber: summary.number)
+                captureArchive(replay.finishedMatch, recovered: true)
+            }
+            if archiveStore == nil { archiveStore = try HandArchiveStore(directory: archiveDirectory) }
+            flushArchive()
+        } catch {
+            archiveError = "Saved hands could not be opened. Your current game is still safe."
+        }
+    }
+
+    private func captureArchive(_ completed: Match, recovered: Bool) {
+        guard archiveDirectory != nil, !isPractice else { return }
+        do {
+            let id = try HandArchiveStore.identity(for: completed)
+            guard !archivedIDs.contains(id) else { return }
+            if pendingArchives[id] == nil {
+                pendingArchives[id] = PendingArchive(match: completed, date: now(), names: seatNames,
+                                                     opponents: settings.opponents, mode: mode,
+                                                     difficulty: settings.difficulty, recovered: recovered)
+            }
+            flushArchive()
+        } catch { archiveError = "This hand could not be saved yet. Your current game is still safe; try again." }
+    }
+
+    private func flushArchive() {
+        guard let archiveStore else { return }
+        for (id, pending) in pendingArchives {
+            do {
+                try archiveStore.save(pending.match, date: pending.date, names: pending.names,
+                                      opponents: pending.opponents, mode: pending.mode,
+                                      difficulty: pending.difficulty, recovered: pending.recovered)
+                archivedIDs.insert(id)
+                pendingArchives.removeValue(forKey: id)
+            } catch { archiveError = "This hand could not be saved yet. Your current game is still safe; try again." }
+        }
+    }
 
     public func dismissDealerDraw() { dealerDraw = nil }
 
@@ -112,7 +260,7 @@ public final class GameModel: ObservableObject {
     private func recordMatchIfFinished() {
         guard match.winner != nil, !recordedCurrentMatch else { return }
         recordedCurrentMatch = true
-        guard mode == .solo else { return }
+        guard mode == .solo, !isPractice else { return }
         let performance = (try? match.performance(forSeat: 0)) ?? SeatPerformance(plays: 0, playsAgreed: 0, bids: 0, bidsMade: 0)
         finalPerformance = performance
         records.append(MatchRecord(date: now(), scores: match.scores, winner: match.winner ?? 0, hands: match.history.count,
@@ -202,7 +350,24 @@ public final class GameModel: ObservableObject {
 
     /// Starts over as a new player (D108): the name and face go back to unset, so the set-up screen shows again, the
     /// saved match gives way to a fresh solo deal, and the match records behind Statistics are emptied.
-    public func resetPlayer() {
+    @discardableResult public func resetPlayer() -> Bool {
+        if archiveDirectory != nil {
+            retryArchive()
+            guard pendingArchives.isEmpty else {
+                archiveError = "Some hands could not be saved. Try saving them again before starting a new player."
+                return false
+            }
+            do {
+                guard let archiveStore else { throw HandArchiveError.invalidScope }
+                try archiveStore.beginNewPlayer()
+            } catch {
+                archiveError = "Could not start a new player. Your current player and game have been kept."
+                return false
+            }
+        }
+        archivedIDs = []
+        pendingArchives = [:]
+        archiveError = nil
         var updated = settings
         if updated.seatNames[0] == updated.playerName { updated.seatNames[0] = Settings.defaultSeatNames[0] }
         updated.playerName = nil
@@ -211,6 +376,7 @@ public final class GameModel: ObservableObject {
         records = []
         persistHistory()
         newGame(mode: .solo)
+        return true
     }
 
     /// One VoiceOver sentence for a seat tile: name, direction, call or card count, dealer, to act.
@@ -256,7 +422,7 @@ public final class GameModel: ObservableObject {
         let bold = boldNoteHand == hand ? nil : boldNote(for: seat)
         let acted = perform {
             let view = try PlayerView(match: match, seat: seat)
-            guard let action = ComputerPlayer.decide(view, difficulty: settings.difficulty) else { TableTrace.log("computer \(seat) has no move"); return }
+            guard let action = ComputerPlayer.decide(view, difficulty: effectiveDifficulty(forSeat: seat)) else { TableTrace.log("computer \(seat) has no move"); return }
             TableTrace.log("computer \(seat) \(action)")
             announces = namesTrump(action)
             try match.apply(action, seat: seat)
@@ -272,7 +438,7 @@ public final class GameModel: ObservableObject {
     /// "JC and Diane are down 12, bidding bolder." Nil for a person, an Easy computer, or a team not that far
     /// behind; the same `ComputerPlayer.isTrailingBadly` that raises the bid decides it.
     public func boldNote(for seat: Int) -> String? {
-        guard !isHuman(seat), settings.difficulty == .standard, match.hand.phase == .bidding,
+        guard !isHuman(seat), effectiveDifficulty(forSeat: seat) == .standard, match.hand.phase == .bidding,
               let view = try? PlayerView(match: match, seat: seat), ComputerPlayer.isTrailingBadly(view) else { return nil }
         return Self.boldNoteText(team: [seat % 2, seat % 2 + 2], deficit: ComputerPlayer.deficit(view),
                                  names: seatNames, solo: mode == .solo)
@@ -393,7 +559,7 @@ public final class GameModel: ObservableObject {
     /// `trickIndex` names a completed trick; nil means the card is still on the table.
     public func explanation(for play: Play, inLastTrick: Bool, trickIndex: Int? = nil) -> String? {
         // The reason for another seat's card is drawn from that seat's hand; the next player must not read it.
-        guard mode == .solo || match.hand.phase == .finished else { return nil }
+        guard match.hand.phase == .finished || (curtainSeat == nil && viewerSeat == play.seat) else { return nil }
         let index = trickIndex ?? (inLastTrick ? match.hand.completedTricks.count - 1 : nil)
         guard let view = try? PlayerView(match: match, replaying: play, inCompletedTrick: index),
               let advice = ComputerPlayer.advise(view) else { return nil }
@@ -406,7 +572,7 @@ public final class GameModel: ObservableObject {
         // Advice reads "Play the X: reason"; keep only the reason after the colon.
         let reason = advice.reason.split(separator: ":", maxSplits: 1).last.map { $0.trimmingCharacters(in: .whitespaces) } ?? advice.reason
         let name = seatNames[play.seat]
-        if play.seat != 0, settings.difficulty == .easy {
+        if play.seat != 0, effectiveDifficulty(forSeat: play.seat) == .easy {
             // Easy seats follow the old fixed rules, so show what the standard strategy would have done.
             if case let .play(preferred) = advice.action, preferred != play.card {
                 return "\(name) (easy) played the \(play.card.name). Standard would have played the \(preferred.name): \(reason)"
@@ -537,6 +703,18 @@ public final class GameModel: ObservableObject {
     /// A fresh match in `mode`, or in the current mode when none is given (Play again keeps it).
     public func newGame(mode: PlayMode? = nil) {
         TableTrace.log("new game")
+        if let practice {
+            self.mode = .solo
+            revealedSeat = nil
+            perform { match = try Match(deck: practice.deal.deck(), dealer: 3) }
+            dealerDraw = nil
+            recordedCurrentMatch = false
+            finalPerformance = nil
+            lastHumanAction = nil
+            notice = nil
+            clearTrumpTally()
+            return
+        }
         let draw = DealerDraw.draw(from: Self.deck())
         if let mode { self.mode = mode }
         revealedSeat = nil
@@ -567,6 +745,7 @@ public final class GameModel: ObservableObject {
         explanation = nil
         persist()
         recordMatchIfFinished()
+        if match.hand.phase == .finished { captureArchive(match, recovered: false) }
         revision += 1
         return true
     }
@@ -654,12 +833,12 @@ public final class GameModel: ObservableObject {
         let records = MatchHistoryStore.readSettingAsideCorruption(at: historyURL)
         let start = freshMatch()
         let fresh = GameModel(match: start.match, saveURL: url, settings: settings, settingsURL: settingsURL,
-                              records: records, historyURL: historyURL)
+                              records: records, historyURL: historyURL, archiveDirectory: directory.appendingPathComponent("hand-archive", isDirectory: true))
         fresh.dealerDraw = start.draw
         if FileManager.default.fileExists(atPath: url.path) {
             do {
                 let restored = GameModel(match: try MatchSave.read(from: url), mode: readMode(beside: url), saveURL: url, settings: settings, settingsURL: settingsURL,
-                                         records: records, historyURL: historyURL)
+                                         records: records, historyURL: historyURL, archiveDirectory: directory.appendingPathComponent("hand-archive", isDirectory: true))
                 restored.errorMessage = notices.first
                 return restored
             } catch {

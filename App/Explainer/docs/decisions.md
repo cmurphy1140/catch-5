@@ -1270,3 +1270,149 @@ score, this comes after bidding and before the hand."
 - A whiskey glass sits on the oak beside the partner when the build carries the picture (`GuestItem2`).
 - The player's own figure is drawn half as big again; the row under the hand keeps its height.
 
+## D158. The room table: players behind the rail, felt to the bottom of the screen
+
+Connor, on his second room picture: "feel free to change anything, we want consistency", then "you're not following
+the imagined photos too well".
+
+- One layout. The three other players sit in a row behind the table's far edge; the rail (`RoomRail`) is drawn over
+  them, and the felt (`RoomFelt`, shaped by `TableEdge`) runs from that edge past the bottom of the screen. Bids,
+  the trick, the hand and the player's own name all lie on the cloth. The layout picker is gone from Settings.
+- Two cloths, charcoal and green, chosen by radio rows (`TableColours.offered`). A saved red or royal cloth reads as
+  charcoal.
+- Names are inlaid in ivory on the felt with the side beside them, "(US)" or "(THEM)" (`NameTag.side`).
+- The auction has no panel: "Your bid" in ivory serif, ivory tiles, the lowest legal bid ringed in gold, Pass in green.
+- The "?" badge is a green speech bubble that says "ChatGPT help" where there is room (`HelpBubbleLabel`).
+- The wall behind the players stays drawn oak until room art arrives; the prompts are in the ignored `work/art-prompts.md`.
+
+## D159. The opening page is the table seen from above; the guest's things have their own page
+
+Connor picked the second of three sketches ("I'd pick B for the home screen"), then: "wedding photos, book page and
+good reads, and my notes belong in a different page", and "I want Mike on the main page, looking at Emma, and the
+need help chat will be coming from his dialog box, but same style".
+
+- A build that carries the pictures draws `HomeTable`: felt edge to edge, the title, two arms holding up the five
+  (a tap is Play), the guest writing the score at the near rail, and one ivory Play button under it. Other builds
+  keep the earlier page, since the pictures stay out of the repository.
+- The helper is an ivory speech bubble, "Ask anything", in the same shape as a bid. It speaks from the man crouched
+  at the rail when his picture (`GuestMenuHelper`) is carried, and stands alone in that corner when it is not.
+- The guest's links and her note moved to `GuestThings`, opened from her or the words beside her. A link is listed
+  there when its entry in the private prompts names a picture (`menu`) and a line (`title`).
+- The man across the table is Doug. A save that still carries his old default name takes the new one.
+
+D159, tuned November 11: the opening pages draw the cloth quieter than the table (saturation 0.7 under a 24% dark veil), because Connor found the green too loud there; the helper stands on a soft shadow clear of the rail, and his bubble sits left of the hero's sleeve.
+
+D160 (November 11, 2026): a new cast takes the three other seats. Marcus, Meg and Monica are the defaults (`Settings.defaultSeatNames`); JC, Doug and Diane stay as a choice in Settings, a Friends/Family switch above the opponents' names (`Settings.Opponents`, `Settings.seat(_:)`). A save from before the choice that still seats the family as dealt takes the new three on load; names typed by hand stay. The new cast's pictures are the private `GuestCast1` to `GuestCast3`, and a seat without one draws its portrait rather than wear the family's picture under another name (`SeatArt.image(seat:opponents:)`).
+
+D161 (November 11, 2026): the opening page's near edge is one small scene. The helper crouches beside the scorekeeper with his pencil on her right-hand page, the dog (its own private picture, `GuestMenuDog`) watches from his other side, and the card and arms sit a little higher. The two labels left the felt: her things on the left of Play and the helper's bubble on the right, on one row below the rail, with Play narrower between them.
+
+D162 (November 11, 2026): the opening page was too busy with figures, so the scorekeeper, the helper and the dog moved to the play page, where they sit at the lessons sheet's top edge on the opening cloth (`HomeScene`, `HomeFelt`); a build without them keeps the play page's wood. The opening page keeps the card and arms, and a build that carries the private family picture (`GuestMenuPicnic`) stands it on the table's near edge, its top fading into the cloth.
+
+D163 (November 11, 2026): the play page has the helper's prompt box under New game and Back to the table: a wide capsule of frosted glass reading "Ask anything" with a send arrow, which opens the helper. The two written buttons are smaller to make room.
+
+D164 (November 11, 2026): the opening page is the table room. The top third is the wall, holding the title, Play and the way to the guest's things; the table's far edge crosses below them, drawn with the play table's own `TableEdge` and `RoomRail`; the cloth below holds the card and arms, and the family picture stands at the very bottom. The helper's bubble left this page (it is on the play page, D163). The wall is the room's oak, with charcoal cloth kept behind the launch argument `-homewall gray` while Connor compares the two; the sleeves wear whichever of gray and brown the wall is not. This replaces D159's near and far rails and D161's row beside Play.
+
+D165 (November 11, 2026): a small deck and three dealt cards lie on the family picture's blanket, drawn in code (`PicnicDeck`), so the five are plainly playing.
+
+D166 (November 11, 2026): the opening page has no felt. The top is a charcoal cloth wall with the title, Play, the way to the guest's things and a Help bubble sticking out of the right side; below the rail the table is oak all the way down, and the family picture's water is cut away so the oak runs round them to the grass. The sleeves are green, the one colour that is no longer a background. This replaces D164's oak wall over green cloth and its `-homewall` comparison switch, which is gone.
+
+D167 (November 11, 2026): the deck's burgundy box lies on the oak just above the family picture, at the left, when the build carries its private picture (`GuestMenuBox`).
+
+D168 (November 11, 2026): the opening page's top is a narrow strip of the quiet green cloth behind the title, not D166's gray wall; the rail sits just under the title, and Play, the way to the guest's things and the Help bubble are on the oak. Gray was the only cold colour on the page and appears nowhere else in the game; green ties the page to the play table.
+
+D169 (November 11, 2026): the opening page's card is the monogrammed five of hearts held by two knitted sleeves, a navy stripe and an olive pattern, from Connor's newer mockup, cut off its gray and laid on the oak a little larger. It replaces the tinted sleeves of D164 and D166.
+
+D170 (November 11, 2026): the cut-out characters are the game's faces wherever a real game shows one: the dealer draw, the pass curtain, the nine-and-out question and the hand-end lines now use `SeatFace`, which shows a seat's cut-out figure when the build carries one and the drawn portrait when not. The drawn portraits stay for the lessons and demos.
+
+## D171. The contract and Play share the score slip (2026-11-11, proposed)
+
+Implementation proposal pending Connor's visual acceptance: the pre-play slip keeps its torn ivory paper, red margin
+and handwriting, with the bidder's cutout and name beside a large bid, then the named trump, the final calls in speaking
+order, the score and a dark green paper-card Play button. Play sits inside the paper. On a short screen or with long
+names, the contract details can scroll while Play remains at the foot of the slip. The bidder's seat selects the current
+Friends or Family cutout through `SeatArt.image(seat:opponents:)`, with `SeatFace`'s drawn fallback when art is absent;
+the classic in-play contract plaque uses that same seat identity. Call rows identify their seats rather than display
+names, so repeated names remain separate. The existing per-hand acknowledgement and pause before play are unchanged;
+this pass does not settle the open repeat-frequency question. Spoken contract and trump-tally controls are preserved.
+
+## D172. A completed hand can explain its whole history (2026-11-11, proposed)
+
+Connor requested a chronological replay of bids, automatic discards and refills, plays, trick awards and settlement,
+with the house rule behind a close call. `HandReplay` derives those events from the existing accepted-action log;
+it contains only the selected completed hand's timeline and never a later hand. Connor chose to allow all four
+historical hands to be revealed after completion. Live advice still receives only the revealed player's `PlayerView`.
+`LiveAdvicePresentation` retains the recommendation, its public explanation and relevant rules, with source identity,
+viewer and revision checks; opening it does not execute a move. The older historical-explanation API now refuses
+unfinished opponents' plays. Strategy suggestions and exact house rules remain separate in the wording.
+
+`HouseRuleGuide` indexes the existing canonical paragraphs and adds labeled examples checked against the engine.
+High means the highest trump actually played, not automatically the ace or the winner of one trick. Ordinary nine
+and nine-and-out stay distinct: nine-and-out decides the match while retaining the numeric scores.
+
+## D173. Saved hands are local evidence; practice owns another game (2026-11-11, proposed)
+
+Each newly completed real hand is saved atomically in the current player's local archive, using the ordinary version2
+match save as its source. Completion identity prevents duplicate records; a separate deal identity hides every saved
+branch of a deal while that deal is active. Corrupt entries remain on disk while readable hands stay available.
+Recovered action logs use a labeled saved date and the names known at recovery; aggregate-only old records cannot
+recreate missing deals or tricks. A failed archive write remains retryable even across New game. Starting a new player
+first saves pending old-player hands, then changes the archive scope atomically; failure leaves the old player intact.
+Older scopes remain on disk.
+
+Practice uses a distinct in-memory `GameModel`, with all real save/settings/history/archive URLs disabled and no real
+records. Easy or Standard can be chosen separately for the left opponent, partner and right opponent. Fresh and curated
+deals use the same engine, and a completed replay can supply its exact original deal with a fresh score. Leaving or
+restarting practice preserves the family game. Saved-hand statistics describe only saved real completions; practice
+and unavailable historical trick counts never enter them. These are implementation proposals pending Connor's play.
+
+## D174. Learning opens where the player asks for it (2026-11-11, proposed)
+
+Practice and Saved hands enter directly from the existing Play page, leaving the opening page's artwork and geometry
+as they are. A finished hand's Replay uses the same completed-hand view as an archive selection. One internal typed
+navigation stack keeps replay, original-deal practice and contextual rules together; leaving practice returns to its
+replay origin or the Play page. Explicit callbacks avoid the menu's existing New game dispatch and confirmation.
+
+The flow caches the complete validated archive on entry, filters that cache for search and shows recent pages for a
+blank query. It performs no disk reads per row or per keystroke. A live deal or changed player scope invalidates a
+selected historical reveal. Replay navigation uses the production `ReplayPlayback` cursor with bounded previous/next
+and stable event selection; its controls remain outside the scrolling details. All-hands disclosure is completed-only.
+
+Why this move? is offered for a revealed human's bidding, trump or play turn. Advice and its rule detail share one
+sheet. Both advice and replay participate in the table's scheduler pause; advice's own sheet pauses play without
+invalidating itself, while other covers and state changes dismiss stale advice. The searchable rules book keeps its
+existing chapters, canonical text and illustrations. Statistics says Contracts made and labels new archive figures as
+saved-hand measures, including a partial/unavailable notice when needed. Implementation is pending Connor's play and
+visual acceptance; passing state tests do not claim actual phone taps, scrolling or VoiceOver focus.
+
+## D175. Validate saved hands away from the UI actor (2026-11-11, proposed)
+
+A measured 100-hand cumulative archive took about 2.04 seconds to load synchronously on the local optimized Mac build;
+the final hand's replay itself took about 2.3 milliseconds. Full validation remains required, so archive and saved-statistics
+screens now show loading while an immutable `HandArchiveReadRequest` validates the selected player scope in a detached
+task. The worker owns values only, never a mutable store or game model, and never writes a scope marker.
+
+Before publishing, the main actor rechecks cancellation, generation, store identity, player scope and active deal.
+Old player cards and counts clear before awaiting a replacement read. Closing a surface cancels its worker; a delayed
+already-cancelled caller must not supersede valid work. Search and pagination use the validated cache. Synchronous store
+APIs remain for compatibility; product openings use the asynchronous path. This changes responsiveness rather than
+claiming that full disk/engine validation is faster. Deterministic gate tests and a separate heartbeat measurement cover
+the concurrency boundary; Mac measurements do not establish phone latency.
+
+
+## D176. Help sits whole beside Play; her things are on her notebook (2026-11-11, proposed)
+
+On the opening table the helper's bubble no longer sticks out of the right edge with a tail (D166): Help is a smaller
+ivory pill beside Play, with a green dot and no tail, and the pair is centred. The words "Emma's things" leave the line
+under Play and are written under her open notebook (`GuestMenuBook`), lying on the oak at the lower left where the
+deck's box was (D167); the box still lies there in a build without her, and the words stay under Play when the notebook's
+picture is missing. Connor approved the layout from a before-and-after mock; it awaits his look on the phone.
+
+## D177. The guest has a page of her own, with an opening and her looks (2026-11-11, proposed)
+
+`GuestPage` takes the place of `GuestThings` behind the notebook on the opening table. It opens with one short moment:
+two swans glide in and touch bills, she rises under them, and her name writes itself; then her note, her links and her
+looks appear. A tap skips it and Reduce Motion does not play it. Her looks are the git-ignored pictures `GuestLook1`,
+`GuestLook2` and on, counted until the first that is missing, so adding a look is adding a picture; the row is hidden in
+a build with none. The choice is kept by name in the device's defaults (not in `Settings`, so no save format changes)
+and `SeatArt.image` gives seat 0 that picture wherever the table draws her. `GuestThings` is left in place, unused.
+Built from Connor's direction; no look pictures exist yet, and it awaits his look on the phone.

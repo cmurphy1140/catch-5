@@ -1,0 +1,53 @@
+# SwiftLint for Noctule's lint and fix-on-save in IntelliJ.
+# Tuned to the code as written, so a warning means a new slip, not old style.
+
+excluded:
+  - .build
+  - .swiftpm
+  - work
+  - CatchFive.xcodeproj
+
+disabled_rules:
+  - trailing_comma                    # multi-line lists keep their trailing commas
+  - statement_position                # BotSins lines up its else-if chains as a table
+  - implicit_optional_initialization  # optionals spell out `= nil`
+  - todo
+
+force_try: warning
+
+identifier_name:
+  min_length: 1                       # geometry and tests use x, y, dx, a, b
+  allowed_symbols: ["_"]
+
+line_length:
+  warning: 180
+  error: 400
+  ignores_comments: true
+  ignores_urls: true
+
+file_length:
+  warning: 1000
+  error: 2000
+
+type_body_length:
+  warning: 600
+  error: 1000
+
+function_body_length:
+  warning: 120
+  error: 300
+
+cyclomatic_complexity:
+  warning: 20
+  error: 60
+
+function_parameter_count:
+  warning: 8
+  error: 10
+
+large_tuple:
+  warning: 4
+  error: 6
+
+nesting:
+  type_level: 2

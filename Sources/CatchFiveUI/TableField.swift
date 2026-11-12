@@ -14,6 +14,8 @@ struct TableField: View {
     /// The trial layouts lay a blue cloth in the panel instead of walnut (D114).
     var cloth = false
     var colours = Settings.TableColours.charcoal
+    /// The room table (D158) lays its own felt across the whole screen, so the field draws only the lamp and trump.
+    var bare = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -21,7 +23,9 @@ struct TableField: View {
         ZStack(alignment: .topLeading) {
             // The walnut is drawn once for the whole surface and only its window moves, so the grain never redraws
             // while the field changes shape between the auction and play.
-            if cloth {
+            if bare {
+                EmptyView()
+            } else if cloth {
                 shape.fill(RadialGradient(colors: Theme.Field.cloth(colours),
                                           center: .init(x: 0.5, y: 0.48), startRadius: 10, endRadius: max(rect.width, rect.height) * 0.62))
                     .frame(width: rect.width, height: rect.height).offset(x: rect.minX, y: rect.minY)
@@ -45,6 +49,7 @@ struct TableField: View {
                         TrumpInlay(suit: trump, size: min(rect.width * 0.55, Theme.Field.inlayMaximum)).transition(.opacity)
                     }
                 }
+                if !bare {
                 // Recessed: the oak's edge throws a shadow across the top of the panel.
                 shape.stroke(.black.opacity(0.55), lineWidth: 10).blur(radius: 7).offset(y: 4).clipShape(shape)
                 // The lower lip catches the light.
@@ -62,6 +67,7 @@ struct TableField: View {
                 } else {
                 stringing
                 shape.stroke(Theme.Wood.header.opacity(0.7), lineWidth: 1)
+                }
                 }
             }
             .frame(width: rect.width, height: rect.height)
@@ -262,6 +268,78 @@ struct MahoganyRail: View {
                 }
             }
         }
+        .accessibilityHidden(true)
+    }
+}
+
+/// The far edge of the room table (D158): level across the middle, where the three players sit behind it, and falling
+/// away at either side of the screen the way a round table's edge does.
+struct TableEdge: Shape {
+    /// The edge's height in the shape's own space.
+    let top: Double
+    /// How far the edge falls at the screen's sides, and how wide each falling shoulder is.
+    var fall = 46.0
+    var shoulder = 34.0
+    /// Closed down to the bottom, for the felt; open, for the rail along the edge.
+    var closed = true
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX - 40, y: top + fall))
+        path.addQuadCurve(to: CGPoint(x: rect.minX + shoulder, y: top), control: CGPoint(x: rect.minX, y: top))
+        path.addLine(to: CGPoint(x: rect.maxX - shoulder, y: top))
+        path.addQuadCurve(to: CGPoint(x: rect.maxX + 40, y: top + fall), control: CGPoint(x: rect.maxX, y: top))
+        if closed {
+            path.addLine(to: CGPoint(x: rect.maxX + 40, y: rect.maxY + 200))
+            path.addLine(to: CGPoint(x: rect.minX - 40, y: rect.maxY + 200))
+            path.closeSubpath()
+        }
+        return path
+    }
+}
+
+/// The room table's felt (D158): cloth from the far edge down past the bottom of the screen, with its nap, lit toward
+/// the middle. The hand, the bids and the trick all lie on it.
+struct RoomFelt: View {
+    let top: Double
+    let colours: Settings.TableColours
+
+    var body: some View {
+        GeometryReader { geometry in
+            let edge = TableEdge(top: top)
+            ZStack {
+                edge.fill(RadialGradient(colors: Theme.Field.cloth(colours), center: .init(x: 0.5, y: 0.55), startRadius: 20,
+                                         endRadius: max(geometry.size.width, geometry.size.height) * 0.75))
+                ClothNap().equatable().mask { edge }
+                // The rail's shadow on the cloth just under it.
+                TableEdge(top: top + 9, closed: false).stroke(.black.opacity(0.45), lineWidth: 12).blur(radius: 7).mask { edge }
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+/// The mahogany rail along the room table's far edge (D156, D158), drawn over the seated players so they sit behind it.
+struct RoomRail: View {
+    let top: Double
+
+    var body: some View {
+        let width = Theme.Field.railWidth
+        ZStack {
+            TableEdge(top: top, closed: false).stroke(Color(red: 0.34, green: 0.11, blue: 0.07), style: StrokeStyle(lineWidth: width, lineCap: .round))
+            // Grain along the rail: broken dark and pale lines.
+            ForEach(0..<7, id: \.self) { line in
+                let offset = -width / 2 + 1.5 + Double(line) * (width - 3) / 6
+                TableEdge(top: top + offset, closed: false)
+                    .stroke(line % 3 == 1 ? Color(red: 0.62, green: 0.26, blue: 0.14).opacity(0.5) : Color(red: 0.16, green: 0.04, blue: 0.03).opacity(0.55),
+                            style: StrokeStyle(lineWidth: 0.9, lineCap: .round, dash: [Double(30 + line * 17), Double(5 + line * 3)], dashPhase: Double(line * 23)))
+            }
+            // Lit from above, shaded below, a gold line where it meets the cloth.
+            TableEdge(top: top - width / 2 + 1.5, closed: false).stroke(.white.opacity(0.22), lineWidth: 1.5)
+            TableEdge(top: top + width / 2, closed: false).stroke(Theme.Paper.rule.opacity(0.9), lineWidth: 1.5)
+        }
+        .shadow(color: .black.opacity(0.4), radius: 3, y: 2)
+        .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
 }

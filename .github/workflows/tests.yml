@@ -32,7 +32,7 @@ jobs:
       - name: Swift version
         run: swift --version
       - name: Run the package tests
-        run: scripts/check.sh
+        run: swift test
 
   simulator-build:
     runs-on: macos-15
