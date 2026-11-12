@@ -390,8 +390,8 @@ struct MainMenuView: View {
         // Cancel is always there.
         .overlay {
             if confirmNewMatch {
-                NewMatchCard(replacesSavedGame: model.matchInProgress,
-                             onChoose: { mode in confirmNewMatch = false; model.newGame(mode: mode); onPlay() },
+                NewGameSetup(settings: $model.settings, mode: model.mode, replacesSavedGame: model.matchInProgress,
+                             onStart: { mode in confirmNewMatch = false; model.newGame(mode: mode); onPlay() },
                              onCancel: { confirmNewMatch = false })
                     .transition(.opacity)
             }

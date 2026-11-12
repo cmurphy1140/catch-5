@@ -301,11 +301,7 @@ public final class GameModel: ObservableObject {
 
     public var isHumanTurn: Bool { match.winner == nil && match.hand.nextSeat != nil && match.hand.nextSeat == viewerSeat }
     /// In pass and play every seat is a family member, so seat 0 drops the phone holder's own name.
-    public var seatNames: [String] {
-        var names = settings.seatNames
-        if mode == .passAndPlay, names[0] == settings.playerName { names[0] = Settings.defaultSeatNames[0] }
-        return names
-    }
+    public var seatNames: [String] { settings.names(passAndPlay: mode == .passAndPlay) }
 
     /// True once something has happened this match and nobody has won yet; drives the menu's Continue button.
     public var matchInProgress: Bool { match.actionCount > 0 && match.winner == nil }

@@ -1437,3 +1437,13 @@ the play page opens, the button reading "Dealing…" meanwhile. Reduce Motion pl
 The greeting and the lean are plain functions with tests. Seen so far only as still renders on the Mac (the card's
 outline over the real picture, the grass); the motion awaits Connor's look on the phone.
 
+## D180. New game opens a setup sheet that follows the mode (2026-11-12, proposed)
+
+`NewGameSetup` takes the place of the two-way question (`NewMatchCard`, kept for its wording). The mode is a switch at
+the top and only that mode's settings sit under it: solo chooses who is across the table (friends or family) and how
+they play (easy or standard); pass and play names the four who share the phone, as the two teams. One button deals.
+Pass and play now has its own four names, `Settings.passAndPlayNames`, so naming the family no longer renames the
+computer players; it is an optional key, so an older save loads without it and reads the seat names as before, and a
+tag renamed at the table in pass and play changes that list. Playing between phones is not offered. Seen as still
+renders on the Mac (the text fields do not draw there); awaits Connor's look on the phone.
+

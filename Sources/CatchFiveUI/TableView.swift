@@ -523,7 +523,7 @@ public struct TableView: View {
             .alert("Rename", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
                 TextField("Name", text: $nameDraft)
                 Button("Save") {
-                    if let seat = renaming { model.settings.renameSeat(seat, to: nameDraft) }
+                    if let seat = renaming { model.settings.renameSeat(seat, to: nameDraft, passAndPlay: model.mode == .passAndPlay) }
                     renaming = nil
                 }
                 Button("Cancel", role: .cancel) { renaming = nil }

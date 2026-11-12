@@ -59,6 +59,28 @@ public struct Settings: Codable, Equatable, Sendable {
     }
     public var opponents: Opponents = .friends
 
+    /// The four who share the phone in pass and play (D180), in seat order; nil until the new-game sheet has been
+    /// used for one, when seat names are read as before. Kept apart from `seatNames`, so the computer players keep theirs.
+    public var passAndPlayNames: [String]?
+
+    /// Four names for pass and play from what was typed: trimmed, and a blank one takes its fallback.
+    public static func passAndPlayNames(typed: [String], fallback: [String]) -> [String] {
+        (0..<4).map { seat in
+            let name = typed.indices.contains(seat) ? typed[seat].trimmingCharacters(in: .whitespacesAndNewlines) : ""
+            return name.isEmpty ? (fallback.indices.contains(seat) ? fallback[seat] : defaultSeatNames[seat]) : name
+        }
+    }
+
+    /// The names at the table for a mode: pass and play has its own four once they have been set (D180); before that,
+    /// and in solo, the seat names, with seat 0 dropping the phone holder's own name in pass and play.
+    public func names(passAndPlay: Bool) -> [String] {
+        guard passAndPlay else { return seatNames }
+        if let passAndPlayNames { return passAndPlayNames }
+        var names = seatNames
+        if names[0] == playerName { names[0] = Settings.defaultSeatNames[0] }
+        return names
+    }
+
     public static let defaultSeatNames = ["Cheryl", "Marcus", "Meg", "Monica"]
     /// The family table (T09), the default until D160.
     public static let familySeatNames = ["Cheryl", "JC", "Doug", "Diane"]
@@ -92,9 +114,11 @@ public struct Settings: Codable, Equatable, Sendable {
 
     /// A name typed on a seat's tag at the table (D93): seat 0 goes through `setPlayerName`, the others are trimmed
     /// and written as they are. Blank input keeps the old name.
-    public mutating func renameSeat(_ seat: Int, to name: String) {
+    public mutating func renameSeat(_ seat: Int, to name: String, passAndPlay: Bool = false) {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, seatNames.indices.contains(seat) else { return }
+        // In pass and play the tag renames that game's own four, once they exist (D180).
+        if passAndPlay, var names = passAndPlayNames { names[seat] = trimmed; passAndPlayNames = names; return }
         if seat == 0 { setPlayerName(trimmed) } else { seatNames[seat] = trimmed }
     }
 
@@ -136,6 +160,8 @@ public struct Settings: Codable, Equatable, Sendable {
         tableColours = TableColours.offered.contains(cloth) ? cloth : .charcoal
         // One table (D158): the seats in a row across the top. A save from the trial of three opens on it too.
         tableArrangement = .rail
+        // Four names or none: a damaged list is dropped, and pass and play reads the seat names as it used to.
+        passAndPlayNames = ((try? container.decodeIfPresent([String].self, forKey: .passAndPlayNames)) ?? nil).flatMap { $0.count == 4 ? $0 : nil }
         let decoded = (try? container.decodeIfPresent([String].self, forKey: .seatNames)) ?? nil ?? Settings.defaultSeatNames
         // A short or long list is damaged: it takes the defaults before anything indexes into it.
         var names = decoded.count == 4 ? decoded : Settings.defaultSeatNames
