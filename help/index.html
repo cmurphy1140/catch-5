@@ -89,6 +89,12 @@
     border: 1px solid var(--border); background: var(--raised); color: var(--text);
     font: 600 15px/1 var(--sans); cursor: pointer; box-shadow: 0 6px 20px rgb(0 0 0 / .12); }
   .ask-btn svg { width: 18px; height: 18px; stroke: var(--muted); }
+  /* On a phone the floating pill sat on top of step text. There it becomes a bar along the bottom edge, and the page ends above it. */
+  @media (max-width: 600px) {
+    .ask-btn { left: 0; right: 0; bottom: 0; justify-content: center; border-radius: 0; border-width: 1px 0 0;
+      padding: 14px 18px calc(14px + env(safe-area-inset-bottom)); box-shadow: none; }
+    body { padding-bottom: calc(52px + env(safe-area-inset-bottom)); }
+  }
   dialog.chat { border: 1px solid var(--border); border-radius: 16px; padding: 0; background: var(--bg); color: var(--text);
     width: min(520px, calc(100vw - 24px)); height: min(680px, calc(100dvh - 24px)); max-height: none; max-width: none; }
   dialog.chat[open] { display: grid; grid-template-rows: auto 1fr auto; }
