@@ -1577,3 +1577,12 @@ ui to improve"). It now sits on the ivory card with the parts Settings already h
 the four faces bright with a tick on the chosen one, the green paper switch. The keyboard waits for a tap on the
 name, and "New match" is pinned to the bottom of the screen with a line saying a name is needed. The page fits one
 iPhone 16 Pro screen without scrolling. A `login` screenshot stage opens it headless. Seen in the simulator.
+
+## D192. "Your bid" stays under the seats' names (2026-11-14, proposed)
+
+The auction's panel is pinned to the bottom of the table and grows upward, so the dealer's sentence ("Everyone
+passed, so as dealer you must bid at least 2.") pushed the heading onto the partner's name: it read "YourMegbid"
+(found in the UI audit, batch 8). On the felt the "Why this move?" hint now keeps its 44 pt touch area but takes
+only its text's height in the column, and the panel's bottom padding drops from 24 to 10. The sentence, the tiles
+and the heading's size are unchanged. Seen in the simulator on an iPhone 17 at the default text size, in the
+`bidding`, `dealer-forced`, `trump` and `bold` stages. Not checked at larger text sizes or on the small iPhone.

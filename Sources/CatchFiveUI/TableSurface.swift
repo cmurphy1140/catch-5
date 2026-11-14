@@ -775,7 +775,9 @@ struct TableSurface: View {
         let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
         return VStack(spacing: Theme.Table.auctionButtonSpacing) {
             statusLine.accessibilitySortPriority(4)
-            adviceButton
+            // On the felt the hint keeps its 44 pt touch area but takes only its text's height in the column, so the
+            // heading stays under the seats' names when the dealer's sentence adds two lines.
+            adviceButton.padding(.vertical, onFelt ? -12 : 0)
             if hand.phase == .bidding {
                 // On the one table the seats' bubbles are in view above, so the calls are not repeated in words (D158).
                 if !onFelt { Text(Self.callsSoFar(model)).font(.footnote.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.7).opacity(0.85) }
@@ -784,7 +786,7 @@ struct TableSurface: View {
                 trumpChoice
             }
         }
-        .padding(.horizontal, onFelt ? 26 : 8).padding(.top, 8).padding(.bottom, onFelt ? 24 : 8)
+        .padding(.horizontal, onFelt ? 26 : 8).padding(.top, 8).padding(.bottom, onFelt ? 10 : 8)
         // The numbers lie straight on the felt (D158); the older tables keep the dark panel that hid their side seats.
         .background { if !onFelt { shape.fill(Theme.Wood.header.opacity(0.95)).shadow(color: .black.opacity(0.5), radius: 10, y: 4) } }
         .overlay { if !onFelt { shape.stroke(.ivory.opacity(0.18), lineWidth: 1) } }
