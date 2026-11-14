@@ -14,66 +14,101 @@ struct LoginView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 28) {
-                VStack(spacing: 4) {
-                    Text("Catch 5").font(.system(size: 46, weight: .bold, design: .serif))
-                    Text("SET UP YOUR PLAYER").font(.system(.caption2, design: .monospaced).weight(.medium)).tracking(1).opacity(0.7)
-                    Text("This stays on your device.").font(.footnote).opacity(0.6).padding(.top, 4)
+            VStack(spacing: 18) {
+                VStack(spacing: 2) {
+                    Text("Catch 5").font(.system(size: 44, weight: .bold, design: .serif))
+                    Text("Set up your player").font(.system(.title3, design: .serif)).opacity(0.85)
                 }
-                .padding(.top, 40)
+                .foregroundStyle(.ivory)
+                .padding(.top, 12)
+                .accessibilityElement(children: .combine).accessibilityAddTraits(.isHeader)
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("What should we call you?").font(.headline)
-                    nameField
-                        .padding(12)
-                        .background(Theme.Wood.inlay.opacity(0.82), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(.ivory.opacity(0.14)))
-                        .accessibilityLabel("Your name")
-                }
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Pick a face").font(.headline)
-                    HStack(spacing: 16) {
+                // The same paper and the same parts as Settings (D181), so the first page looks like the rest (D191).
+                VStack(alignment: .leading, spacing: 14) {
+                    heading("♦", "Your name")
+                    VStack(spacing: 0) {
+                        HStack {
+                            nameField.font(.title3)
+                            Image(systemName: "pencil").font(.title3.weight(.semibold)).foregroundStyle(Theme.Paper.green).accessibilityHidden(true)
+                        }
+                        .frame(minHeight: 48)
+                        Rectangle().fill(Theme.Paper.green).frame(height: 1.5).accessibilityHidden(true)
+                    }
+                    .accessibilityLabel("Your name")
+                    PageRule()
+                    heading("♥", "Your face")
+                    HStack(spacing: 0) {
                         ForEach(Array(Cast.playerChoices.enumerated()), id: \.offset) { index, choice in
+                            let chosen = portrait == choice
                             Button { withAnimation(Theme.Motion.press) { portrait = choice } } label: {
-                                PortraitView(portrait: choice, size: 72)
-                                    .opacity(portrait == choice ? 1 : Theme.Card.dimmedOpacity)
-                                    .overlay(Circle().stroke(Color.suitRed, lineWidth: portrait == choice ? 3 : 0))
+                                PortraitView(portrait: choice, size: 60)
+                                    .padding(4)
+                                    .overlay(Circle().stroke(Theme.Paper.green, lineWidth: chosen ? 3 : 0))
+                                    .overlay(alignment: .bottomTrailing) {
+                                        if chosen {
+                                            Image(systemName: "checkmark.circle.fill").font(.title3)
+                                                .foregroundStyle(.ivory, Theme.Paper.green)
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.plain)
                             .accessibilityLabel("Face \(index + 1)")
-                            .accessibilityAddTraits(portrait == choice ? .isSelected : [])
+                            .accessibilityAddTraits(chosen ? .isSelected : [])
                         }
-                    }.frame(maxWidth: .infinity)
-                    DisclosureGroup("Make your own face") {
-                        FaceBuilder(portrait: $portrait, ring: .suitRed).padding(.top, 8)
                     }
-                    .font(.headline).tint(.ivory)
-                }
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Computer strength").font(.headline)
-                    Picker("Computer strength", selection: $difficulty) {
-                        Text("Easy").tag(Difficulty.easy)
-                        Text("Standard").tag(Difficulty.standard)
-                    }.pickerStyle(.segmented)
+                    DisclosureGroup("Make your own face") {
+                        FaceBuilder(portrait: $portrait).padding(.top, 8)
+                    }
+                    .font(.title3.weight(.medium)).tint(Theme.Paper.green)
+                    PageRule()
+                    heading("♠", "Computer strength")
+                    PaperSwitch(options: [("Easy", Difficulty.easy), ("Standard", Difficulty.standard)], selection: $difficulty, ticks: true)
                     Text("Easy players use the original strategy and lose about two matches in three to Standard. Hints always use Standard.")
-                        .font(.footnote).opacity(0.7)
+                        .font(.subheadline).fixedSize(horizontal: false, vertical: true)
                 }
-
-                Button(action: sitDown) {
-                    Text("New match").font(.headline).frame(maxWidth: .infinity).frame(minHeight: 50)
-                }
-                .buttonStyle(.borderedProminent).tint(Color.suitRed).foregroundStyle(.ivory)
-                .disabled(trimmed.isEmpty)
-                .padding(.top, 8)
+                .foregroundStyle(Theme.Paper.ink)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(20)
+                .paperCard()
+                .environment(\.colorScheme, .light)
             }
-            .padding(24).frame(maxWidth: 480).frame(maxWidth: .infinity)
+            .padding(.horizontal, 12).padding(.bottom, 12)
+            .frame(maxWidth: 480).frame(maxWidth: .infinity)
         }
-        .foregroundStyle(.ivory)
+        .scrollDismissesKeyboard(.interactively)
+        // The way in stays in sight whatever the page or the keyboard is doing (D191).
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: 6) {
+                Button(action: sitDown) {
+                    HStack(spacing: 10) {
+                        Text("New match")
+                        Image(systemName: "arrow.right").accessibilityHidden(true)
+                    }
+                }
+                .buttonStyle(PaperButtonStyle())
+                .disabled(trimmed.isEmpty)
+                .opacity(trimmed.isEmpty ? 0.55 : 1)
+                Text(trimmed.isEmpty ? "Add your name to start. It stays on this device." : "This stays on your device.")
+                    .font(.footnote).foregroundStyle(.ivory.opacity(0.8))
+            }
+            .padding(.horizontal, 16).padding(.top, 10).padding(.bottom, 8)
+            .frame(maxWidth: 480).frame(maxWidth: .infinity)
+            .background(Theme.Wood.header.opacity(0.92).ignoresSafeArea(edges: .bottom))
+        }
         .background(WoodGrainView().ignoresSafeArea())
         .preferredColorScheme(.dark)
-        .onAppear { difficulty = model.settings.difficulty; nameFocused = true }
+        // The keyboard waits for a tap on the name: on arrival it hid the faces, the strength and the way in (D191).
+        .onAppear { difficulty = model.settings.difficulty }
+    }
+
+    /// A section's name in the display serif, behind its suit, as Settings has it.
+    private func heading(_ suit: String, _ title: String) -> some View {
+        HStack(spacing: 10) {
+            Text(suit).foregroundStyle(Color.suitRed).accessibilityHidden(true)
+            Text(title).accessibilityAddTraits(.isHeader)
+        }
+        .font(.system(.title2, design: .serif).weight(.bold))
     }
 
     /// The keyboard modifiers exist only on iOS; the macOS test build needs the plain field.

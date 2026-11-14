@@ -1567,3 +1567,13 @@ from the table, so it reads the same from the menu and from a hand. The practice
 cutting off "Standard"; `PaperSwitch` gained a `compact` size for a switch that shares a row with a name. Three
 screenshot stages (`practice`, `chat`, `built`) open those pages headless, so they can be checked the same way.
 All thirteen pages, Practice, Chat, the explainer, Settings and the guest page were looked at in the simulator.
+
+## D191. Setting up your player is on the same paper as Settings (2026-11-14, proposed)
+
+The first page a new player sees was the last one in the old dark-wood style: a dark name field, three dimmed
+faces that looked switched off, a system grey Easy and Standard control, and a keyboard that opened on arrival and
+hid everything below the name, the way in included (Murph, 2026-11-13, with a phone screenshot: "This is our next
+ui to improve"). It now sits on the ivory card with the parts Settings already has: the name on a green underline,
+the four faces bright with a tick on the chosen one, the green paper switch. The keyboard waits for a tap on the
+name, and "New match" is pinned to the bottom of the screen with a line saying a name is needed. The page fits one
+iPhone 16 Pro screen without scrolling. A `login` screenshot stage opens it headless. Seen in the simulator.
